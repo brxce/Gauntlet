@@ -1,4 +1,4 @@
-Coop L4D2 *with x3 SI*  
+Coop L4D2 *with twelve SI*  
 -----------------------------------
 ######"VANILLA COOKIE" 
 _Vanilla L4D2_  
