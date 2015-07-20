@@ -1,7 +1,8 @@
 # Baker's Dozen
-A 'Hard 12' Config - Left 4 Dead 2 co-op game mode with 12 Special Infected
-
-Run with command !match hardcookie
+# a 'Hard 12' mod - Left 4 Dead 2 co-op game mode with 12 Special Infected
+[-] Baker's Dozen - ProMod based config: Four player Hard 12
+[-] Half Baked    - ProMod based config: Two player Hard 12
+[-] Vanilla Cookie - standalone vscript addon for Vanilla L4D2 coop
 
 Gamemode is designated by a coop based vscript(.nut/.nuc), specified in the config's confogl.cfg:
 [-] toxic: SI leak out constantly
@@ -11,10 +12,5 @@ HUD timer starts upon a survivor leaving the safe area and stops when the safero
 [-] !hidetimer to hide the timer HUD
 [-] !showtimer to show the timer HUD
 
-# Installation
-Copy and paste the folders into your server directory.
-If ProMod 4.0 has previously been installed on the server, the only plugins that need to be copied across are:
-[-] l4d_playerstats_fixed
-[-] l4d_tank_damage_announce_fixed
-[-] round_start_health_pills
+
 
