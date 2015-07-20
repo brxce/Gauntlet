@@ -1,4 +1,4 @@
-#Coop L4D2: x4 Special Infected
+#Coop L4D2 with four times the Special Infected
 -----------------------------------
 **=> Crawl through waves of 12 SI to gain the highest health bonus score**
 
