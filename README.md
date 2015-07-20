@@ -1,4 +1,4 @@
-#L4D2 co-op with 12 Special Infected  
+#L4D2 coop against 12 Special Infected  
 ##Vanilla Cookie  
 **_Vanilla L4D2_**  four player coop
 ##Baker's Dozen  
