@@ -1,4 +1,4 @@
-#Four times the Special Infected
+#Quadruple the Special Infected limit
 -----------------------------------
 **=> Crawl through waves of 12 SI to gain the highest health bonus score**
 
