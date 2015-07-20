@@ -3,9 +3,9 @@
 	[-] Half Baked    - ProMod based config: two player Hard 12  
 	[-] Vanilla Cookie - standalone vscript addon for Hard 12 coop in vanilla L4D2  
 
-##Custom mapscore  
-	[-] *only one attempt per map*
-	[-] health bonus system
+##Custom points system 
+	[-] end of round health bonus
+	[-] only one attempt per map
 
 ##Round timer  
 	[-] HUD display controlled by !showtimer and !hidetimer chat triggers 
