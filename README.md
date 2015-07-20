@@ -4,7 +4,7 @@
 	[-] Vanilla Cookie - standalone vscript addon for Hard 12 coop in vanilla L4D2  
 
 ##Custom mapscore  
-	[-] *only one attempt per campaign map*
+	[-] *only one attempt per map*
 	[-] health bonus system
 
 ##Round timer  
