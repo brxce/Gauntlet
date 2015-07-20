@@ -1,11 +1,11 @@
 #L4D2 coop against 12 Special Infected  
-###Vanilla Cookie  
+###VANILLA COOKIE 
 **_Vanilla L4D2_**  
 < 4 player >  
-###Baker's Dozen  
+###BAKER'S DOZEN
 **_ProMod based_**  
 < 4 player >  
-###Half Baked    
+###HALF BAKED 
 **_ProMod based_**  
 < 2 player >  
 
