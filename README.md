@@ -3,11 +3,13 @@
 	[-] Half Baked    - ProMod based config: two player Hard 12  
 	[-] Vanilla Cookie - standalone vscript addon for Hard 12 coop in vanilla L4D2  
 
-##Two gamemode vscripts:
-	[-] toxic: SI leak out constantly    
-	[-] noxious; SI spawn in waves    
+##Custom mapscore  
+	[-] *only one attempt per campaign map*
+	[-] health bonus system
 
-Round timer - controlled by !showtimer and !hidetimer chat trigg
+##Round timer  
+	[-] HUD display controlled by !showtimer and !hidetimer chat triggers 
+	[-] End of round printouts
 
 
 
