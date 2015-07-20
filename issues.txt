@@ -1,0 +1,23 @@
+HARDCOOKIE
+by High Cookie, Breezy and Standalone
+
+//---------
+///Bugs////
+//---------------------------------------------------------------------------------------------------
+[-] Pills
+	- On any round following a wipe, pills are not given to survivors
+[-] tank MVP % incorrect?
+[-] playerstats rollover after wipe until successful map completion
+[-] guns changing in the saferoom, or being put in twice (confoglcompmod vs campaign issue?)
+[-] plugin load order might be incorrect or badly ordered 
+[-] timer freezing on 0m 0s during 2nd/3rd maps of a campaign
+
+//------------------
+///Potential future features///
+//---------------------------------------------------------------------------------------------------
+[-] Add ammo piles in stripper around scout pickups
+[-] Health bonus calculation upon completion of a map
+
+
+
+
