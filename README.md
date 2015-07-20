@@ -1,4 +1,4 @@
-coop *with triple the Special Infected*  
+Coop L4D2 *with triple the Special Infected*  
 -----------------------------------
 ######"VANILLA COOKIE" 
 _Vanilla L4D2_  
