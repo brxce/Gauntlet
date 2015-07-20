@@ -6,14 +6,5 @@
 ##Half Baked  
 *ProMod based config: two player Hard 12*
 
-###Features  
-*Custom points system*  
-- end of round health bonus  
-- only one attempt per map 
-
-*Round timer*    
-- HUD display controlled by !showtimer and !hidetimer chat triggers 
-- End of round printouts
-
 
 
