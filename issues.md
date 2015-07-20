@@ -1,5 +1,5 @@
-HARDCOOKIE
-by High Cookie, Breezy and Standalone
+# ISSUES
+Baker's Dozen
 
 //---------
 ///Bugs////
@@ -10,7 +10,6 @@ by High Cookie, Breezy and Standalone
 [-] playerstats rollover after wipe until successful map completion
 [-] guns changing in the saferoom, or being put in twice (confoglcompmod vs campaign issue?)
 [-] plugin load order might be incorrect or badly ordered 
-[-] timer freezing on 0m 0s during 2nd/3rd maps of a campaign
 
 //------------------
 ///Potential future features///
