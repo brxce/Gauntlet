@@ -1,6 +1,12 @@
-# Installation
-Copy and paste the folders into your server directory.
-If ProMod 4.0 has previously been installed on the server, the only plugins that need to be copied across are:
+## Installation
+#Standalone vscript add-on: Vanilla Cookie
+[-] download vanillacookie.vpk into your add-ons folder
+
+ProMod based configs: Baker's Dozen, Half Baked
+If ProMod 4.0 or above has previously been installed on the server, copy:
+Plugins
 [-] l4d_playerstats_fixed
 [-] l4d_tank_damage_announce_fixed
 [-] round_start_health_pills
+
+
