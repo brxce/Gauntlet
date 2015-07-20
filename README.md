@@ -1,6 +1,7 @@
 #Coop L4D2, x4 Special Infected
-Crawl through waves of 12 SI to gain the highest health bonus score
 -----------------------------------
+*Crawl through waves of 12 SI to gain the highest health bonus score*
+
 ######"VANILLA COOKIE" 
 _Vanilla L4D2_  
 < 4 player >  
