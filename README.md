@@ -3,6 +3,7 @@
 ##Baker's Dozen - ProMod based config: four player Hard 12  
 ##Half Baked    - ProMod based config: two player Hard 12  
 
+###Features  
 *Custom points system*  
 - end of round health bonus  
 - only one attempt per map 
