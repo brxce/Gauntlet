@@ -1,5 +1,4 @@
-#Coop L4D2
-*w/ twelve SI*  
+#Coop L4D2 *w/ 12 Special Infected*  
 -----------------------------------
 ######"VANILLA COOKIE" 
 _Vanilla L4D2_  
