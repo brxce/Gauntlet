@@ -7,6 +7,7 @@
 [-] l4d_playerstats_fixed  
 [-] l4d_tank_damage_announce_fixed  
 [-] round_start_health_pills  
+
 ####and the cfg, modes and scripts folders
 ###Otherwise  
 	[-] Copy all folders into your server directory  
