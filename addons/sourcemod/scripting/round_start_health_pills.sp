@@ -79,21 +79,21 @@ public GiveStartingItems()
 	{
 		if (IsClientInGame(client) && GetClientTeam(client)==2)
 		{
-			if (GetPlayerWeaponSlot(client, 5) == -1) 
-			{
-				GiveItem(client, "pain_pills");
-			}
 			decl String:name[63]
 			GetClientName(client, name, sizeof(name));
-			PrintToServer("==== Giving %s health", name);
 			
-			GiveItem(client, "health");
+			if (GetPlayerWeaponSlot(client, 5) == -1) 
+			{
+				GiveItem(client, "pain_pills"); //pills
+			}		
 			
+			PrintToServer("==== Giving %s health", name);			
+			GiveItem(client, "health"); //give full health			
 			new Float:buffhp = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
-			if (buffhp > 0.0)
+			if (buffhp > 0.0) //remove temp hp
 			{
 				PrintToServer("==== Player %s has %f buffer HP", name, buffhp);
-				SetTempHealth(client, 0.0);
+				SetTempHealth(client, 0.0); 
 				PrintToServer("==== Player %s has had buffer HP removed", name);
 			}
 		}

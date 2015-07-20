@@ -14,6 +14,7 @@ Baker's Dozen
 //------------------
 ///Potential future features///
 //---------------------------------------------------------------------------------------------------
+[-] Decreased spawn radius cvar - might help with holdout finales
 [-] Add ammo piles in stripper around scout pickups
 [-] Health bonus calculation upon completion of a map
 

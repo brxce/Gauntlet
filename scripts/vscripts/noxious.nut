@@ -96,18 +96,13 @@ function EasyLogic::Update::CyleStage()
 				}
 				break;
 		}
-	}
-	
+	}	
 }
 
 function EasyLogic::Update::UpdateRoundTime() //increments the total round time
 {
 	if (RoundVars.ShouldRunRoundTimer)
 	{
-		if (RoundVars.RoundTimer == 0)
-		{
-			Utils.SayToAll("Round Timer started!")
-		}
 		RoundVars.RoundTimer++
 		SessionState.MinutesComponent = floor(RoundVars.RoundTimer/60)
 		SessionState.SecondsComponent = RoundVars.RoundTimer % 60
@@ -119,55 +114,15 @@ function EasyLogic::Update::UpdateRoundTime() //increments the total round time
 // GAME EVENT DIRECTIVES
 //-----------------------------------------------------------------------------------------------------------------------------
 
-//Round Timer stop directives
-function Notifications::OnDoorClosed::AnnounceFinalTime ( entity, checkpoint, params )
+function OnRoundStart()
 {
-	if (checkpoint == 1) //this is a saferoom door that has been closed
-	{
-		RoundVars.ShouldRunRoundTimer = false
-		Utils.SayToAll("Round Time: "+SessionState.MinutesComponent+"m "+SessionState.SecondsComponent+"s") //total time in minutes and seconds
-	}
+	timer.Hide() //hide by default
 }
 
-/* Keeping this old map transition method in case the above function hooked on 'door closed' events has bugs
+//Round Timer stop directives
 function Notifications::OnMapEnd::EndRoundTimer()
 {
 	RoundVars.ShouldRunRoundTimer = false 
-	Utils.SayToAll("Round Time: "+SessionState.MinutesComponent+"m "+SessionState.SecondsComponent+"s") //total time in minutes and seconds
-}
-*/
-
-//Restoring health to full at the end of each map
-survivors <-
-{
-   //L4D1 survivors
-   louis =  "models/survivors/survivor_manager.mdl"
-   francis = "models/survivors/survivor_biker.mdl"
-   zoey = "models/survivors/survivor_teenangst.mdl"
-   bill = "models/survivors/survivor_namvet.mdl"
-   
-   //L4D2 survivors
-   coach = "models/survivors/survivor_coach.mdl"
-   ellis = "models/survivors/survivor_mechanic.mdl"
-   nick = "models/survivors/survivor_gambler.mdl"
-   rochelle = "models/survivors/survivor_producer.mdl"
-}
-function Notifications::OnMapEnd::GiveHealth()
-{	 	
-	foreach( s,m in survivors )
-	{
-		printl ("looking for "+s+" mdl:"+m);
-		survivor <- Entities.FindByModel(null, m)
-		if (survivor)
-		{
-			printl(s+" found, health restored: "+survivor);
-			survivor.SetHealth(100)		
-		}
-		else
-		{
-			printl(s+" NOT FOUND!: "+survivor);
-		}
-   }
 }
 
 //Tracking SI numbers through their spawn and death events. Not currently used, but may be useful later
@@ -193,12 +148,10 @@ function Notifications::OnDeath::PlayerInfectedDied( victim, attacker, params )
 //No spitters during tank
 function Notifications::OnTankSpawned::StopSpitterSpawns( entity, params )
 {
-	Utils.SayToAll( "TANK SPAWNED" )
 	SessionOptions.SpitterLimit = 0
 }
 function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, params )
 {
-	Utils.SayToAll( "TANK KILLED" )
 	SessionOptions.SpitterLimit = 2
 }
 
