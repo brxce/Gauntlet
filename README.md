@@ -1,4 +1,4 @@
-#Coop L4D2 *w/ 12 Special Infected*  
+#Coop L4D2 w/ the Special Infected limit raised to 12 
 -----------------------------------
 ######"VANILLA COOKIE" 
 _Vanilla L4D2_  
