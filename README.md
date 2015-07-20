@@ -1,4 +1,4 @@
-# 'Hard 12' *Left 4 Dead 2 co-op game mode with 12 Special Infected*
+# 'Hard 12' *L4D2 co-op with 12 Special Infected*
   [-] Baker's Dozen - ProMod based config: Four player Hard 12
   [-] Half Baked    - ProMod based config: Two player Hard 12
   [-] Vanilla Cookie - standalone vscript addon for Hard 12 coop in vanilla L4D2
