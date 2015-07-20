@@ -1,5 +1,4 @@
-#L4D2 coop 
-with triple the Special Infected  
+#L4D2 coop *with triple the Special Infected*  
 -----------------------------------
 ######"VANILLA COOKIE" 
 _Vanilla L4D2_  
