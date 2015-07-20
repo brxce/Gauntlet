@@ -1,4 +1,5 @@
-#L4D2 coop vs 12 Special Infected  
+#L4D2 coop 
+vs 12 Special Infected  
 -----------------------------------
 ######"VANILLA COOKIE" 
 _Vanilla L4D2_  
