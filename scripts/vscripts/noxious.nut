@@ -8,9 +8,6 @@ IncludeScript("VSLib");
 STAGE_SPAWNING_SI   	<- 0        // spawning SI
 STAGE_MAX_SI_SPAWNED   	<- 1        // stop SI spawns
 STAGE_COOLDOWN			<- 2        // waiting period between SI hits
-//Time between SI hits
-ENC_MIN_INTERVAL	<- 40
-ENC_MAX_INTERVAL	<- 45
 //Timer(seconds) - Round Variables are reset every round
 RoundVars.RoundTimer <- 0	
 RoundVars.ShouldRunRoundTimer <- false
@@ -55,6 +52,8 @@ MutationOptions <-
 MutationState <-
 {
 	InDebugMode = false
+	//Time between SI hits
+	SpawnInterval = 40
 	TimeBeforeNextHit = 0
 	//Used to display the round time in minutes second format
 	MinutesComponent = 0
@@ -80,7 +79,7 @@ function EasyLogic::Update::CyleStage()
 				break;
 			case STAGE_MAX_SI_SPAWNED:
 				SessionOptions.cm_MaxSpecials = 0 //stop more SI spawning
-				SessionState.TimeBeforeNextHit = RandomInt ( ENC_MIN_INTERVAL, ENC_MAX_INTERVAL )
+				SessionState.TimeBeforeNextHit = SessionState.SpawnInterval
 				RoundVars.CurrentStage = STAGE_COOLDOWN
 				break;
 			case STAGE_COOLDOWN:				
@@ -120,9 +119,10 @@ function OnRoundStart()
 }
 
 //Round Timer stop directives
-function Notifications::OnMapEnd::EndRoundTimer()
+function Notifications::OnMapEnd::CleanUp()
 {
 	RoundVars.ShouldRunRoundTimer = false 
+	Utils.SanitizeHeldWeapons() //take away primary and melee weapons from survivors
 }
 
 //Tracking SI numbers through their spawn and death events. Not currently used, but may be useful later
@@ -170,4 +170,12 @@ function ChatTriggers::showtimer ( player, args, text )
 function ChatTriggers::hidetimer ( player, args, text )
 {
 	timer.Hide()
+}
+
+function ChatTriggers::setspawninterval ( player, args, text )
+{
+	local time = GetArgument(1)
+	Utils.SayToAll("SI spawn interval set to %s", time)
+	time = time.tointeger()
+	SessionState.SpawnInterval = time
 }

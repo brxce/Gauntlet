@@ -33,7 +33,7 @@ MutationOptions <-
 	
 	//SI Details
 	cm_AggressiveSpecials = true
-	PreferredSpecialDirection = SPAWN_SURVIVORS
+	PreferredSpecialDirection = SPAWN_SPECIALS_ANYWHERE
 	ShouldAllowSpecialsWithTank = true
 	ShouldAllowMobsWithTank = false
 	
