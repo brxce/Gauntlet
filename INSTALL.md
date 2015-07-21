@@ -1,6 +1,7 @@
 # Installation  
 >##Standalone vscript add-on: Vanilla Cookie    
- * download vanillacookie.vpk into your add-ons folder    
+ * download vanillacookie.vpk into your add-ons folder  
+
 >##ProMod based configs: Baker's Dozen, Half Baked   
 >>###*If ProMod 4.0 or above is already installed on the server, copy the plugins:*    
  * l4d_playerstats_fixed  
