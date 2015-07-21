@@ -1,6 +1,6 @@
 #'Quadruple' the Special Infected limit 
 ------------------------------------------------------------------  
-**SI encroach in waves of 12! Survive with permanent health until the saferoom to earn _health bonus_ points!**  
+**SI encroach in waves of 12! Preserve permanent health to earn _health bonus_ points at the saferoom!**  
 >######"VANILLA COOKIE" 
 >>_Vanilla L4D2_  
 >>< 4 player >  
