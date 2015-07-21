@@ -1,6 +1,6 @@
 #'Quadruple' the Special Infected limit 
 ------------------------------------------------------------------  
-**Crawl through waves of 12 SI in these gamemodes to earn health bonus points at the saferoom!**  
+**Crawl through waves of 12 SI in these gamemodes to earn _health bonus_ points at the saferoom!**  
 >######"VANILLA COOKIE" 
 >>_Vanilla L4D2_  
 >>< 4 player >  
