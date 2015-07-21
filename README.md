@@ -1,6 +1,6 @@
 #'Quadruple' the Special Infected limit 
 ------------------------------------------------------------------  
-**Crawl through waves of 12 SI to score the highest team health bonus!**  
+**Crawl through waves of 12 SI in these gamemodes, earning health bonus and distance points along the way!**  
 ######"VANILLA COOKIE" 
 _Vanilla L4D2_  
 < 4 player >  
