@@ -23,10 +23,13 @@
 	Bibliography:
 	'l4d2_scoremod' by CanadaRox, ProdigySim
 	'damage_bonus' by CanadaRox, Stabby
+	'l4d2_scoringwip' by ProdigySim
+	'srs.scoringsystem' by AtomicStryker
 	'eq2_scoremod' by Visor
 */
 
 #pragma semicolon 1
+#define SM_DEBUG 1
 
 #include <sourcemod>
 #include <sdkhooks>
@@ -76,6 +79,9 @@ public Plugin:myinfo = {
 };
 
 public OnPluginStart() {
+	#if SM_DEBUG
+	PrintToChatAll("Scoremod started.");
+	#endif
 	//Changing console variables
 	hCvarSurvivalBonus = FindConVar("vs_survival_bonus");
 	hCvarTieBreaker = FindConVar("vs_tiebreak_bonus");
@@ -100,6 +106,9 @@ public OnConfigsExecuted() {
 	SetConVarInt(hCvarTieBreaker, 0);
 	iTeamSize = GetConVarInt(FindConVar("survivor_limit"));
 	fMapDistance = float(L4D_GetVersusMaxCompletionScore()); //@verify?
+	#if SM_DEBUG
+		PrintToChatAll("Map distance: %d", fMapDistance);
+	#endif
 }
 
 public OnRoundStart() {
@@ -138,10 +147,10 @@ public Action:L4D2_OnEndVersusModeRound() { //bool:countSurvivors could possibly
 //@TODO: fix the tag mismatch errors
 public Action:PrintRoundEndStats(Handle:timer) {
 	if (bInSecondHalf == false) {
-		//PrintToChatAll( "\x01[\x04SM\x01 :: Round \x031\x01] Bonus: \x05%i\x01/\x05%i\x01", RoundToFloor(fBonusScore[TEAM_ONE]), RoundToFloor(fMapBonus) );
+		PrintToChatAll( "\x01[\x04SM\x01 :: Round \x031\x01] Bonus: \x05%d\x01/\x05%d\x01", RoundToFloor(fBonusScore[TEAM_ONE]), RoundToFloor(fMapBonus) );
 		// [SM :: Round 1] Bonus: 487/1200 
 	} else {
-		//PrintToChatAll( "\x01[\x04SM\x01 :: Round \x032\x01] Bonus: \x05%i\x01/\x05%i\x01", RoundToFloor(fBonusScore[TEAM_TWO]), RoundToFloor(fMapBonus) );
+		PrintToChatAll( "\x01[\x04SM\x01 :: Round \x032\x01] Bonus: \x05%d\x01/\x05%d\x01", RoundToFloor(fBonusScore[TEAM_TWO]), RoundToFloor(fMapBonus) );
 		// [SM :: Round 2] Bonus: 487/1200 
 	}
 }
@@ -237,6 +246,9 @@ Float:GetPermBonus() {
 		}
 	}		
 	new Float:fPermBonus = iPermHealth * float(hCVarPermHealthMultiplier);
+	#if SM_DEBUG
+		PrintToChatAll("PermBonus: %f", fPermBonus);
+	#endif
 	return (fPermBonus > 0 ? fPermBonus: 0.0);
 }
 
@@ -261,12 +273,18 @@ Float:GetTempBonus() {
 	iTempHealth -= (iScavengedPillsEaten * SCAVENGED_PILL_PENALTY);
 	iTempHealth -= (iIncapsSuffered * INCAP_HEALTH);
 	new Float:fTempBonus = float(iTempHealth * TEMP_HEALTH_MULTIPLIER); // x1
+	#if SM_DEBUG
+		PrintToChatAll("TempBonus: %f", fTempBonus);
+	#endif
 	return (fTempBonus > 0 ? fTempBonus : 0);
 }
 
 Float:GetMapMultiplier() { // (2 * Map Distance)/Max health bonus (1040 by default w/ 1.5 perm health multiplier)
 	new Float:fMaxPermBonus = MAX_HEALTH * float(hCVarPermHealthMultiplier);
 	new Float:fMapMultiplier = ( 2 * fMapDistance )/( iTeamSize*(fMaxPermBonus + STARTING_PILL_BONUS + TOTAL_INCAP_HEALTH));
+	#if SM_DEBUG
+		PrintToChatAll("Map Multiplier: %f", fMapMultiplier);
+	#endif
 	return fMapMultiplier;
 }
 	
