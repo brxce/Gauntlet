@@ -111,14 +111,8 @@ function EasyLogic::Update::UpdateRoundTime() //increments the total round time
 }
 //-----------------------------------------------------------------------------------------------------------------------------
 // GAME EVENT DIRECTIVES
-//-----------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------//Round Timer stop directives
 
-function OnRoundStart()
-{
-	timer.Hide() //hide by default
-}
-
-//Round Timer stop directives
 function Notifications::OnMapEnd::CleanUp()
 {
 	RoundVars.ShouldRunRoundTimer = false 
@@ -175,7 +169,13 @@ function ChatTriggers::hidetimer ( player, args, text )
 function ChatTriggers::setspawninterval ( player, args, text )
 {
 	local time = GetArgument(1)
-	Utils.SayToAll("SI spawn interval set to %s", time)
-	time = time.tointeger()
-	SessionState.SpawnInterval = time
+	local interval = time.tointeger()
+	if ( interval < 0 ) 
+	{
+		Utils.SayToAll("Spawn interval must be >= 0")
+	} else {
+		Utils.SayToAll("SI spawn interval set to %s", interval)
+		time = time.tointeger()
+		SessionState.SpawnInterval = time
+	}	
 }

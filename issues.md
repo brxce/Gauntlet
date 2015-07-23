@@ -15,8 +15,17 @@ Baker's Dozen
 ///Potential future features///
 //---------------------------------------------------------------------------------------------------
 [-] Decreased spawn radius cvar - might help with holdout finales
-[-] Add ammo piles in stripper around scout pickups
+[-] Map skip option
+[-] confogl_addcvar set_safe_spawn_range 0
+[-] adjust Weapon capacity
+[-] Consistent tank support timing
+[-] Delay first hit of SI
+[-] Fix Cookie's plugin
 [-] Health bonus calculation upon completion of a map
+[-] Accurate tank and witch percentage
+[-] Confogl health items
+[-] Remove revive closest functionality
+[-] hats: https://forums.alliedmods.net/showthread.php?p=1441080
 
 
 
