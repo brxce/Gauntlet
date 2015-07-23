@@ -24,6 +24,14 @@ Baker's Dozen
 [-] Health bonus calculation upon completion of a map
 [-] Accurate tank and witch percentage
 [-] Confogl health items
+[-] Start rounds like versus
+	1:26 AM - High Cookie: AcceptEntityInput(entity, "kill");
+	1:27 AM - High Cookie: that deletes the gun
+	1:27 AM - High Cookie: new entity = GetPlayerWeaponSlot(client, 0);
+	new flagsgive = GetCommandFlags("give");
+	SetCommandFlags("give", flagsgive & ~FCVAR_CHEAT);
+	FakeClientCommand(client, "give %s", weaponname);
+	SetCommandFlags("give", flagsgive|FCVAR_CHEAT);
 [-] Remove revive closest functionality
 [-] hats: https://forums.alliedmods.net/showthread.php?p=1441080
 
