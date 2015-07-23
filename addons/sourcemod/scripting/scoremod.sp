@@ -34,21 +34,26 @@
 #include <l4d2_direct>
 #include <l4d2lib>
 
-new	TEMP_HEALTH_MULTIPLIER 	= 1; //having a multiplier of x1 simplifies the numbers of all the types of temp health
-new	STARTING_PILL_BONUS		= 50; //for survivors to lose; applies to starting four pills only
-new	SCAVENGED_PILL_PENALTY	= 50; //fast movement is its own reward, granting bonus for scavenged pills makes for a convoluted system
-new	INCAP_HEALTH			= 30; //this for survivors to lose, and also handily accounts for the 30 temp health gained when revived
-new	MAX_INCAPS				= 2;
-new	TOTAL_INCAP_HEALTH		= _:INCAP_HEALTH * _:MAX_INCAPS;
-new	MAX_HEALTH				= 100;
-new	TEAM_ONE				= 0;
-new	TEAM_TWO				= 1;
+#define	TEMP_HEALTH_MULTIPLIER 	1; //having a multiplier of x1 simplifies the numbers of all the types of temp health
+#define	STARTING_PILL_BONUS		50; //for survivors to lose; applies to starting four pills only
+#define	SCAVENGED_PILL_PENALTY	50; //fast movement is its own reward, granting bonus for scavenged pills makes for a convoluted system
+#define	INCAP_HEALTH			30; //this for survivors to lose, and also handily accounts for the 30 temp health gained when revived
+#define	MAX_INCAPS				2;
+#define	TOTAL_INCAP_HEALTH		(INCAP_HEALTH * MAX_INCAPS);
+#define	MAX_HEALTH				100;
+//TEAM_ONE = 0; 
+//new const TEAM_TWO = 1;
+enum Teams
+{
+   TEAM_ONE = 0,  
+   TEAM_TWO = 1,  
+};
 
 new bool:bInSecondHalf = true; //flipped at the start of every round i.e. at the start of the game it becomes false
 new bool:bIsRoundOver;
-new Float:fMapBonus;
 new Float:fBonusScore[2]; //the final health bonus for the round after map multiplier has been applied
-new iMapDistance;
+new Float:fMapBonus;
+new Float:fMapDistance;
 new iTeamSize;
 new iPillsConsumed;
 
@@ -96,7 +101,7 @@ public OnConfigsExecuted() {
 
 	SetConVarInt(hCvarTieBreaker, 0);
 	iTeamSize = GetConVarInt(FindConVar("survivor_limit"));
-	iMapDistance = L4D_GetVersusMaxCompletionScore(); //@verify?
+	fMapDistance = float(L4D_GetVersusMaxCompletionScore()); //@verify?
 }
 
 public OnRoundStart() {
@@ -110,15 +115,11 @@ public OnPillsUsed() {
 }
 
 public Action:L4D2_OnEndVersusModeRound() { //bool:countSurvivors could possibly be used as a parameter here
-	static iTeam;
-	
 	if (!bInSecondHalf) {
-		iTeam = _:TEAM_ONE;
+		fBonusScore[_:TEAM_ONE] = CalculateBonusScore();
 	} else {
-		iTeam = _:TEAM_TWO;
+		fBonusScore[_:TEAM_TWO] = CalculateBonusScore();
 	}
-
-	fBonusScore[iTeam] = CalculateBonusScore();
 	//Check if team has wiped
 	static iSurvivalMultiplier = CountUprightSurvivors();
 	if (iSurvivalMultiplier == 0) { 
@@ -148,7 +149,7 @@ public OnPluginEnd() {
 }
 
 public CvarChanged(Handle:convar, const String:oldValue[], const String:newValue[]) {
-	OnConfigsExecuted(); //readjust if survivor_limitm perm health multiplier etc. are changed mid game
+	OnConfigsExecuted(); //re-adjust if survivor_limit, perm health multiplier etc. are changed mid game
 }
 
 public Action:CmdBonus(client, args) {
@@ -210,17 +211,17 @@ bool:IsPlayerLedged(client)
 }
 
 CalculateBonusScore() {// Apply map multiplier to the sum of the permanent and temporary health bonuses
-	new fPermBonus = GetPermComponent();
-	new fTempBonus = GetTempComponent();
-	new fMapMultiplier = GetMapMultiplier();
-	new fHealth = fPermBonus + fTempBonus;
-	new fHealthBonus = fHealth * fMapMultiplier;
+	new Float:fPermBonus = GetPermComponent();
+	new Float:fTempBonus = GetTempComponent();
+	new Float:fMapMultiplier = GetMapMultiplier();
+	new Float:fHealth = fPermBonus + fTempBonus;
+	new Float:fHealthBonus = fHealth * fMapMultiplier;
 	return fHealthBonus;
 }
 
 // Permanent health held * multiplier (1.5 by default)
 GetPermBonus() { 
-	static fPermHealth = 0;
+	static Float:fPermHealth = 0;
 	for (new index = 1; index < MaxClients; index++)
 	{
 		if (IsSurvivor(index) && !IsPlayerIncap(index)) {//if it is a non-incapped survivor
@@ -228,7 +229,7 @@ GetPermBonus() {
 			fPermHealth += (GetEntProp(index, Prop_Send, "m_currentReviveCount") > 0) ? 0 : (GetEntProp(index, Prop_Send, "m_iHealth") > 0) ? GetEntProp(index, Prop_Send, "m_iHealth") : 0;
 		}
 	}		
-	static fPermBonus = fPermHealth * hCVarPermHealthMultiplier;
+	static Float:fPermBonus = fPermHealth * hCVarPermHealthMultiplier;
 	return (fPermBonus > 0 ? fPermBonus: 0);
 }
 
@@ -258,8 +259,8 @@ GetTempBonus() {
 }
 
 GetMapMultiplier() { // (2 * Map Distance)/Max health bonus (1040 by default w/ 1.5 perm health multiplier)
-	static iMaxPermBonus = MAX_HEALTH * hCVarPermHealthMultiplier;
-	static iMapMultiplier = ( 2 * iMapDistance )/( iTeamSize*(iMaxPermBonus + STARTING_PILL_BONUS + TOTAL_INCAP_HEALTH));
-	return iMapMultiplier;
+	static Float:fMaxPermBonus = float(MAX_HEALTH) * hCVarPermHealthMultiplier;
+	static Float:fMapMultiplier = ( 2 * iMapDistance )/( iTeamSize*(iMaxPermBonus + STARTING_PILL_BONUS + TOTAL_INCAP_HEALTH));
+	return float(iMapMultiplier);
 }
 	
