@@ -64,10 +64,16 @@ new Handle:hCvarSurvivalBonus;
 new Handle:hCvarTieBreaker;
 
 /*
-Bonus = (perm * multiplier + temp + pills * 50 - 50 * external pills -30 * incaps total) * map multiplier
-Map multiplier = total health bonus for map / total bonus by full hp
-	Total bonus by full hp would be ( 100*perm multiplier + 60 (2 incaps) + 50 (pills) ) *4 survivors
-	Total health bonus = 2* map distance
+Bonus = 
+total perm * multipler
++ total temp 
++ 50 * pills remaining 
+- 50 * pills consumed
+- 30 * team incaps avoided 
+
+Map multiplier = 
+	total health bonus for map (2* map distance)
+	/total bonus by full hp ( 100*perm multiplier + 60 (2 incaps) + 50 (pills) ) *4 survivors)
 */
 
 public Plugin:myinfo = {
