@@ -143,6 +143,7 @@ function Notifications::OnDeath::PlayerInfectedDied( victim, attacker, params )
 function Notifications::OnTankSpawned::StopSpitterSpawns( entity, params )
 {
 	SessionOptions.SpitterLimit = 0
+	SessionState.TimeBeforeNextHit = floor(WaveInterval/2)
 }
 function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, params )
 {
