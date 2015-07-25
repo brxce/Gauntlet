@@ -53,7 +53,7 @@ MutationState <-
 {
 	InDebugMode = false
 	//Time between SI hits
-	SpawnInterval = 40
+	WaveInterval = 40
 	TimeBeforeNextHit = 0
 	//Used to display the round time in minutes second format
 	MinutesComponent = 0
@@ -79,7 +79,7 @@ function EasyLogic::Update::CyleStage()
 				break;
 			case STAGE_MAX_SI_SPAWNED:
 				SessionOptions.cm_MaxSpecials = 0 //stop more SI spawning
-				SessionState.TimeBeforeNextHit = SessionState.SpawnInterval
+				SessionState.TimeBeforeNextHit = SessionState.WaveInterval
 				RoundVars.CurrentStage = STAGE_COOLDOWN
 				break;
 			case STAGE_COOLDOWN:				
@@ -166,16 +166,16 @@ function ChatTriggers::hidetimer ( player, args, text )
 	timer.Hide()
 }
 
-function ChatTriggers::setspawninterval ( player, args, text )
+function ChatTriggers::setwaveinterval ( player, args, text )
 {
 	local time = GetArgument(1)
 	local interval = time.tointeger()
 	if ( interval < 0 ) 
 	{
-		Utils.SayToAll("Spawn interval must be >= 0")
+		Utils.SayToAll("Wave interval must be >= 0")
 	} else {
-		Utils.SayToAll("SI spawn interval set to %s", interval)
+		Utils.SayToAll("SI wave interval set to %s", interval)
 		time = time.tointeger()
-		SessionState.SpawnInterval = time
+		SessionState.WaveInterval = time
 	}	
 }

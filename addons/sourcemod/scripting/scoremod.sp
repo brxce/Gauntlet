@@ -80,7 +80,7 @@ public Plugin:myinfo = {
 
 public OnPluginStart() {
 	#if SM_DEBUG
-	PrintToChatAll("Scoremod started.");
+		PrintToChatAll("Scoremod started.");
 	#endif
 	//Changing console variables
 	hCvarSurvivalBonus = FindConVar("vs_survival_bonus");
@@ -102,10 +102,10 @@ public OnPluginStart() {
 }
 
 public OnConfigsExecuted() {
-
 	SetConVarInt(hCvarTieBreaker, 0);
 	iTeamSize = GetConVarInt(FindConVar("survivor_limit"));
-	fMapDistance = float(L4D_GetVersusMaxCompletionScore()); //@verify?
+	new iDistance = L4D2_GetMapValueInt( "max_distance", L4D_GetVersusMaxCompletionScore() );
+	fMapDistance = float(iDistance);
 	#if SM_DEBUG
 		PrintToChatAll("Map distance: %d", fMapDistance);
 	#endif
@@ -165,7 +165,13 @@ public CvarChanged(Handle:convar, const String:oldValue[], const String:newValue
 }
 
 public Action:CmdBonus(client, args) {
+	#if SM_DEBUG
+		PrintToChatAll("CmdBonus() called");
+	#endif
 	if (bIsRoundOver || !client) {
+		#if SM_DEBUG
+			PrintToChatAll("bIsRoundOver = true || !client; ");
+		#endif
 		return Plugin_Handled;
 	} else {
 		new Float:fBonus = CalculateBonusScore();		
@@ -176,7 +182,6 @@ public Action:CmdBonus(client, args) {
 			PrintToChat( client, "\x01[\x04SM\x01 :: R\x03#2\x01] Bonus: \x05%d\x01", RoundToFloor(fBonus));
 			// [SM :: R#2] Bonus: 556
 		}	
-		return Plugin_Handled;
 	}	
 }
 

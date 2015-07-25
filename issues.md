@@ -14,16 +14,11 @@ Baker's Dozen
 //------------------
 ///Potential future features///
 //---------------------------------------------------------------------------------------------------
-[-] Decreased spawn radius cvar - might help with holdout finales
-[-] Map skip option
 [-] confogl_addcvar set_safe_spawn_range 0
-[-] adjust Weapon capacity
 [-] Consistent tank support timing
 [-] Delay first hit of SI
-[-] Fix Cookie's plugin
-[-] Health bonus calculation upon completion of a map
-[-] Accurate tank and witch percentage
 [-] Confogl health items
+[-] Fix Cookie's plugin
 [-] Start rounds like versus
 	1:26 AM - High Cookie: AcceptEntityInput(entity, "kill");
 	1:27 AM - High Cookie: that deletes the gun
@@ -32,6 +27,9 @@ Baker's Dozen
 	SetCommandFlags("give", flagsgive & ~FCVAR_CHEAT);
 	FakeClientCommand(client, "give %s", weaponname);
 	SetCommandFlags("give", flagsgive|FCVAR_CHEAT);
+[-] Accurate tank and witch percentage
+[-] Health bonus scoremod
+[-] Map skip option
 [-] Remove revive closest functionality
 [-] hats: https://forums.alliedmods.net/showthread.php?p=1441080
 
