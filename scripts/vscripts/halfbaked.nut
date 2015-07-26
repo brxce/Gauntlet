@@ -4,14 +4,10 @@ Msg("Activating Noxious\n");
 // Include the VScript Library
 IncludeScript("VSLib");
 
-MAX_SPECIALS	<- 6
 //Stages
 STAGE_SPAWNING_SI   	<- 0        // spawning SI
 STAGE_MAX_SI_SPAWNED   	<- 1        // stop SI spawns
 STAGE_COOLDOWN			<- 2        // waiting period between SI hits
-//Time between SI hits
-ENC_MIN_INTERVAL	<- 40
-ENC_MAX_INTERVAL	<- 45
 //Timer(seconds) - Round Variables are reset every round
 RoundVars.RoundTimer <- 0	
 RoundVars.ShouldRunRoundTimer <- false
@@ -27,13 +23,13 @@ MutationOptions <-
 	ActiveChallenge = 1	
 	
 	//SI specifications
-	cm_MaxSpecials = MAX_SPECIALS
-	cm_BaseSpecialLimit = 1 
-	DominatorLimit = 5 //dominators: charger, smoker, jockey, hunter
+	cm_MaxSpecials = 6
+	cm_BaseSpecialLimit = 3 
+	DominatorLimit = 9 //dominators: charger, smoker, jockey, hunter
 	HunterLimit = 3
-	BoomerLimit = 1
+	BoomerLimit = 2
 	SmokerLimit = 3
-	SpitterLimit = 1
+	SpitterLimit = 2
 	ChargerLimit = 3
 	JockeyLimit = 3
 	
@@ -56,6 +52,8 @@ MutationOptions <-
 MutationState <-
 {
 	InDebugMode = false
+	//Time between SI hits
+	WaveInterval = 40
 	TimeBeforeNextHit = 0
 	//Used to display the round time in minutes second format
 	MinutesComponent = 0
@@ -74,21 +72,21 @@ function EasyLogic::Update::CyleStage()
 		switch (RoundVars.CurrentStage)
 		{
 			case STAGE_SPAWNING_SI:
-				if ( RoundVars.SpecialsSpawned % MAX_SPECIALS == 0 ) //Every twelfth SI spawn, take a break
+				if ( RoundVars.SpecialsSpawned % 12 == 0 ) //Every twelfth SI spawn, take a break
 				{
 					RoundVars.CurrentStage = STAGE_MAX_SI_SPAWNED
 				}
 				break;
 			case STAGE_MAX_SI_SPAWNED:
 				SessionOptions.cm_MaxSpecials = 0 //stop more SI spawning
-				SessionState.TimeBeforeNextHit = RandomInt ( ENC_MIN_INTERVAL, ENC_MAX_INTERVAL )
+				SessionState.TimeBeforeNextHit = SessionState.WaveInterval
 				RoundVars.CurrentStage = STAGE_COOLDOWN
 				break;
 			case STAGE_COOLDOWN:				
 				//If cooldownperiod has finished, change current stage
 				if ( SessionState.TimeBeforeNextHit == 0 ) 
 				{
-					SessionOptions.cm_MaxSpecials = MAX_SPECIALS
+					SessionOptions.cm_MaxSpecials = 12
 					RoundVars.CurrentStage = STAGE_SPAWNING_SI
 				} 
 				else 
@@ -97,18 +95,13 @@ function EasyLogic::Update::CyleStage()
 				}
 				break;
 		}
-	}
-	
+	}	
 }
 
 function EasyLogic::Update::UpdateRoundTime() //increments the total round time
 {
 	if (RoundVars.ShouldRunRoundTimer)
 	{
-		if (RoundVars.RoundTimer == 0)
-		{
-			Utils.SayToAll("Round Timer started!")
-		}
 		RoundVars.RoundTimer++
 		SessionState.MinutesComponent = floor(RoundVars.RoundTimer/60)
 		SessionState.SecondsComponent = RoundVars.RoundTimer % 60
@@ -118,57 +111,11 @@ function EasyLogic::Update::UpdateRoundTime() //increments the total round time
 }
 //-----------------------------------------------------------------------------------------------------------------------------
 // GAME EVENT DIRECTIVES
-//-----------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------//Round Timer stop directives
 
-//Round Timer stop directives
-function Notifications::OnDoorClosed::AnnounceFinalTime ( entity, checkpoint, params )
-{
-	if (checkpoint == 1) //this is a saferoom door that has been closed
-	{
-		RoundVars.ShouldRunRoundTimer = false
-		Utils.SayToAll("Round Time: "+SessionState.MinutesComponent+"m "+SessionState.SecondsComponent+"s") //total time in minutes and seconds
-	}
-}
-
-/* Keeping this old map transition method in case the above function hooked on 'door closed' events has bugs
-function Notifications::OnMapEnd::EndRoundTimer()
+function Notifications::OnMapEnd::CleanUp()
 {
 	RoundVars.ShouldRunRoundTimer = false 
-	Utils.SayToAll("Round Time: "+SessionState.MinutesComponent+"m "+SessionState.SecondsComponent+"s") //total time in minutes and seconds
-}
-*/
-
-//Restoring health to full at the end of each map
-survivors <-
-{
-   //L4D1 survivors
-   louis =  "models/survivors/survivor_manager.mdl"
-   francis = "models/survivors/survivor_biker.mdl"
-   zoey = "models/survivors/survivor_teenangst.mdl"
-   bill = "models/survivors/survivor_namvet.mdl"
-   
-   //L4D2 survivors
-   coach = "models/survivors/survivor_coach.mdl"
-   ellis = "models/survivors/survivor_mechanic.mdl"
-   nick = "models/survivors/survivor_gambler.mdl"
-   rochelle = "models/survivors/survivor_producer.mdl"
-}
-function Notifications::OnMapEnd::GiveHealth()
-{	 	
-	foreach( s,m in survivors )
-	{
-		printl ("looking for "+s+" mdl:"+m);
-		survivor <- Entities.FindByModel(null, m)
-		if (survivor)
-		{
-			printl(s+" found, health restored: "+survivor);
-			survivor.SetHealth(100)		
-		}
-		else
-		{
-			printl(s+" NOT FOUND!: "+survivor);
-		}
-   }
 }
 
 //Tracking SI numbers through their spawn and death events. Not currently used, but may be useful later
@@ -194,12 +141,11 @@ function Notifications::OnDeath::PlayerInfectedDied( victim, attacker, params )
 //No spitters during tank
 function Notifications::OnTankSpawned::StopSpitterSpawns( entity, params )
 {
-	Utils.SayToAll( "TANK SPAWNED" )
 	SessionOptions.SpitterLimit = 0
+	SessionState.TimeBeforeNextHit = floor(WaveInterval/2)
 }
 function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, params )
 {
-	Utils.SayToAll( "TANK KILLED" )
 	SessionOptions.SpitterLimit = 2
 }
 
@@ -218,4 +164,18 @@ function ChatTriggers::showtimer ( player, args, text )
 function ChatTriggers::hidetimer ( player, args, text )
 {
 	timer.Hide()
+}
+
+function ChatTriggers::setwaveinterval ( player, args, text )
+{
+	local time = GetArgument(1)
+	local interval = time.tointeger()
+	if ( interval < 0 ) 
+	{
+		Utils.SayToAll("Wave interval must be >= 0")
+	} else {
+		Utils.SayToAll("SI wave interval set to %s", interval)
+		time = time.tointeger()
+		SessionState.WaveInterval = time
+	}	
 }

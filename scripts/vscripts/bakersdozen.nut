@@ -44,6 +44,22 @@ MutationOptions <-
 	PreferredSpecialDirection = SPAWN_SPECIALS_ANYWHERE
 	ShouldAllowSpecialsWithTank = true
 	ShouldAllowMobsWithTank = false
+	
+	//Removing medkits
+	weaponsToRemove =
+	{
+		weapon_first_aid_kit = 0
+		weapon_first_aid_kit_spawn = 0
+	}
+
+	function AllowWeaponSpawn( classname )
+	{
+		if ( classname in weaponsToRemove )
+		{
+			return false;
+		}
+		return true;
+	}	
 }	
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -116,7 +132,6 @@ function EasyLogic::Update::UpdateRoundTime() //increments the total round time
 function Notifications::OnMapEnd::CleanUp()
 {
 	RoundVars.ShouldRunRoundTimer = false 
-	Utils.SanitizeHeldWeapons() //take away primary and melee weapons from survivors
 }
 
 //Tracking SI numbers through their spawn and death events. Not currently used, but may be useful later

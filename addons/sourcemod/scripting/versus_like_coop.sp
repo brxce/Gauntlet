@@ -74,6 +74,7 @@ public ResetInventory()
 			for (new i = 0; i < 5; i++) { //clear all slots in player's inventory
 				if (i == SECONDARY_SLOT) { 
 					GiveItem(client, "pistol"); //ensures this is a single pistol
+					//EquipPlayerWeapon(client, "weapon_pistol"); ?
 				} else { //clear slot
 					new equipment = GetPlayerWeaponSlot(client, i);
 					AcceptEntityInput(equipment, "kill");

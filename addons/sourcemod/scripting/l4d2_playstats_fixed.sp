@@ -710,13 +710,6 @@ public OnPluginStart()
     }
 }
 
-public OnRoundStart()
-{
-	if ( !g_bModeVersus ) {
-		ResetStats(false, g_iCurTeam, true); //reset stats on round restart, 
-	}
-}
-
 /*
     Forwards from lgofnoc
     --------------------- */
@@ -834,7 +827,9 @@ public Event_MissionLostCampaign (Handle:hEvent, const String:name[], bool:dontB
     //PrintDebug( 2, "Event: MissionLost (times %i)", g_strGameData[gmFailed] + 1);
     g_strGameData[gmFailed]++;
     g_strRoundData[g_iRound][g_iCurTeam][rndRestarts]++;
-    
+    if ( !g_bModeVersus ) {
+		ResetStats(false, g_iCurTeam, true); //reset stats on survivor wipe in coop 
+	}
     HandleRoundEnd( true );
 }
 
@@ -1086,7 +1081,6 @@ public Action: L4D_OnFirstSurvivorLeftSafeArea( client )
 {
     // just as a safeguard (for campaign mode / failed rounds?)
     HandleRoundStart( true );
-    
     // if no readyup, use this as the starting event
     if ( !g_bReadyUpAvailable )
     {
