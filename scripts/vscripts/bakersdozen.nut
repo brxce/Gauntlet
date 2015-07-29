@@ -21,6 +21,7 @@ RoundVars.CurrentStage <- STAGE_SPAWNING_SI
 MutationOptions <-
 {
 	ActiveChallenge = 1	
+	cm_AllowSurvivorRescue = 0
 	
 	//SI specifications
 	cm_MaxSpecials = 12
@@ -45,21 +46,6 @@ MutationOptions <-
 	ShouldAllowSpecialsWithTank = true
 	ShouldAllowMobsWithTank = false
 	
-	//Removing medkits
-	weaponsToRemove =
-	{
-		weapon_first_aid_kit = 0
-		weapon_first_aid_kit_spawn = 0
-	}
-
-	function AllowWeaponSpawn( classname )
-	{
-		if ( classname in weaponsToRemove )
-		{
-			return false;
-		}
-		return true;
-	}	
 }	
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -158,6 +144,7 @@ function Notifications::OnDeath::PlayerInfectedDied( victim, attacker, params )
 function Notifications::OnTankSpawned::StopSpitterSpawns( entity, params )
 {
 	SessionOptions.SpitterLimit = 0
+	RoundVars.CurrentStage = STAGE_COOLDOWN
 	SessionState.TimeBeforeNextHit = floor(WaveInterval/2)
 }
 function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, params )
@@ -172,6 +159,7 @@ function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, pa
 timer.SetValue("minutes", 0)
 timer.SetValue("seconds", 0)
 timer.AttachTo(HUD_MID_TOP)
+timer.Hide()
 
 function ChatTriggers::showtimer ( player, args, text )
 {

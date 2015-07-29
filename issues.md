@@ -4,17 +4,15 @@ Baker's Dozen
 //---------
 ///Bugs////
 //---------------------------------------------------------------------------------------------------
-[-] playerstats rollover after wipe until successful map completion
-[-] Incorrect tank and witch percentage - may require new plugin due to gamemode incompatibility
+[-] Pill distribution: confogl plugins removing pills from saferoom do not work with custom maps
 
 //------------------
 ///Potential future features///
 //---------------------------------------------------------------------------------------------------
-[-] Confogl health items
 [-] Health bonus scoremod
 [-] Map skip option
-[-] Remove revive closest functionality - use player_call_for_rescue event to slay
-[-] HATS! https://forums.alliedmods.net/showthread.php?p=1441080
+[-] l4d_boss_percent.smx for coop; unsure if offset for witch map distance exists outside of CDirectorVersusMode
+[-] manipulate cm_VIPtarget to force SI to attack survivor with highest permanent health?
 
 
 

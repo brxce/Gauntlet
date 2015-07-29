@@ -12,9 +12,9 @@ new g_bHasLeftStart = false;
 
 public Plugin:myinfo =
 {
-	name = "Versus like coop",
+	name = "Versus Like Coop",
 	author = "Breezy",
-	description = "Start maps in coop with full health, pills and a single pistol",
+	description = "Start each map in a campaign with full health and a single pistol",
 	version = "1.0",
 	url = ""
 };
@@ -27,10 +27,7 @@ public OnPluginStart()
 
 public OnMapStarted()
 {
-	if (g_bHasLeftStart) //prevent non-survivor "player_spawn" events i.e. infected triggering this function
-	{
-		return Plugin_Continue;
-	} else {
+	if (!g_bHasLeftStart) {//non-survivor "player_spawn" events i.e. infected should not trigger this function
 		GiveHealth();	
 		ResetInventory();
 	}
@@ -48,12 +45,10 @@ public OnMapCompleted()
 
 public GiveHealth()
 {
-	for (new client = 1; client <= MaxClients; client++)
+	for (new client = 0; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && GetClientTeam(client)==2)
+		if ( IsSurvivor(client) )
 		{
-			decl String:name[63]
-			GetClientName(client, name, sizeof(name));
 			GiveItem(client, "health"); //give full health			
 			new Float:buffhp = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
 			if (buffhp > 0.0) //remove temp hp
@@ -67,19 +62,20 @@ public GiveHealth()
 
 public ResetInventory()
 {
-	for (new client = 1; client <= MaxClients; client++)
-	{
-		if (IsClientInGame(client) && GetClientTeam(client)== 2)
-		{
+	for (new client = 0; client <= MaxClients; client++) {
+		if ( IsSurvivor(client) ) {
 			for (new i = 0; i < 5; i++) { //clear all slots in player's inventory
-				if (i == SECONDARY_SLOT) { 
-					GiveItem(client, "pistol"); //ensures this is a single pistol
-					//EquipPlayerWeapon(client, "weapon_pistol"); ?
-				} else { //clear slot
-					new equipment = GetPlayerWeaponSlot(client, i);
-					AcceptEntityInput(equipment, "kill");
-				}				
-			}		
+				 	new equipment = GetPlayerWeaponSlot(client, i);
+					if (equipment != -1) { //if slot is not empty
+						if (i == SECONDARY_SLOT) { 
+							//Using AcceptEntityInput() for the secondary causes the new pistols to be dropped on the floor
+							RemoveEdict(equipment); 
+							GiveItem(client, "pistol"); 
+						} else {
+							AcceptEntityInput(equipment, "kill");
+						}
+					}				
+			}	
 		}
 	}		
 }
@@ -90,4 +86,8 @@ GiveItem(client, String:Item[22])
 	SetCommandFlags("give", flags & ~FCVAR_CHEAT);
 	FakeClientCommand(client, "give %s", Item);
 	SetCommandFlags("give", flags|FCVAR_CHEAT);
+}
+
+bool:IsSurvivor(client) {
+	return client > 0 && client <= MaxClients && IsClientInGame(client) && GetClientTeam(client) == 2;
 }

@@ -21,17 +21,18 @@ RoundVars.CurrentStage <- STAGE_SPAWNING_SI
 MutationOptions <-
 {
 	ActiveChallenge = 1	
+	cm_AllowSurvivorRescue = 0
 	
 	//SI specifications
 	cm_MaxSpecials = 6
 	cm_BaseSpecialLimit = 3 
-	DominatorLimit = 9 //dominators: charger, smoker, jockey, hunter
-	HunterLimit = 3
-	BoomerLimit = 2
-	SmokerLimit = 3
-	SpitterLimit = 2
-	ChargerLimit = 3
-	JockeyLimit = 3
+	DominatorLimit = 5 //dominators: charger, smoker, jockey, hunter
+	HunterLimit = 2
+	BoomerLimit = 1
+	SmokerLimit = 2
+	SpitterLimit = 1
+	ChargerLimit = 2
+	JockeyLimit = 2
 	
 	//SI frequency
 	cm_SpecialRespawnInterval = 0 //Time for an SI spawn slot to become available
@@ -156,6 +157,7 @@ function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, pa
 timer.SetValue("minutes", 0)
 timer.SetValue("seconds", 0)
 timer.AttachTo(HUD_MID_TOP)
+timer.Hide()
 
 function ChatTriggers::showtimer ( player, args, text )
 {

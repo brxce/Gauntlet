@@ -13,6 +13,7 @@ Msg("Activating Toxic\n");
 MutationOptions <-
 {
 	ActiveChallenge = 1	
+	cm_AllowSurvivorRescue = 0
 	
 	//SI specifications
 	cm_MaxSpecials = 12
