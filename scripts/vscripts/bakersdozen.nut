@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------------------------------------------------------
-Msg("Activating Noxious\n");
+Msg("Activating Baker's Dozen\n");
 
 // Include the VScript Library
 IncludeScript("VSLib");
@@ -8,9 +8,7 @@ IncludeScript("VSLib");
 STAGE_SPAWNING_SI   	<- 0        // spawning SI
 STAGE_MAX_SI_SPAWNED   	<- 1        // stop SI spawns
 STAGE_COOLDOWN			<- 2        // waiting period between SI hits
-//Timer(seconds) - Round Variables are reset every round
-RoundVars.RoundTimer <- 0	
-RoundVars.ShouldRunRoundTimer <- false
+//Round Variables are reset every round	
 RoundVars.SpecialsSpawned <- 0  //the total number of specials that have been spawned during the round
 RoundVars.CurrentAliveSI <- 0
 RoundVars.CurrentStage <- STAGE_SPAWNING_SI
@@ -57,9 +55,6 @@ MutationState <-
 	//Time between SI hits
 	WaveInterval = 40
 	TimeBeforeNextHit = 0
-	//Used to display the round time in minutes second format
-	MinutesComponent = 0
-	SecondsComponent = 0
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -70,7 +65,6 @@ function EasyLogic::Update::CyleStage()
 	//Only start stage cycle if survivors have left the safe area
 	if ( Director.HasAnySurvivorLeftSafeArea() )
 	{
-        RoundVars.ShouldRunRoundTimer = true
 		switch (RoundVars.CurrentStage)
 		{
 			case STAGE_SPAWNING_SI:
@@ -102,22 +96,38 @@ function EasyLogic::Update::CyleStage()
 
 function EasyLogic::Update::UpdateRoundTime() //increments the total round time
 {
-	if (RoundVars.ShouldRunRoundTimer)
-	{
-		RoundVars.RoundTimer++
-		SessionState.MinutesComponent = floor(RoundVars.RoundTimer/60)
-		SessionState.SecondsComponent = RoundVars.RoundTimer % 60
-		timer.SetValue("minutes", SessionState.MinutesComponent)
-		timer.SetValue("seconds", SessionState.SecondsComponent)
-	} 
+	
 }
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// HUD: BONUS DISPLAY
+//-----------------------------------------------------------------------------------------------------------------------------
+function GetHealthBonus()
+{
+	local HealthBonus = Convars.GetStr("vs_tiebreak_bonus")
+	return HealthBonus.tointeger()
+}
+
+::BonusDisplay <- HUD.Item("Bonus: {bonus}")
+BonusDisplay.SetValue("bonus", GetHealthBonus())
+BonusDisplay.AttachTo(HUD_MID_TOP)
+
+function ChatTriggers::showbonus ( player, args, text )
+{
+	BonusDisplay.Show()
+}
+function ChatTriggers::hidebonus ( player, args, text )
+{
+	BonusDisplay.Show()
+}
+
 //-----------------------------------------------------------------------------------------------------------------------------
 // GAME EVENT DIRECTIVES
 //-----------------------------------------------------------------------------------------------------------------------------//Round Timer stop directives
 
 function Notifications::OnMapEnd::CleanUp()
 {
-	RoundVars.ShouldRunRoundTimer = false 
+	BonusDisplay.SetValue("bonus", GetHealthBonus())
 }
 
 //Tracking SI numbers through their spawn and death events. Not currently used, but may be useful later
@@ -153,23 +163,8 @@ function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, pa
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------
-// HUD: ROUND TIMER
+// Set time between SI Waves
 //-----------------------------------------------------------------------------------------------------------------------------
-::timer <- HUD.Item("{minutes}m {seconds}s")
-timer.SetValue("minutes", 0)
-timer.SetValue("seconds", 0)
-timer.AttachTo(HUD_MID_TOP)
-timer.Hide()
-
-function ChatTriggers::showtimer ( player, args, text )
-{
-	timer.Show()
-}
-function ChatTriggers::hidetimer ( player, args, text )
-{
-	timer.Hide()
-}
-
 function ChatTriggers::setwaveinterval ( player, args, text )
 {
 	local time = GetArgument(1)
