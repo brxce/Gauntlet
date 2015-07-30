@@ -1,17 +1,14 @@
 # ISSUES
-Baker's Dozen
 
 //---------
-///Bugs////
+///Bugs///
 //---------------------------------------------------------------------------------------------------
-[-] Pill distribution: confogl plugins removing pills from saferoom do not work with custom maps
 
 //------------------
 ///Potential future features///
 //---------------------------------------------------------------------------------------------------
-[-] Health bonus scoremod
-[-] Map skip option
-[-] l4d_boss_percent.smx for coop; unsure if offset for witch map distance exists outside of CDirectorVersusMode
+[-] Map skip option: calculate distance points for from flow distance
+[-] l4d_boss_percent.smx for coop; tank and witch offsets for CDirectorChallengeMode?
 [-] manipulate cm_VIPtarget to force SI to attack survivor with highest permanent health?
 
 
