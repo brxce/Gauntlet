@@ -5,7 +5,7 @@
 #include <l4d2lib>
 
 #define VLC_DEBUG 1
-#define	NO_TEMP_HEALTH 0
+#define	NO_TEMP_HEALTH 0.0
 #define SECONDARY_SLOT 1
 
 new g_bHasLeftStart = false;
@@ -21,15 +21,18 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	HookEvent("player_spawn", EventHook:OnMapStarted, EventHookMode_PostNoCopy);
-	HookEvent("map_transition", EventHook:OnMapCompleted, EventHookMode_Pre);
+	HookEvent("round_start_post_nav", EventHook:OnMapStarted, EventHookMode_PostNoCopy);
+	HookEvent("game_end", EventHook:OnMapCompleted, EventHookMode_Pre);
 }
 
 public OnMapStarted()
 {
+	#if VLC_DEBUG
+		PrintToChatAll("Restoring health and resetting inventory");
+	#endif
 	if (!g_bHasLeftStart) {//non-survivor "player_spawn" events i.e. infected should not trigger this function
-		GiveHealth();	
-		ResetInventory();
+		RestoreHealth();
+		ResetInventory();		
 	}
 }
 
@@ -43,7 +46,7 @@ public OnMapCompleted()
 	g_bHasLeftStart = false; //reset for next map
 }
 
-public GiveHealth()
+public RestoreHealth()
 {
 	for (new client = 0; client <= MaxClients; client++)
 	{
@@ -53,9 +56,13 @@ public GiveHealth()
 			new Float:buffhp = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
 			if (buffhp > 0.0) //remove temp hp
 			{
-				new temphpoffset = FindSendPropOffs("CTerrorPlayer","m_healthBuffer");
-				SetEntDataFloat(client, temphpoffset, NO_TEMP_HEALTH, true);
+				//alternate way
+				//new temphpoffset = FindSendPropOffs("CTerrorPlayer","m_healthBuffer");
+				//SetEntDataFloat(client, temphpoffset, NO_TEMP_HEALTH, true);
+				SetEntPropFloat(client, Prop_Send, "m_healthBuffer", NO_TEMP_HEALTH);
 			}
+			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0); //reset incaps
+			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0);
 		}
 	}
 }

@@ -11,6 +11,7 @@ STAGE_COOLDOWN			<- 2        // waiting period between SI hits
 //Round Variables are reset every round	
 RoundVars.SpecialsSpawned <- 0  //the total number of specials that have been spawned during the round
 RoundVars.CurrentAliveSI <- 0
+RoundVars.TimeBeforeNextHit <- 0
 RoundVars.CurrentStage <- STAGE_SPAWNING_SI
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -44,6 +45,21 @@ MutationOptions <-
 	ShouldAllowSpecialsWithTank = true
 	ShouldAllowMobsWithTank = false
 	
+	//Removing medkits
+	weaponsToRemove =
+	{
+		weapon_first_aid_kit = 0
+		weapon_first_aid_kit_spawn = 0
+	}
+
+	function AllowWeaponSpawn( classname )
+	{
+		if ( classname in weaponsToRemove )
+		{
+			return false;
+		}
+		return true;
+	}	
 }	
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -54,7 +70,6 @@ MutationState <-
 	InDebugMode = false
 	//Time between SI hits
 	WaveInterval = 40
-	TimeBeforeNextHit = 0
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -75,19 +90,19 @@ function EasyLogic::Update::CyleStage()
 				break;
 			case STAGE_MAX_SI_SPAWNED:
 				SessionOptions.cm_MaxSpecials = 0 //stop more SI spawning
-				SessionState.TimeBeforeNextHit = SessionState.WaveInterval
+				RoundVars.TimeBeforeNextHit = SessionState.WaveInterval
 				RoundVars.CurrentStage = STAGE_COOLDOWN
 				break;
 			case STAGE_COOLDOWN:				
 				//If cooldownperiod has finished, change current stage
-				if ( SessionState.TimeBeforeNextHit == 0 ) 
+				if ( RoundVars.TimeBeforeNextHit == 0 ) 
 				{
 					SessionOptions.cm_MaxSpecials = 12
 					RoundVars.CurrentStage = STAGE_SPAWNING_SI
 				} 
 				else 
 				{
-					SessionState.TimeBeforeNextHit-- 
+					RoundVars.TimeBeforeNextHit-- 
 				}
 				break;
 		}
@@ -154,8 +169,8 @@ function Notifications::OnDeath::PlayerInfectedDied( victim, attacker, params )
 function Notifications::OnTankSpawned::StopSpitterSpawns( entity, params )
 {
 	SessionOptions.SpitterLimit = 0
+	RoundVars.TimeBeforeNextHit = floor(WaveInterval/2)
 	RoundVars.CurrentStage = STAGE_COOLDOWN
-	SessionState.TimeBeforeNextHit = floor(WaveInterval/2)
 }
 function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, params )
 {

@@ -1,15 +1,12 @@
-# ISSUES
+# KNOWN ISSUES
 
-//---------
-///Bugs///
-//---------------------------------------------------------------------------------------------------
+##Bugs   
+> if multiple survivors are pinned, sometimes one of them will not take damage
+> tank sometimes spawns behind the survivors
+> in starting saferoom, players loading in late or toggling IDLE will cause team mates will fire the inventory reset function (in versus_like_coop.smx)
+> one survivor sometimes does not get their health restored between maps
 
-//------------------
-///Potential future features///
-//---------------------------------------------------------------------------------------------------
-[-] Map skip option: calculate distance points for from flow distance
-[-] l4d_boss_percent.smx for coop; tank and witch offsets for CDirectorChallengeMode?
-[-] manipulate cm_VIPtarget to force SI to attack survivor with highest permanent health?
+
 
 
 

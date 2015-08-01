@@ -404,7 +404,7 @@ new     bool:   g_bSkillDetectLoaded    = false;
 new     bool:   g_bCMTActive            = false;                                        // whether custom map transitions is running a mapset
 new     bool:   g_bCMTSwapped           = false;                                        // whether A/B teams have been swapped
 
-new     bool:   g_bModeVersus           = true;											//assumption CheckGameMode() corrects otherwise
+new     bool:   g_bModeCampaign         = false;
 new     bool:   g_bModeScavenge         = false;
 
 new     Handle: g_hCookiePrint          = INVALID_HANDLE;
@@ -550,7 +550,7 @@ public OnPluginStart()
     HookEvent("scavenge_round_start",       Event_RoundStart,               EventHookMode_PostNoCopy);
     HookEvent("round_end",                  Event_RoundEnd,                 EventHookMode_PostNoCopy);
     
-    HookEvent("mission_lost",               Event_MissionLostCampaign,      EventHookMode_Post);
+    HookEvent("mission_lost",               Event_MissionLostCampaign,      EventHookMode_Pre);
     HookEvent("map_transition",             Event_MapTransition,            EventHookMode_PostNoCopy);
     HookEvent("finale_win",                 Event_FinaleWin,                EventHookMode_PostNoCopy);
     HookEvent("survivor_rescued",           Event_SurvivorRescue,           EventHookMode_Post);
@@ -705,7 +705,7 @@ public OnPluginStart()
         g_strRoundData[0][1][rndStartTime] = GetTime();
         
         // team
-        g_iCurTeam = ( !g_bModeVersus ) ? 0 : GetCurrentTeamSurvivor();
+        g_iCurTeam = ( g_bModeCampaign ) ? 0 : GetCurrentTeamSurvivor();
         UpdatePlayerCurrentTeam();
     }
 }
@@ -816,7 +816,7 @@ public OnMapEnd()
     g_iRound++;
     
     // if this was a finale, (and CMT is not loaded), end of game
-    if ( !g_bCMTActive && g_bModeVersus && IsMissionFinalMap() )
+    if ( !g_bCMTActive && !g_bModeCampaign && IsMissionFinalMap() )
     {
         HandleGameEnd();
     }
@@ -824,12 +824,11 @@ public OnMapEnd()
 
 public Event_MissionLostCampaign (Handle:hEvent, const String:name[], bool:dontBroadcast)
 {
-    //PrintDebug( 2, "Event: MissionLost (times %i)", g_strGameData[gmFailed] + 1);
+    ResetStats(false, -1, true);
+	//PrintDebug( 2, "Event: MissionLost (times %i)", g_strGameData[gmFailed] + 1);
     g_strGameData[gmFailed]++;
     g_strRoundData[g_iRound][g_iCurTeam][rndRestarts]++;
-    if ( !g_bModeVersus ) {
-		ResetStats(false, g_iCurTeam, true); //reset stats on survivor wipe in coop 
-	}
+    
     HandleRoundEnd( true );
 }
 
@@ -852,7 +851,7 @@ stock HandleRoundStart( bool:bLeftStart = false )
     
     if ( bLeftStart )
     {
-        g_iCurTeam = ( !g_bModeVersus ) ? 0 : GetCurrentTeamSurvivor();
+        g_iCurTeam = ( g_bModeCampaign ) ? 0 : GetCurrentTeamSurvivor();
         ClearPlayerTeam( g_iCurTeam );
     }
 }
@@ -861,7 +860,7 @@ stock HandleRoundStart( bool:bLeftStart = false )
 public Action: Timer_RoundStart ( Handle:timer )
 {
     // easier to handle: store current survivor team
-    g_iCurTeam = ( !g_bModeVersus ) ? 0 : GetCurrentTeamSurvivor();
+    g_iCurTeam = ( g_bModeCampaign ) ? 0 : GetCurrentTeamSurvivor();
     
     // clear team for stats
     ClearPlayerTeam( g_iCurTeam );
@@ -897,7 +896,7 @@ stock HandleRoundEnd ( bool: bFailed = false )
     
     g_bInRound = false;
     
-    if ( g_bModeVersus || !bFailed )
+    if ( !g_bModeCampaign || !bFailed )
     {
         // write stats for this roundhalf to file
         // do before addition, because these are round stats
@@ -921,13 +920,13 @@ stock HandleRoundEnd ( bool: bFailed = false )
     }
     
     // if no-one is on the server anymore, reset the stats (keep it clean when no real game is going on) [safeguard]
-    if ( (!g_bModeVersus || g_bSecondHalf) && !AreClientsConnected() )
+    if ( (g_bModeCampaign || g_bSecondHalf) && !AreClientsConnected() )
     {
         PrintDebug( 2, "HandleRoundEnd: Reset stats for entire game (no players on server)..." );
         ResetStats( false, -1 );
     }
     
-    if ( g_bModeVersus )
+    if ( !g_bModeCampaign )
     {
         // prepare for storing 'previous scores' after second roundhalf's roundend
         if (g_bSecondHalf) {
@@ -1041,7 +1040,7 @@ stock HandleRoundAddition()
 public Event_MapTransition (Handle:hEvent, const String:name[], bool:dontBroadcast)
 {
     // campaign (ignore in versus)
-    if ( !g_bModeVersus )
+    if ( g_bModeCampaign )
     {
         HandleRoundEnd();
     }
@@ -1049,7 +1048,7 @@ public Event_MapTransition (Handle:hEvent, const String:name[], bool:dontBroadca
 public Event_FinaleWin (Handle:hEvent, const String:name[], bool:dontBroadcast)
 {
     // campaign (ignore in versus)
-    if ( !g_bModeVersus )
+    if ( g_bModeCampaign )
     {
         HandleRoundEnd();
         // finale needn't be the end of the game with custom map transitions
@@ -1081,6 +1080,7 @@ public Action: L4D_OnFirstSurvivorLeftSafeArea( client )
 {
     // just as a safeguard (for campaign mode / failed rounds?)
     HandleRoundStart( true );
+    
     // if no readyup, use this as the starting event
     if ( !g_bReadyUpAvailable )
     {
@@ -1125,7 +1125,7 @@ stock RoundReallyStarting()
         g_strRoundData[g_iRound][g_iCurTeam][rndStartTime] = time;
     }
     // the conditional below would allow full round times including fails.. not doing that now
-    //if ( g_bModeVersus || g_strRoundData[g_iRound][g_iCurTeam][rndRestarts] == 0 ) { }
+    //if ( !g_bModeCampaign || g_strRoundData[g_iRound][g_iCurTeam][rndRestarts] == 0 ) { }
     
     //PrintDebug( 2, "RoundReallyStarting (round %i: roundhalf: %i: survivor team: %i)", g_iRound, (g_bSecondHalf) ? 1 : 0, g_iCurTeam );
     
@@ -2723,7 +2723,7 @@ stock ResetStats ( bool:bCurrentRoundOnly = false, iTeam = -1, bool: bFailedRoun
                 g_strRoundPlayerInfData[i][iTeam][k] = 0;
             }
         }
-	}
+    }
 }
 
 stock UpdatePlayerCurrentTeam()
@@ -3500,7 +3500,7 @@ stock DisplayStatsMVP( client, bool:bTank = false, bool:bMore = false, bool:bRou
     // get sorted players list
     SortPlayersMVP( bRound, SORT_SI, bTeam, iTeam );
     
-    new bool: bTankUp = bool:( g_bModeVersus && IsTankInGame() && g_bInRound );
+    new bool: bTankUp = bool:( !g_bModeCampaign && IsTankInGame() && g_bInRound );
     
     // prepare buffer(s) for printing
     if ( !bTank || !bTankUp )
@@ -5351,7 +5351,7 @@ stock BuildConsoleBufferMVP ( bool:bTank = false, bool: bMore = false, bool:bRou
         // MVP normal
         
         new bool: bPrcDecimal = GetConVarBool(g_hCvarDetailPercent);
-        new bool: bTankUp = bool:( g_bModeVersus && (!bTeam || team == g_iCurTeam) && g_bInRound && IsTankInGame() );
+        new bool: bTankUp = bool:( !g_bModeCampaign && (!bTeam || team == g_iCurTeam) && g_bInRound && IsTankInGame() );
         
         for ( x = 0; x < g_iPlayers; x++ )
         {
@@ -6216,7 +6216,7 @@ stock AutomaticRoundEndPrint ( bool:doDelay = true )
 
 public Action: Timer_AutomaticRoundEndPrint ( Handle:timer )
 {
-    new iFlags = GetConVarInt( ( !g_bModeVersus ) ? g_hCvarAutoPrintCoop : g_hCvarAutoPrintVs );
+    new iFlags = GetConVarInt( ( g_bModeCampaign ) ? g_hCvarAutoPrintCoop : g_hCvarAutoPrintVs );
     
     // do automatic prints (only for clients that don't have cookie flags set)
     AutomaticPrintPerClient( iFlags, -1 );
@@ -6770,7 +6770,7 @@ public Action: Timer_WriteStats ( Handle:timer, any:iTeam )
 // write round stats to a text file
 stock WriteStatsToFile( iTeam, bool:bSecondHalf )
 {
-    if ( !g_bModeVersus ) { return; }
+    if ( g_bModeCampaign ) { return; }
     
     new i, j;
     new bool: bFirstWrite;
@@ -6784,7 +6784,7 @@ stock WriteStatsToFile( iTeam, bool:bSecondHalf )
     new String: path[128];
     
     // create the file
-    if ( !g_bModeVersus || !bSecondHalf || !strlen(g_sStatsFile) )
+    if ( g_bModeCampaign || !bSecondHalf || !strlen(g_sStatsFile) )
     {
         bFirstWrite = true;
         
@@ -7184,19 +7184,28 @@ stock FormatPercentage ( String:text[], maxlength, part, whole, bool: bDecimal =
 
 stock CheckGameMode()
 {
-    // check if gamemode is not versus
+    // check gamemode for 'coop'
     new String:tmpStr[24];
     GetConVarString( FindConVar("mp_gamemode"), tmpStr, sizeof(tmpStr) );
-    //Currently does not account for other versus mutations, assumes any gamemode not marked 'versus' is scavenge or coop based
-    if ( !StrEqual(tmpStr, "versus", false) ) { //not versus
-        if ( StrEqual(tmpStr, "scavenge", false) ) { //scavenge, not coop
-			g_bModeScavenge = true;
-			g_bModeVersus = false;
-		} else { //not scavenge, some coop based gamemode
-			g_bModeScavenge = false;
-			g_bModeVersus = false;
-		}
-	}
+    
+    if (    StrEqual(tmpStr, "coop", false)         ||
+            StrEqual(tmpStr, "mutation4", false)    ||      // hard eight
+            StrEqual(tmpStr, "mutation14", false)   ||      // gib fest
+            StrEqual(tmpStr, "mutation20", false)   ||      // healing gnome
+            StrEqual(tmpStr, "mutationrandomcoop", false)   // healing gnome
+    ) {
+        g_bModeCampaign = true;
+        g_bModeScavenge = false;
+    }
+    else if ( StrEqual(tmpStr, "scavenge", false) )
+    {
+        g_bModeCampaign = false;
+        g_bModeScavenge = true;
+    }
+    else {
+        g_bModeCampaign = false;
+        g_bModeScavenge = false;
+    }
 }
 
 stock IsMissionFinalMap()
@@ -7287,4 +7296,3 @@ stock PrintDebug( debugLevel, const String:Message[], any:... )
         //PrintToServer(DebugBuff);
     }
 }
-
