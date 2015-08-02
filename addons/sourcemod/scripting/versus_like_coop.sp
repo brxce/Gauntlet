@@ -6,7 +6,7 @@
 
 #define VLC_DEBUG 1
 #define POST_ROUNDSTART_DELAY 2.5
-#define POST_TEAMWIPED_DELAY 6
+//#define POST_TEAMWIPED_DELAY 6.0
 #define	NO_TEMP_HEALTH 0.0
 #define SECONDARY_SLOT 1
 
@@ -22,7 +22,7 @@ public Plugin:myinfo =
 public OnPluginStart()
 {
 	HookEvent("round_start", EventHook:OnRoundStart, EventHookMode_PostNoCopy);
-	HookEvent("mission_lost", EventHook:OnTeamWiped, EventHookMode_PostNoCopy);
+	//HookEvent("mission_lost", EventHook:OnTeamWiped, EventHookMode_PostNoCopy);
 }
 
 public OnRoundStart()
@@ -40,6 +40,7 @@ public Action:Timer_PostRoundStart(Handle:timer)
 
 }
 
+/*
 public OnTeamWiped()
 {
 	CreateTimer(POST_TEAMWIPED_DELAY, Timer_PostTeamWiped, _, TIMER_FLAG_NO_MAPCHANGE); 
@@ -53,7 +54,8 @@ public Action:Timer_PostTeamWiped (Handle: timer)
 	RestoreHealth();
 	ResetInventory();
 }
-	
+*/
+
 public RestoreHealth()
 {
 	for (new client = 0; client <= MaxClients; client++)
