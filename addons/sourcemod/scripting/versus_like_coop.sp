@@ -6,6 +6,7 @@
 
 #define VLC_DEBUG 1
 #define POST_ROUNDSTART_DELAY 5.0
+//#define POST_TEAMWIPED_DELAY 5.0
 #define	NO_TEMP_HEALTH 0.0
 #define SECONDARY_SLOT 1
 
