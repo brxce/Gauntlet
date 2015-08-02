@@ -91,7 +91,7 @@ function EasyLogic::Update::CyleStages()
 	switch (RoundVars.CurrentStage) {
 		case Stage.ALL_IN_SAFEROOM:
 			if ( Director.HasAnySurvivorLeftSafeArea() ) {
-				SessionState.BaitFlowTolerance = RandomFloat(500, 750)
+				SessionState.BaitFlowTolerance = RandomFloat(250, 500)
 				SessionState.SaferoomExitFlow = Director.GetFurthestSurvivorFlow()
 				SessionState.BaitThreshold = SessionState.SaferoomExitFlow + SessionState.BaitFlowTolerance
 				RoundVars.HasFoundSaferoomExitFlow = true
