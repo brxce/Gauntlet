@@ -13,14 +13,14 @@ enum Stage {
 	COOLDOWN		 
 }
 DEBUGMODE <- true
-const UNDEFINED_FLOW = 0
 const MAX_SPECIALS = 6
+const UNDEFINED_FLOW = 0
+	
 //Round Variables are reset every round	
 RoundVars.SpecialsSpawned <- 0  //the total number of specials that have been spawned during the round
 RoundVars.CurrentAliveSI <- 0
 RoundVars.CurrentStage <- Stage.ALL_IN_SAFEROOM
 RoundVars.TimeBeforeNextHit <- 0
-RoundVars.SaferoomExitFlow <- UNDEFINED_FLOW
 RoundVars.HasFoundSaferoomExitFlow <- false
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -76,6 +76,7 @@ MutationOptions <-
 MutationState <-
 {
 	WaveInterval = 40 //Time between SI hits
+	SaferoomExitFlow = UNDEFINED_FLOW
 	BaitFlowTolerance = UNDEFINED_FLOW
 	BaitThreshold = UNDEFINED_FLOW
 }
@@ -90,8 +91,14 @@ function EasyLogic::Update::CyleStages()
 	switch (RoundVars.CurrentStage) {
 		case Stage.ALL_IN_SAFEROOM:
 			if ( Director.HasAnySurvivorLeftSafeArea() ) {
+				SessionState.BaitFlowTolerance = RandomFloat(500, 750)
+				SessionState.SaferoomExitFlow = Director.GetFurthestSurvivorFlow()
+				SessionState.BaitThreshold = SessionState.SaferoomExitFlow + SessionState.BaitFlowTolerance
+				RoundVars.HasFoundSaferoomExitFlow = true
+				if (DEBUGMODE) { Utils.SayToAll("SaferoomExitFlow: %f", SessionState.SaferoomExitFlow) }
+				if (DEBUGMODE) { Utils.SayToAll("BaitFlowTolerance: %f", SessionState.BaitFlowTolerance) }
+				if (DEBUGMODE) { Utils.SayToAll("BaitThreshold: %f", SessionState.BaitThreshold) }
 				RoundVars.CurrentStage = Stage.WAIT_FOR_BAIT
-				SessionState.BaitThreshold = RoundVars.SaferoomExitFlow + SessionState.BaitFlowTolerance
 				if (DEBUGMODE) { Utils.SayToAll("-> Stage.WAIT_FOR_BAIT") }
 			}
 			break;
@@ -106,7 +113,7 @@ function EasyLogic::Update::CyleStages()
 			}
 			break;
 		case Stage.SPAWNING_SI:
-			if ( RoundVars.SpecialsSpawned % 12 == 0 ) { //Every twelfth SI spawn, take a break
+			if ( RoundVars.SpecialsSpawned % MAX_SPECIALS == 0 ) { //give the survivors a break
 				RoundVars.CurrentStage = Stage.MAX_SI_SPAWNED
 				if (DEBUGMODE) { Utils.SayToAll("-> Stage.MAX_SI_SPAWNED") }
 			}
@@ -120,7 +127,7 @@ function EasyLogic::Update::CyleStages()
 		case Stage.COOLDOWN:				
 			//If cooldownperiod has finished, change current stage
 			if ( RoundVars.TimeBeforeNextHit == 0 ) {
-				SessionOptions.cm_MaxSpecials = 12
+				SessionOptions.cm_MaxSpecials = MAX_SPECIALS
 				RoundVars.CurrentStage = Stage.SPAWNING_SI
 				if (DEBUGMODE) { Utils.SayToAll("-> Stage.SPAWNING_SI") }
 			} 
@@ -161,31 +168,21 @@ function Notifications::OnRoundStart::SetBonusDisplay() //because Bonus Display 
 	BonusDisplay.SetValue("bonus", GetHealthBonus())
 }
 
-function Notifications::OnLeaveSaferoom::StoreFlowDistance(entity, params)
-{
-	if (!RoundVars.HasFoundSaferoomExitFlow) 
-	{
-		SessionState.BaitFlowTolerance = RandomFloat(500, 750)
-		RoundVars.SaferoomExitFlow = Director.GetFurthestSurvivorFlow()
-		RoundVars.HasFoundSaferoomExitFlow = true
-		if (DEBUGMODE) { Utils.SayToAll("BaitFlowTolerance: %f", SessionState.BaitFlowTolerance) }
-	} 
-}
-
-/* May be redundant because of OnRoundStart game event function
+/* May be made redundant by OnRoundStart::SetBonusDisplay()
 function Notifications::OnMapEnd::CleanUp()
 {
 	BonusDisplay.SetValue("bonus", GetHealthBonus())
 }
 */
 
-//Tracking SI numbers through their spawn and death events. Not currently used, but may be useful later
+//Tracking SI numbers through their spawn and death events
+//Not currently used, but may be useful for unforeseen future features
 function Notifications::OnSpawn::PlayerInfectedSpawned( player, params )
 {
     if ( player.GetTeam() == INFECTED ) {
 		RoundVars.CurrentAliveSI++
 		RoundVars.SpecialsSpawned++
-	} else if (RoundVars.SpecialsSpawned >= 12) {
+	} else if (RoundVars.SpecialsSpawned >= MAX_SPECIALS) {
 		SessionOptions.PreferredSpecialDirection = SPAWN_SPECIALS_ANYWHERE
 	}
 }
