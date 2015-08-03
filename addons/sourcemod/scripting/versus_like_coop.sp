@@ -1,12 +1,10 @@
+#pragma semicolon 1
+
 #include <sourcemod>
 #include <sdktools>
-#include <sdktools_functions>
 #include <left4downtown>
-#include <l4d2lib>
 
 #define VLC_DEBUG 1
-#define POST_ROUNDSTART_DELAY 5.0
-//#define POST_TEAMWIPED_DELAY 5.0
 #define	NO_TEMP_HEALTH 0.0
 #define SECONDARY_SLOT 1
 
@@ -21,40 +19,36 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	HookEvent("round_start", EventHook:OnRoundStart, EventHookMode_PostNoCopy);
-	//HookEvent("mission_lost", EventHook:OnTeamWiped, EventHookMode_PostNoCopy);
+	HookEvent("round_freeze_end", Event_RoundFreezeEnd, EventHookMode_Pre);
+	HookEvent("map_transition", Event_MapTransition, EventHookMode_PostNoCopy);
 }
 
-public OnRoundStart()
-{
-	CreateTimer(POST_ROUNDSTART_DELAY, Timer_PostRoundStart, _, TIMER_FLAG_NO_MAPCHANGE);
-}
-
-public Action:Timer_PostRoundStart(Handle:timer)
+ //for when a survivor died the previous map, and starts the next with partial permanent health
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	#if VLC_DEBUG
-		PrintToChatAll("Timer_PostRoundStart");
+		PrintToChatAll("(Left4Downtown2) L4D_OnFirstSurvivorLeftSafeArea");
 	#endif
 	RestoreHealth();
-	ResetInventory();		
-
 }
 
-/*
-public OnTeamWiped()
+//fail-safe in case end of map health restoration does not work
+public Action:Event_RoundFreezeEnd(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	CreateTimer(POST_TEAMWIPED_DELAY, Timer_PostTeamWiped, _, TIMER_FLAG_NO_MAPCHANGE); 
+#if VLC_DEBUG
+	PrintToChatAll("round_freeze_end");
+#endif
+	RestoreHealth(); 
 }
 
-public Action:Timer_PostTeamWiped (Handle: timer)
+public Action:Event_MapTransition(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	#if VLC_DEBUG
-		PrintToChatAll("Timer_PostTeamWiped");
-	#endif
-	RestoreHealth();
+#if VLC_DEBUG
+	PrintToChatAll("(post)map_transition");
+#endif
 	ResetInventory();
+	RestoreHealth();
 }
-*/
 
 public RestoreHealth()
 {
@@ -63,14 +57,14 @@ public RestoreHealth()
 		if ( IsSurvivor(client) )
 		{
 #if VLC_DEBUG
-	PrintToChatAll("Found a survivor, restoring health and resetting revive count");
+	PrintToChatAll("Restored health and reset revive count on client: %i", client);
 #endif
 			GiveItem(client, "health"); //give full health			
 			new Float:buffhp = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
 			if (buffhp > 0.0) //remove temp hp
 			{
 #if VLC_DEBUG
-	PrintToChatAll("- and removing temp health");
+	PrintToChatAll("- temporary health was detected and removed");
 #endif
 				//alternate way
 				//new temphpoffset = FindSendPropOffs("CTerrorPlayer","m_healthBuffer");
@@ -88,23 +82,21 @@ public ResetInventory()
 	for (new client = 0; client <= MaxClients; client++) {
 		if ( IsSurvivor(client) ) {
 #if VLC_DEBUG
-	PrintToChatAll("");
-	PrintToChatAll("Found a survivor");
+	PrintToChatAll("Resetting inventory of client: %i", client);
 #endif
 			for (new i = 0; i < 5; i++) { //clear all slots in player's inventory
 				 	new equipment = GetPlayerWeaponSlot(client, i);
 					if (equipment != -1) { //if slot is not empty
 						if (i == SECONDARY_SLOT) { 
-							//Using AcceptEntityInput() for the secondary causes the new pistols to be dropped on the floor
-							RemoveEdict(equipment); 
+							RemovePlayerItem(client, equipment);
 							GiveItem(client, "pistol"); 
 #if VLC_DEBUG
-PrintToChatAll("- Deleting a secondary item");
+PrintToChatAll("- confiscated a secondary weapon");
 #endif
 						} else {							
-							AcceptEntityInput(equipment, "kill");
+							RemovePlayerItem(client, equipment);
 #if VLC_DEBUG
-	PrintToChatAll("- Deleting a non-secondary item");
+	PrintToChatAll("- confiscated a piece weaponry/equipment");
 #endif
 						}
 					}				
