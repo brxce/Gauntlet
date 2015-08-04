@@ -1,6 +1,5 @@
 #include <sourcemod>
 #include <sdktools>
-#include <sdktools_functions>
 #include <left4downtown>
 
 public Plugin:myinfo =
@@ -12,33 +11,21 @@ public Plugin:myinfo =
 	url = ""
 };
 
-public OnPluginStart()
-{
-}
-
 public Action:L4D_OnFirstSurvivorLeftSafeArea()
 {
-	GivePills();
+	DistributePills();
 	return Plugin_Continue;
 }
 
-public OnMapEnd()
+public DistributePills()
 {
-	//ConfiscateItems();
-}
-
-public GivePills()
-{
-	for (new client = 1; client <= MaxClients; client++)
+	for (new client = 1; client <= MaxClients; client++) //iterate though all clients
 	{
-		if (IsClientInGame(client) && GetClientTeam(client)==2)
+		if (IsClientInGame(client) && GetClientTeam(client)==2) //check player is a survivor
 		{
-			decl String:name[63]
-			GetClientName(client, name, sizeof(name));
-			
-			if (GetPlayerWeaponSlot(client, 5) == -1) 
+			if (GetPlayerWeaponSlot(client, 5) == -1) //check pills slot is empty
 			{
-				GiveItem(client, "pain_pills"); //pills
+				GiveItem(client, "pain_pills"); 
 			}								
 		}
 	}

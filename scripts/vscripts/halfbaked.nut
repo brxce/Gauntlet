@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------------------------------------------------------
-Msg("Loaded 'Half Baked' script\n");
+Msg("Loaded Baker's Dozen script\n");
 
 // Include the VScript Library
 IncludeScript("VSLib");
@@ -9,7 +9,7 @@ enum Stage {
 	ALL_IN_SAFEROOM, 
 	WAIT_FOR_BAIT,
 	SPAWNING_SI,       
-	MAX_SI_SPAWNED,       
+	WAVE_SPAWNED,       
 	COOLDOWN		 
 }
 DEBUGMODE <- true
@@ -86,19 +86,19 @@ MutationState <-
 //-----------------------------------------------------------------------------------------------------------------------------
 function EasyLogic::Update::CyleStages()
 {
-	BonusDisplay.SetValue("bonus", GetHealthBonus()) //read in the bonus from static_scoremod.smx
+	BonusDisplay.SetValue("bonus", GetHealthBonus()) //read in the bonus set by static_scoremod.smx
 	
 	switch (RoundVars.CurrentStage) {
 		case Stage.ALL_IN_SAFEROOM:
 			if ( Director.HasAnySurvivorLeftSafeArea() ) {
-				SessionState.BaitFlowTolerance = RandomFloat(250, 500)
+				SessionState.BaitFlowTolerance = RandomFloat(100, 200)
 				SessionState.SaferoomExitFlow = Director.GetFurthestSurvivorFlow()
 				SessionState.BaitThreshold = SessionState.SaferoomExitFlow + SessionState.BaitFlowTolerance
 				RoundVars.HasFoundSaferoomExitFlow = true
+				RoundVars.CurrentStage = Stage.WAIT_FOR_BAIT
 				if (DEBUGMODE) { Utils.SayToAll("SaferoomExitFlow: %f", SessionState.SaferoomExitFlow) }
 				if (DEBUGMODE) { Utils.SayToAll("BaitFlowTolerance: %f", SessionState.BaitFlowTolerance) }
 				if (DEBUGMODE) { Utils.SayToAll("BaitThreshold: %f", SessionState.BaitThreshold) }
-				RoundVars.CurrentStage = Stage.WAIT_FOR_BAIT
 				if (DEBUGMODE) { Utils.SayToAll("-> Stage.WAIT_FOR_BAIT") }
 			}
 			break;
@@ -114,11 +114,11 @@ function EasyLogic::Update::CyleStages()
 			break;
 		case Stage.SPAWNING_SI:
 			if ( RoundVars.SpecialsSpawned % MAX_SPECIALS == 0 ) { //give the survivors a break
-				RoundVars.CurrentStage = Stage.MAX_SI_SPAWNED
-				if (DEBUGMODE) { Utils.SayToAll("-> Stage.MAX_SI_SPAWNED") }
+				RoundVars.CurrentStage = Stage.WAVE_SPAWNED
+				if (DEBUGMODE) { Utils.SayToAll("-> Stage.WAVE_SPAWNED") }
 			}
 			break;
-		case Stage.MAX_SI_SPAWNED:
+		case Stage.WAVE_SPAWNED:
 			SessionOptions.cm_MaxSpecials = 0 //stop more SI spawning
 			RoundVars.TimeBeforeNextHit = SessionState.WaveInterval
 			RoundVars.CurrentStage = Stage.COOLDOWN
@@ -141,6 +141,7 @@ function EasyLogic::Update::CyleStages()
 //-----------------------------------------------------------------------------------------------------------------------------
 // HUD: Health bonus
 //-----------------------------------------------------------------------------------------------------------------------------
+
 function GetHealthBonus() //static_scoremod.smx uses "vs_tiebreak_bonus" to store bonus in coop gamemodes
 {
 	local HealthBonus = Convars.GetStr("vs_tiebreak_bonus")
@@ -148,7 +149,7 @@ function GetHealthBonus() //static_scoremod.smx uses "vs_tiebreak_bonus" to stor
 }
 
 ::BonusDisplay <- HUD.Item("Bonus: {bonus}")
-BonusDisplay.SetValue("bonus", GetHealthBonus())
+BonusDisplay.SetValue("bonus", 0)
 BonusDisplay.AttachTo(HUD_MID_TOP)
 
 function ChatTriggers::showbonus ( player, args, text )
@@ -163,17 +164,6 @@ function ChatTriggers::hidebonus ( player, args, text )
 //-----------------------------------------------------------------------------------------------------------------------------
 // GAME EVENT directives
 //-----------------------------------------------------------------------------------------------------------------------------
-function Notifications::OnRoundStart::SetBonusDisplay() //because Bonus Display is set to 0 at the start of a round
-{
-	BonusDisplay.SetValue("bonus", GetHealthBonus())
-}
-
-/* May be made redundant by OnRoundStart::SetBonusDisplay()
-function Notifications::OnMapEnd::CleanUp()
-{
-	BonusDisplay.SetValue("bonus", GetHealthBonus())
-}
-*/
 
 //Tracking SI numbers through their spawn and death events
 //Not currently used, but may be useful for unforeseen future features

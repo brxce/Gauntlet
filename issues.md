@@ -3,6 +3,7 @@
 ##Known but accepted features  
 > tank sometimes spawns close to/on survivors (because z_safe_spawn_range 0 is being used to allow SI to spawn closer)  
 > using admin privileges to force a campaign change will cause bonus score to carryover to new campaign  
+> finales not broken, but panic events are; unfortunately, using a custom vscript overrides a map's panic event vscripts
 
 ##Bugs     
 > sometimes survivors do not take damage  

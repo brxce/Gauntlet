@@ -89,7 +89,7 @@ public ResetInventory()
 					if (equipment != -1) { //if slot is not empty
 						if (i == SECONDARY_SLOT) { 
 							RemovePlayerItem(client, equipment);
-							GiveItem(client, "pistol"); 
+							GiveItem(client, "pistol"); //start maps with a single pistol
 #if VLC_DEBUG
 PrintToChatAll("- confiscated a secondary weapon");
 #endif
