@@ -2,7 +2,8 @@
 Msg("Loaded Baker's Dozen script\n");
 
 // Include the VScript Library
-IncludeScript("VSLib");
+IncludeScript("VSLib")
+IncludeScript("bossy")
 
 //Stages
 enum Stage {
@@ -32,12 +33,13 @@ MutationOptions <-
 	cm_AllowSurvivorRescue = 0 //disables rescue closet functionality in coop
 	
 	//SI specifications
+	ProhibitBosses = true //use 'bossy.nut' vscript to force spawn tanks and witches
 	cm_MaxSpecials = 0 //let CycleStages() manage SI spawning
 	cm_BaseSpecialLimit = 3 
-	DominatorLimit = 9 //dominators: charger, smoker, jockey, hunter
+	DominatorLimit = 10 //dominators: charger, smoker, jockey, hunter
 	HunterLimit = 4
 	BoomerLimit = 2
-	SmokerLimit = 3
+	SmokerLimit = 2
 	SpitterLimit = 2
 	ChargerLimit = 2
 	JockeyLimit = 3
@@ -84,14 +86,13 @@ MutationState <-
 //-----------------------------------------------------------------------------------------------------------------------------
 // UPDATE functions: Called every second 
 //-----------------------------------------------------------------------------------------------------------------------------
-function EasyLogic::Update::CyleStages()
-{
+function EasyLogic::Update::CyleStages() {
 	BonusDisplay.SetValue("bonus", GetHealthBonus()) //read in the bonus set by static_scoremod.smx
 	
 	switch (RoundVars.CurrentStage) {
 		case Stage.ALL_IN_SAFEROOM:
 			if ( Director.HasAnySurvivorLeftSafeArea() ) {
-				SessionState.BaitFlowTolerance = RandomFloat(100, 200)
+				SessionState.BaitFlowTolerance = RandomFloat(100, 150)
 				SessionState.SaferoomExitFlow = Director.GetFurthestSurvivorFlow()
 				SessionState.BaitThreshold = SessionState.SaferoomExitFlow + SessionState.BaitFlowTolerance
 				RoundVars.HasFoundSaferoomExitFlow = true

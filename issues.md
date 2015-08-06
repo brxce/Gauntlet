@@ -7,6 +7,10 @@
 
 ##Bugs     
 > sometimes chargers do not deal damage 
+> witch_and_tankifier.smx not working in coop mode
+> occasionally saferoom weapon spawns do not appear or starting pistol is not given
+> need a bonus reset command
+> need an mvp printout at the end of a coop round
 
 
 

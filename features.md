@@ -6,4 +6,6 @@
 ##Potential Future Features  
 > Map skip option: calculate distance points for from flow distance
 > l4d_boss_percent.smx for coop; tank and witch offsets for CDirectorChallengeMode?
-> manipulate cm_VIPtarget to force SI to attack survivor with highest permanent health?
+> manipulate "player_now_it" event: force SI to target health bonus, block them piling boomed players
+> block smoker coop behaviour where they take extra damage while shooting tongue
+> apply versus SI stumble to survivors

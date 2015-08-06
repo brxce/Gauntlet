@@ -5,7 +5,7 @@
 
 	"DisplayTitle"	"Baker's Dozen"
 	"ShortDescription"	"A 'Hard 12' gamemode"
-	"Description"	"SI encroach in waves of 12! Preserve permanent health to earn health bonus points at the saferoom!"
+	"Description"	"SI encroach in waves of 12! Preserve health to earn bonus points at the saferoom!"
 
 	"Image"		"maps/any"
 	"Author"	"Breezy"
