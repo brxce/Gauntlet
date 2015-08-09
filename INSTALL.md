@@ -9,6 +9,7 @@
  * versus_like_coop  
  * drugged_coop  
  * static_scoremod
+ * mapskipper
 and the cfg, modes and scripts folders 
 
 >>###*Otherwise*  

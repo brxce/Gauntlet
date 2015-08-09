@@ -53,6 +53,7 @@ MutationOptions <-
 	//SI behaviour
 	cm_AggressiveSpecials = true
 	PreferredSpecialDirection = SPAWN_SPECIALS_ANYWHERE
+	BehindSurvivorsSpawnDistance = 0
 	ShouldAllowSpecialsWithTank = true
 	ShouldAllowMobsWithTank = false
 	
@@ -87,7 +88,7 @@ MutationState <-
 // UPDATE functions: Called every second 
 //-----------------------------------------------------------------------------------------------------------------------------
 function EasyLogic::Update::CyleStages() {
-	BonusDisplay.SetValue("bonus", GetHealthBonus()) //read in the bonus set by static_scoremod.smx
+	ScoreDisplay.SetValue("score", GetScore()) //read in the score set by static_scoremod.smx
 	
 	switch (RoundVars.CurrentStage) {
 		case Stage.ALL_IN_SAFEROOM:
@@ -140,26 +141,26 @@ function EasyLogic::Update::CyleStages() {
 }	
 
 //-----------------------------------------------------------------------------------------------------------------------------
-// HUD: Health bonus
+// HUD: Coop score
 //-----------------------------------------------------------------------------------------------------------------------------
 
-function GetHealthBonus() //static_scoremod.smx uses "vs_tiebreak_bonus" to store bonus in coop gamemodes
+function GetScore() //static_scoremod.smx uses "vs_tiebreak_bonus" to store team score in coop gamemodes
 {
-	local HealthBonus = Convars.GetStr("vs_tiebreak_bonus")
-	return HealthBonus.tointeger()
+	local Score = Convars.GetStr("vs_tiebreak_bonus")
+	return Score.tointeger()
 }
 
-::BonusDisplay <- HUD.Item("Bonus: {bonus}")
-BonusDisplay.SetValue("bonus", 0)
-BonusDisplay.AttachTo(HUD_MID_TOP)
+::ScoreDisplay <- HUD.Item("Score: {score}")
+ScoreDisplay.SetValue("score", 0)
+ScoreDisplay.AttachTo(HUD_MID_TOP)
 
-function ChatTriggers::showbonus ( player, args, text )
+function ChatTriggers::showscore ( player, args, text )
 {
-	BonusDisplay.Show()
+	ScoreDisplay.Show()
 }
-function ChatTriggers::hidebonus ( player, args, text )
+function ChatTriggers::hidescore ( player, args, text )
 {
-	BonusDisplay.Show()
+	ScoreDisplay.Show()
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------
