@@ -96,7 +96,7 @@ PrintToChatAll("- confiscated a secondary weapon");
 						} else {							
 							RemovePlayerItem(client, equipment);
 #if VLC_DEBUG
-	PrintToChatAll("- confiscated a piece weaponry/equipment");
+	PrintToChatAll("- confiscated a piece of weaponry/equipment");
 #endif
 						}
 					}				

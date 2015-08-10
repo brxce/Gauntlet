@@ -2,7 +2,8 @@
 Msg("Loaded Baker's Dozen script\n");
 
 // Include the VScript Library
-IncludeScript("VSLib");
+IncludeScript("VSLib")
+IncludeScript("bossy")
 
 //Stages
 enum Stage {
@@ -32,14 +33,15 @@ MutationOptions <-
 	cm_AllowSurvivorRescue = 0 //disables rescue closet functionality in coop
 	
 	//SI specifications
+	ProhibitBosses = true //use 'bossy.nut' vscript to force spawn tanks and witches
 	cm_MaxSpecials = 0 //let CycleStages() manage SI spawning
 	cm_BaseSpecialLimit = 3 
 	DominatorLimit = 5 //dominators: charger, smoker, jockey, hunter
 	HunterLimit = 2
 	BoomerLimit = 1
-	SmokerLimit = 1
+	SmokerLimit = 2
 	SpitterLimit = 1
-	ChargerLimit = 2
+	ChargerLimit = 1
 	JockeyLimit = 2
 	
 	//SI frequency
@@ -51,6 +53,7 @@ MutationOptions <-
 	//SI behaviour
 	cm_AggressiveSpecials = true
 	PreferredSpecialDirection = SPAWN_SPECIALS_ANYWHERE
+	BehindSurvivorsSpawnDistance = 0
 	ShouldAllowSpecialsWithTank = true
 	ShouldAllowMobsWithTank = false
 	
@@ -84,14 +87,13 @@ MutationState <-
 //-----------------------------------------------------------------------------------------------------------------------------
 // UPDATE functions: Called every second 
 //-----------------------------------------------------------------------------------------------------------------------------
-function EasyLogic::Update::CyleStages()
-{
-	BonusDisplay.SetValue("bonus", GetHealthBonus()) //read in the bonus set by static_scoremod.smx
+function EasyLogic::Update::CyleStages() {
+	ScoreDisplay.SetValue("score", GetScore()) //read in the score set by static_scoremod.smx
 	
 	switch (RoundVars.CurrentStage) {
 		case Stage.ALL_IN_SAFEROOM:
 			if ( Director.HasAnySurvivorLeftSafeArea() ) {
-				SessionState.BaitFlowTolerance = RandomFloat(100, 200)
+				SessionState.BaitFlowTolerance = RandomFloat(100, 150)
 				SessionState.SaferoomExitFlow = Director.GetFurthestSurvivorFlow()
 				SessionState.BaitThreshold = SessionState.SaferoomExitFlow + SessionState.BaitFlowTolerance
 				RoundVars.HasFoundSaferoomExitFlow = true
@@ -139,26 +141,26 @@ function EasyLogic::Update::CyleStages()
 }	
 
 //-----------------------------------------------------------------------------------------------------------------------------
-// HUD: Health bonus
+// HUD: Coop score
 //-----------------------------------------------------------------------------------------------------------------------------
 
-function GetHealthBonus() //static_scoremod.smx uses "vs_tiebreak_bonus" to store bonus in coop gamemodes
+function GetScore() //static_scoremod.smx uses "vs_tiebreak_bonus" to store team score in coop gamemodes
 {
-	local HealthBonus = Convars.GetStr("vs_tiebreak_bonus")
-	return HealthBonus.tointeger()
+	local Score = Convars.GetStr("vs_tiebreak_bonus")
+	return Score.tointeger()
 }
 
-::BonusDisplay <- HUD.Item("Bonus: {bonus}")
-BonusDisplay.SetValue("bonus", 0)
-BonusDisplay.AttachTo(HUD_MID_TOP)
+::ScoreDisplay <- HUD.Item("Score: {score}")
+ScoreDisplay.SetValue("score", 0)
+ScoreDisplay.AttachTo(HUD_MID_TOP)
 
-function ChatTriggers::showbonus ( player, args, text )
+function ChatTriggers::showscore ( player, args, text )
 {
-	BonusDisplay.Show()
+	ScoreDisplay.Show()
 }
-function ChatTriggers::hidebonus ( player, args, text )
+function ChatTriggers::hidescore ( player, args, text )
 {
-	BonusDisplay.Show()
+	ScoreDisplay.Show()
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------

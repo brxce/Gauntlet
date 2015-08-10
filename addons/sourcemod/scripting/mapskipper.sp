@@ -1,5 +1,6 @@
 #pragma semicolon 1
 #include <sourcemod>
+#include <sdktools>
 #include <nextmap>
 #define MISSIONS_PATH "missions"
 #define DELAY_FORCEMAP 6.5
@@ -23,7 +24,7 @@ public Plugin: myinfo = {
 public OnPluginStart() {
 	// Make sure the 'missions' folder exists
 	if (!DirExists(MISSIONS_PATH)) {
-		SetFailState("missions directory does not exist on this server.  Map Skipper cannot continue operation");
+		SetFailState("Missions directory does not exist on this server.  Map Skipper cannot continue operation");
 	}
 	HookEvent("mission_lost", Event_MissionLost, EventHookMode_PostNoCopy);
 }
@@ -40,6 +41,9 @@ public Action:Timer_ForceNextMap(Handle:timer) {
 		LogMessage("No valid next map determined");
 		return Plugin_Handled;
 	} else if (!DoRetryMap){
+		//Fire a map_transition event for static scoremod
+		new Handle:event = CreateEvent("map_transition");
+		FireEvent(event);
 		ForceChangeLevel(NextMap, "Map Skipper");
 		return Plugin_Handled;
 	} else {
@@ -116,6 +120,8 @@ public Handle_VoteMenu(Handle:menu, MenuAction:action, param1, param2) {
 		if (param1 == 0) {
 			PrintToChatAll("Retry vote passed!");
 			DoRetryMap = true;
+		} else {
+			PrintToChatAll("Retry vote failed!");
 		}
 	}
 }
@@ -129,5 +135,5 @@ DoVoteMenu() {
 	AddMenuItem(menu, "yes", "Yes");
 	AddMenuItem(menu, "no", "No");
 	SetMenuExitButton(menu, false);
-	VoteMenuToAll(menu, 20);
+	VoteMenuToAll(menu, 6);
 }
