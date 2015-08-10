@@ -1,19 +1,20 @@
 # Installation  
->##Standalone vscript add-on: Vanilla Cookie <future feature>  
+>##Standalone vscript add-on: Vanilla Cookie (Vanilla L4D2 based)  
  * download vanillacookie.vpk into your add-ons folder 
 
->##ProMod based configs: Baker's Dozen, Half Baked   
->>###*If ProMod 4.0 or above is already installed on the server, copy the plugins:*    
- * l4d_playerstats_fixed  
- * l4d_tank_damage_announce_fixed  
- * versus_like_coop  
- * drugged_coop  
- * static_scoremod
- * mapskipper
-and the cfg, modes and scripts folders 
+>##Confogl based configs: Baker's Dozen, Half Baked   
+>>###*If ProMod 4.0 or above is already installed on the server, only install the following:*    
+ * l4d2_playstats_fixed.smx  
+ * l4d_tank_damage_announce_fixed.smx  
+ * versus_like_coop.smx    
+ * drugged_coop.smx  
+ * static_scoremod.smx  
+ * mapskipper.smx  
+ * missions folder - N.B. missions file must be extracted from respective .vpks for custom campaigns
+ * cfg, modes and scripts folders  
 
 >>###*Otherwise*  
  * Copy all folders into your server directory    
- * In case of any VSLib version clashes, download the latest version of VSLIB into your vscripts folder  
+ * In the case of any VSLib version clashes, download the latest version of VSLIB instead  
 
 
