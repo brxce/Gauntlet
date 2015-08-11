@@ -7,7 +7,8 @@ IncludeScript("VSLib");
 //Boss enumerations
 enum Boss {
 	TANK = 8
-	WITCH = 11 //witch bride
+	WITCH = 7
+	WITCHBRIDE = 11 //witch bride
 }
 
 BDEBUG <- false
@@ -30,20 +31,22 @@ function EasyLogic::Update::BossDirector() {
 			//@TODO Adjust for overlap
 		}
 	} else { //check if a tank/witch needs to be spawned
-		local FurthestFlow = Director.GetFurthestSurvivorFlow()
-		local FurthestSurvivor = Players.SurvivorWithHighestFlow()
+		local FarthestFlow = Director.GetFurthestSurvivorFlow()
+		local FarthestSurvivor = Players.SurvivorWithHighestFlow()
+		local MinSpawnDist = 1000.0
+		local MaxSpawnDist = 1500.0
 		if (BDEBUG) { 
 			local MaxFlow = GetMaxFlowDistance()
-			local CurrentFlow = (FurthestFlow/MaxFlow) * 100
-			Utils.SayToAll("Current: [%i]", CurrentFlow.tointeger())
+			local Current = (FarthestFlow/MaxFlow) * 100
+			Utils.SayToAll("Current: [%i]", Current.tointeger())
 		}
-		if (FurthestFlow >= RoundVars.TankFlowDist && !RoundVars.HasEncounteredTank) { 
+		if (FarthestFlow >= RoundVars.TankFlowDist && !RoundVars.HasEncounteredTank) { 
 			//spawn tank
-			Utils.SpawnZombieNearPlayer(FurthestSurvivor, Boss.TANK, 1500.0, 1000.0, false)
+			Utils.SpawnZombieNearPlayer(FarthestSurvivor, Boss.TANK, MaxSpawnDist, MinSpawnDist, false)
 			RoundVars.HasEncounteredTank = true
-		} else if (FurthestFlow >= RoundVars.WitchFlowDist && !RoundVars.HasEncounteredWitch) { 
+		} else if (FarthestFlow >= RoundVars.WitchFlowDist && !RoundVars.HasEncounteredWitch) { 
 			//spawn witch
-			Utils.SpawnZombieNearPlayer(FurthestSurvivor, Boss.WITCH, 1500.0, 1000.0, false)
+			Utils.SpawnZombieNearPlayer(FarthestSurvivor, Boss.WITCHBRIDE, MaxSpawnDist, MinSpawnDist, false)
 			RoundVars.HasEncounteredWitch = true
 		}		
 	}
@@ -52,7 +55,10 @@ function EasyLogic::Update::BossDirector() {
 function GetRandomMapFlow(BossType) {
 	local MaxFlow = GetMaxFlowDistance()
 	if (BDEBUG) { Utils.SayToAll("Max flow distance: %f", MaxFlow) }
-	local RandomFlow = RandomFloat(0, MaxFlow)
+	local RandomFlow;
+	do {
+		RandomFlow = RandomFloat(0, MaxFlow)
+	} while RandomFlow > 90.0 // no tank/witches near end safe room
 	if (BDEBUG) { Utils.SayToAll("RandomFlow: %f", RandomFlow) }
 	//Print as a percent
 	local FlowPercentage = (RandomFlow/MaxFlow) * 100

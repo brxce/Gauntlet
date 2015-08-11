@@ -4,7 +4,7 @@
 #include <sdktools>
 #include <left4downtown>
 
-#define VLC_DEBUG 1
+#define VLC_DEBUG 0
 #define	NO_TEMP_HEALTH 0.0
 #define SECONDARY_SLOT 1
 
@@ -27,7 +27,7 @@ public OnPluginStart()
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	#if VLC_DEBUG
-		PrintToChatAll("(Left4Downtown2) L4D_OnFirstSurvivorLeftSafeArea");
+		PrintToChatAll("L4D_OnFirstSurvivorLeftSafeArea (Left4Downtown2)");
 	#endif
 	RestoreHealth();
 }
@@ -57,7 +57,9 @@ public RestoreHealth()
 		if ( IsSurvivor(client) )
 		{
 #if VLC_DEBUG
-	PrintToChatAll("Restored health and reset revive count on client: %i", client);
+	new String:ClientName[256];
+	GetClientName(client, ClientName, sizeof(ClientName));
+	PrintToChatAll("Restored health and reset revive count on %s (client/entity ID %i):", ClientName, client);
 #endif
 			GiveItem(client, "health"); //give full health			
 			new Float:buffhp = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
@@ -82,7 +84,9 @@ public ResetInventory()
 	for (new client = 0; client <= MaxClients; client++) {
 		if ( IsSurvivor(client) ) {
 #if VLC_DEBUG
-	PrintToChatAll("Resetting inventory of client: %i", client);
+	new String:ClientName[256];
+	GetClientName(client, ClientName, sizeof(ClientName));
+	PrintToChatAll("Resetting inventory of %s (client/entity ID %i):", ClientName, client);
 #endif
 			for (new i = 0; i < 5; i++) { //clear all slots in player's inventory
 				 	new equipment = GetPlayerWeaponSlot(client, i);

@@ -1,0 +1,147 @@
+mission
+{
+	"Name"				"L4D2C12"
+	"Version"    		"1"
+	"Author"			"Valve"
+	"Website"			"http://store.steampowered.com"
+	"BuiltIn"       	"1"
+	"DisplayTitle"		"#L4D360UI_CampaignName_C12"
+	"Description"		"#L4D360UI_CampaignName_C12Objective"
+	"Image"				"maps/c12"
+	"OuttroImage"		"vgui/outroTitle_BloodHarvest"
+
+
+	"meleeweapons"		"fireaxe;machete;crowbar;frying_pan;baseball_bat;knife"
+	"allow_cola"		"0"
+	"no_wpn_restore"	"1"		// on player wipe, don't keep any weapons
+	"no_female_boomers"	"1"		// Can't have female Boomers because there's no audio support
+	"no_cs_weapons"		"1"		// no Germany / CS weapons, preserve the weapons in the gun shop
+	
+	"survivor_set"		"1"		// Which set of survivors should be used. 1=L4D1, 2=L4D2
+
+	// Loading poster data
+	"poster"
+	{
+		"posterImage"		"LoadingScreen_BloodHarvest"
+		"posterImage_widescreen"	"LoadingScreen_BloodHarvest_widescreen"
+		"fullscreen"		"1"
+		
+		"posterTitle"		"#L4D360UI_CampaignTitle_C12"
+		"posterTitle_y"		"395"
+		
+		"posterTagline"		"#L4D360UI_CampaignTagline_C12"
+		"posterTagline_y"	"50"
+
+		"character_order"		"namvet;manager;teengirl;biker"
+	}
+
+	"modes"
+	{
+		"coop"
+		{
+			"1"
+			{
+				"Map" "C12m1_hilltop"
+				"DisplayName" "#L4D360UI_LevelName_COOP_C12M1"
+				"Image" "maps/C12m1_hilltop"
+			}
+
+			"2"
+			{
+				"Map" "C12m2_traintunnel"
+				"DisplayName" "#L4D360UI_LevelName_COOP_C12M2"
+				"Image" "maps/C12m2_traintunnel"
+			}
+
+			"3"
+			{
+				"Map" "C12m3_bridge"
+				"DisplayName" "#L4D360UI_LevelName_COOP_C12M3"
+				"Image" "maps/C12m3_bridge"
+			}
+
+			"4"		
+			{
+				"Map" "C12m4_barn"
+				"DisplayName" "#L4D360UI_LevelName_COOP_C12M4"
+				"Image" "maps/C12m4_barn"
+			}
+
+			"5"		
+			{
+				"Map" "C12m5_cornfield"
+				"DisplayName" "#L4D360UI_LevelName_COOP_C12M5"
+				"Image" "maps/C12m5_cornfield"
+			}
+		}
+
+		"versus"
+		{
+			"1"
+			{
+				"Map" "C12m1_hilltop"
+				"DisplayName" "#L4D360UI_LevelName_VERSUS_C12M1"
+				"Image" "maps/C12m1_hilltop"
+				"VersusCompletionScore"	"400"
+			}
+	
+			"2"		
+			{
+				"Map" "C12m2_traintunnel"
+				"DisplayName" "#L4D360UI_LevelName_VERSUS_C12M2"
+				"Image" "maps/C12m2_traintunnel"
+				"VersusCompletionScore"	"500"
+			}
+	
+			"3"		
+			{
+				"Map" "C12m3_bridge"
+				"DisplayName" "#L4D360UI_LevelName_VERSUS_C12M3"
+				"Image" "maps/C12m3_bridge"
+				"VersusCompletionScore"	"600"
+			}
+	
+			"4"		
+			{
+				"Map" "C12m4_barn"
+				"DisplayName" "#L4D360UI_LevelName_VERSUS_C12M4"
+				"Image" "maps/C12m4_barn"
+				"VersusCompletionScore"	"700"
+			}
+	
+			"5"		
+			{
+				"Map" "C12m5_cornfield"
+				"DisplayName" "#L4D360UI_LevelName_VERSUS_C12M5"
+				"Image" "maps/C12m5_cornfield"
+				"VersusCompletionScore"	"800"
+				"versus_boss_spawning"
+				{
+					"tank_chance"	"0.00"
+					"witch_chance"	"0.00"
+				}
+			}
+		}	
+	
+		"scavenge"
+		{
+			"1"		
+			{
+				"Map" "C12M5_cornfield"
+				"DisplayName" "#L4D360UI_LevelName_SCAVENGE_C12M5"
+				"Image" "maps/C12M5_cornfield"
+			}
+		}	
+		
+		"mutation10"
+		{
+			"1"		
+			{
+				"Map" "C12m5_cornfield"
+				"DisplayName" "#L4D360UI_LevelName_SCAVENGE_C12M5"
+				"Image" "maps/C12m5_cornfield"
+			}
+		}
+	}
+}
+

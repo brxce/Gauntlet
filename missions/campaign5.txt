@@ -181,5 +181,16 @@
 				"x360ctx"	"28"
 			}
 		}	
+
+		"mutation10"
+		{
+			"1"		
+			{
+				"Map" "c5m5_bridge"
+				"DisplayName" "#L4D360UI_LevelName_SURVIVAL_C5M5"
+				"Image" "maps/c5m5_bridge"
+				"x360ctx" "33"
+			}
+		}
 	}
 }

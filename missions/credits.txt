@@ -10,7 +10,6 @@
 	"OuttroImage"	"vgui/outroTitle_Credits"
 
 	"x360ctx"		"6"
-	"x360presence"	"2"
 
 	// No loading poster data
 

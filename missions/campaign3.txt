@@ -87,6 +87,12 @@
 				"DisplayName" "#L4D360UI_LevelName_VERSUS_C3M1"
 				"Image" "maps/c3m1_plankcountry"
 				"VersusCompletionScore"	"500"
+				"versus_boss_spawning"
+				{
+					"spawn_pos_min"		"0.6"
+					"tank_chance"		"0.3"
+					"witch_chance"		"0.3"
+				}
 			}
 
 			"2"
@@ -160,5 +166,15 @@
 				"x360ctx"	"25"
 			}
 		}	
+
+		"mutation10"
+		{
+			"1"		
+			{
+				"Map" "c3m4_plantation"
+				"DisplayName" "#L4D360UI_LevelName_SURVIVAL_C3M4"
+				"Image" "maps/c3m4_plantation"
+			}
+		}
 	}
 }

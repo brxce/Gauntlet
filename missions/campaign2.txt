@@ -192,5 +192,15 @@
 				"x360ctx"	"24"
 			}
 		}	
+
+		"mutation10"
+		{
+			"1"		
+			{
+				"Map" "c2m5_concert"
+				"DisplayName" "#L4D360UI_LevelName_SURVIVAL_C2M5"
+				"Image" "maps/c2m5_concert"
+			}
+		}
 	}
 }

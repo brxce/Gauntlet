@@ -1,7 +1,8 @@
 #pragma semicolon 1
 #include <sourcemod>
 #include <sdktools>
-#include <nextmap>
+#include <nextmap> //ForceChangeLevel()
+#include <smlib>
 #define MISSIONS_PATH "missions"
 #define DELAY_FORCEMAP 6.5
 #define MS_DEBUG 0
@@ -28,6 +29,7 @@ public OnPluginStart() {
 	}
 	HookEvent("mission_lost", Event_MissionLost, EventHookMode_PostNoCopy);
 }
+
 public Event_MissionLost(Handle:hEvent, const String:name[], bool:dontBroadcast) {
 	if (GetNextMapName()) {
 		DoRetryMap = false; // reset
@@ -44,6 +46,7 @@ public Action:Timer_ForceNextMap(Handle:timer) {
 		//Fire a map_transition event for static scoremod
 		new Handle:event = CreateEvent("map_transition");
 		FireEvent(event);
+		LogMessage("Force changing map to %s", NextMap);
 		ForceChangeLevel(NextMap, "Map Skipper");
 		return Plugin_Handled;
 	} else {
@@ -62,6 +65,7 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 	// Setup strings
 	new String: current_map[256]; //current map being played
 	GetCurrentMap(current_map, sizeof(current_map));
+	LogMessage("Current map: %s", current_map);
 	decl String: buffer[256];
 	decl String: full_path[256];
 
@@ -74,29 +78,30 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 		Format(full_path, sizeof(full_path), "%s/%s", MISSIONS_PATH, buffer); 
 		new Handle: missions_kv = CreateKeyValues("mission"); //define "mission" as the root node
 		FileToKeyValues(missions_kv, full_path);
-
+		#if MS_DEBUG
+			LogMessage("Searching for current map in file: %s", full_path);
+		#endif
+	
 		// Get to correct position so we can start our loop
 		KvJumpToKey(missions_kv, "modes", false);
 		if(!KvJumpToKey(missions_kv, "coop", false)) {
-			LogMessage("Could not find coop path in missions file %s", full_path);
+			#if MS_DEBUG
+				LogMessage("Could not find coop path in missions file %s", full_path);
+			#endif
 		} else { // check if the current map belongs to this mission file
 			KvGotoFirstSubKey(missions_kv); // first map
 			do { 
 				new String:map_name[256];
 				KvGetString(missions_kv, "map", map_name, sizeof(map_name));
-				#if MS_DEBUG 
-					LogMessage("Found map %s in %s", map_name, full_path); 
-				#endif
 				if (StrEqual(map_name, current_map, false)) { // third parameter indicates case sensitivity
 					if (KvGotoNextKey(missions_kv)) { // if finale is not being played
 						KvGetString(missions_kv, "map", NextMap, sizeof(NextMap));
-						#if MS_DEBUG 
-							LogMessage("Found next map: %s", NextMap); 
-						#endif
+						LogMessage("Found next map: %s", NextMap); 
 						CloseHandle(missions_kv); // Close the KV handle for the next loop
 						CloseHandle(missions_dir); // Close the directory handle
 						return true;
-					}  else { // finale; survivors will have to play from the first map again if they wipe
+					}  else { 
+						LogMessage("Finale being played, map skip will restart campaign");
 						KvGoBack(missions_kv);
 						KvGotoFirstSubKey(missions_kv);
 						KvGetString(missions_kv, "map", NextMap, sizeof(NextMap));
@@ -107,8 +112,9 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 		}
 		CloseHandle(missions_kv); // Close the KV handle for the next loop	
 	}		
+	LogMessage("The next map could not be found. No valid missions file?");
 	CloseHandle(missions_dir); // Close the directory handle
-	return false; // the next map could not be found; no valid missions file
+	return false; 
 }
 
 public Handle_VoteMenu(Handle:menu, MenuAction:action, param1, param2) {
@@ -118,10 +124,10 @@ public Handle_VoteMenu(Handle:menu, MenuAction:action, param1, param2) {
 	} else if (action == MenuAction_VoteEnd) {
 		/* 0=yes, 1=no */
 		if (param1 == 0) {
-			PrintToChatAll("Retry vote passed!");
+			Client_PrintToChatAll(true, "{G}Retry vote PASSED!");
 			DoRetryMap = true;
 		} else {
-			PrintToChatAll("Retry vote failed!");
+			Client_PrintToChatAll(true, "{O}Retry vote FAILED!");
 		}
 	}
 }
