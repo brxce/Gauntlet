@@ -3,24 +3,23 @@ Msg("Loaded Baker's Dozen script\n");
 
 // Include the VScript Library
 IncludeScript("VSLib")
-IncludeScript("bossy")
 
 //Stages
 enum Stage {
-	ALL_IN_SAFEROOM, 
+	INITIALISE, 
 	WAIT_FOR_BAIT,
 	SPAWNING_SI,       
 	WAVE_SPAWNED,       
 	COOLDOWN		 
 }
-DEBUGMODE <- true
+DEBUGMODE <- false
 const MAX_SPECIALS = 6
-const UNDEFINED_FLOW = 0
+const UNDEFINED_FLOW = -1
 	
 //Round Variables are reset every round	
 RoundVars.SpecialsSpawned <- 0  //the total number of specials that have been spawned during the round
 RoundVars.CurrentAliveSI <- 0
-RoundVars.CurrentStage <- Stage.ALL_IN_SAFEROOM
+RoundVars.CurrentStage <- Stage.INITIALISE
 RoundVars.TimeBeforeNextHit <- 0
 RoundVars.HasFoundSaferoomExitFlow <- false
 
@@ -38,7 +37,7 @@ MutationOptions <-
 	DominatorLimit = 5 //dominators: charger, smoker, jockey, hunter
 	HunterLimit = 2
 	BoomerLimit = 1
-	SmokerLimit = 2
+	SmokerLimit = 1
 	SpitterLimit = 1
 	ChargerLimit = 1
 	JockeyLimit = 2
@@ -56,11 +55,14 @@ MutationOptions <-
 	ShouldAllowSpecialsWithTank = true
 	ShouldAllowMobsWithTank = false
 	
-	//Removing medkits
+	//Removing spawns
 	weaponsToRemove =
 	{
-		weapon_first_aid_kit = 0
 		weapon_first_aid_kit_spawn = 0
+		weapon_adrenaline_spawn = 0
+		weapon_molotov_spawn = 0
+		weapon_vomitjar_spawn = 0
+		weapon_pipebomb_spawn = 0
 	}
 	function AllowWeaponSpawn( classname )
 	{
@@ -77,7 +79,7 @@ MutationOptions <-
 //-----------------------------------------------------------------------------------------------------------------------------
 MutationState <-
 {
-	WaveInterval = 40 //Time between SI hits
+	WaveInterval = 30 // Time between SI hits
 	SaferoomExitFlow = UNDEFINED_FLOW
 	BaitFlowTolerance = UNDEFINED_FLOW
 	BaitThreshold = UNDEFINED_FLOW
@@ -88,19 +90,23 @@ MutationState <-
 //-----------------------------------------------------------------------------------------------------------------------------
 function EasyLogic::Update::CyleStages() {
 	ScoreDisplay.SetValue("score", GetScore()) //read in the score set by static_scoremod.smx
+	if (DEBUGMODE) { SIspawned.SetValue("spawned", RoundVars.SpecialsSpawned) }
+	if (DEBUGMODE) { AliveSI.SetValue("liveSI", RoundVars.CurrentAliveSI) }
 	
 	switch (RoundVars.CurrentStage) {
-		case Stage.ALL_IN_SAFEROOM:
+		case Stage.INITIALISE:
 			if ( Director.HasAnySurvivorLeftSafeArea() ) {
 				SessionState.BaitFlowTolerance = RandomFloat(100, 150)
 				SessionState.SaferoomExitFlow = Director.GetFurthestSurvivorFlow()
 				SessionState.BaitThreshold = SessionState.SaferoomExitFlow + SessionState.BaitFlowTolerance
 				RoundVars.HasFoundSaferoomExitFlow = true
 				RoundVars.CurrentStage = Stage.WAIT_FOR_BAIT
-				if (DEBUGMODE) { Utils.SayToAll("SaferoomExitFlow: %f", SessionState.SaferoomExitFlow) }
-				if (DEBUGMODE) { Utils.SayToAll("BaitFlowTolerance: %f", SessionState.BaitFlowTolerance) }
-				if (DEBUGMODE) { Utils.SayToAll("BaitThreshold: %f", SessionState.BaitThreshold) }
-				if (DEBUGMODE) { Utils.SayToAll("-> Stage.WAIT_FOR_BAIT") }
+				if (DEBUGMODE) { 
+					Utils.SayToAll("SaferoomExitFlow: %f", SessionState.SaferoomExitFlow) 
+					Utils.SayToAll("BaitFlowTolerance: %f", SessionState.BaitFlowTolerance) 
+					Utils.SayToAll("BaitThreshold: %f", SessionState.BaitThreshold) 
+					Utils.SayToAll("-> Stage.WAIT_FOR_BAIT") 
+				}
 			}
 			break;
 		case Stage.WAIT_FOR_BAIT:
@@ -143,7 +149,7 @@ function EasyLogic::Update::CyleStages() {
 // HUD: Coop score
 //-----------------------------------------------------------------------------------------------------------------------------
 
-function GetScore() //static_scoremod.smx uses "vs_tiebreak_bonus" to store team score in coop gamemodes
+function GetScore() //static_scoremod.smx uses "vs_tiebreak_bonus" console variable to store the team score in coop gamemode
 {
 	local Score = Convars.GetStr("vs_tiebreak_bonus")
 	return Score.tointeger()
@@ -159,7 +165,21 @@ function ChatTriggers::showscore ( player, args, text )
 }
 function ChatTriggers::hidescore ( player, args, text )
 {
-	ScoreDisplay.Show()
+	ScoreDisplay.Hide()
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// HUD: SI Debug
+//-----------------------------------------------------------------------------------------------------------------------------
+
+if (DEBUGMODE) { // display SI spawn tracking on HUD
+	::AliveSI <- HUD.Item("SI alive: {liveSI}")
+	::AliveSI.SetValue("liveSI", 0)
+	::AliveSI.AttachTo(HUD_FAR_LEFT)
+	
+	::SIspawned <- HUD.Item("SI spawned: {spawned}")
+	SIspawned.SetValue("spawned", 0)
+	SIspawned.AttachTo(HUD_FAR_RIGHT)
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -173,6 +193,11 @@ function Notifications::OnSpawn::PlayerInfectedSpawned( player, params )
     if ( player.GetTeam() == INFECTED ) {
 		RoundVars.CurrentAliveSI++
 		RoundVars.SpecialsSpawned++
+		if (RoundVars.SpecialsSpawned % MAX_SPECIALS == 0) { // checked here as a failsafe to prevent extra large SI hits
+			SessionOptions.cm_MaxSpecials = 0
+			RoundVars.CurrentStage = Stage.WAVE_SPAWNED
+			if (DEBUGMODE) { Utils.SayToAll("-> Stage.WAVE_SPAWNED") }
+		}
 	} else if (RoundVars.SpecialsSpawned >= MAX_SPECIALS) {
 		SessionOptions.PreferredSpecialDirection = SPAWN_SPECIALS_ANYWHERE
 	}
@@ -197,16 +222,16 @@ function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, pa
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------
-// Set time between SI Waves
+// Set the interval between SI Waves
 //-----------------------------------------------------------------------------------------------------------------------------
 function ChatTriggers::setwaveinterval ( player, args, text ) {
-	local time = GetArgument(1)
-	local IntervalLength = time.tointeger()
-	if ( IntervalLength == null || IntervalLength <= 0) {
-		Utils.SayToAll("SI wave interval must be a valid number greater than zero")
-		return;
+	local interval = GetArgument(1)
+	local seconds = interval.tointeger()
+	if ( seconds == null || seconds <= 0) {
+		Utils.SayToAll("SI wave interval must be a valid number of seconds greater than zero")
+		return
 	} else {
-		Utils.SayToAll("SI wave interval changed to %s", IntervalLength)
-		SessionState.WaveInterval = IntervalLength
+		Utils.SayToAll("SI wave interval changed to %i", seconds)
+		SessionState.WaveInterval = seconds
 	}
 }
