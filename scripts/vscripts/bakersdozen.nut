@@ -3,6 +3,7 @@ Msg("Loaded Baker's Dozen script\n");
 
 // Include the VScript Library
 IncludeScript("VSLib")
+IncludeScript("bossy")
 
 //Stages
 enum Stage {

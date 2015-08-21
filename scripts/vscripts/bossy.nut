@@ -1,21 +1,21 @@
 //-----------------------------------------------------------------------------------------------------------------------------
-Msg("Loaded Bossy script\n");
+Msg("Loaded Bossy script\n")
 
 // Include the VScript Library
-IncludeScript("VSLib");
+IncludeScript("VSLib")
 
 //Boss enumerations
 enum Boss {
 	TANK = 8
 	WITCH = 7
-	WITCHBRIDE = 11 //witch bride
+	WITCHBRIDE = 11 //witch bride might cause hordes?
 }
 
 BDEBUG <- false
 
 //Flow percentages
 RoundVars.TankFlowDist <- 0.0
-RoundVars.HasEncounteredTank <- false
+RoundVars.HasEncounteredTank <- falses
 RoundVars.WitchFlowDist <- 0.0
 RoundVars.HasEncounteredWitch <- false
 //Director control flow
@@ -55,15 +55,24 @@ function EasyLogic::Update::BossDirector() {
 function GetRandomMapFlow(BossType) {
 	local MaxFlow = GetMaxFlowDistance()
 	if (BDEBUG) { Utils.SayToAll("Max flow distance: %f", MaxFlow) }
-	local RandomFlow;
+	local RandomFlow
+	local FlowPercentage
 	do {
 		RandomFlow = RandomFloat(0, MaxFlow)
-	} while RandomFlow > 90.0 // no tank/witches near end safe room
+		FlowPercentage = (RandomFlow/MaxFlow) * 100
+	} while (FlowPercentage > 90.0) // no tank/witches near end safe room
 	if (BDEBUG) { Utils.SayToAll("RandomFlow: %f", RandomFlow) }
-	//Print as a percent
-	local FlowPercentage = (RandomFlow/MaxFlow) * 100
 	if (BDEBUG) { Utils.SayToAll("RandomFlow/MaxFlow: %f", FlowPercentage) }
+	//Print as a percent
 	local BossPercent = FlowPercentage.tointeger()
 	Utils.SayToAll("%s: [%i%%]", BossType, BossPercent)
 	return RandomFlow
+}
+
+function Notifications::OnTankSpawned::LimitTankSpawns (tank, params) {
+	if (Director.GetFurthestSurvivorFlow() < RoundVars.TankFlowDist) { // Tank percentage not yet reached
+		tank.Kill();
+	} else if (RoundVars.HasEncounteredTank == true) { // Do not spawn any extra tanks
+		tank.Kill();
+	}	
 }

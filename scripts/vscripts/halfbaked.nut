@@ -3,6 +3,7 @@ Msg("Loaded Baker's Dozen script\n");
 
 // Include the VScript Library
 IncludeScript("VSLib")
+IncludeScript("bossy")
 
 //Stages
 enum Stage {
@@ -58,11 +59,11 @@ MutationOptions <-
 	//Removing spawns
 	weaponsToRemove =
 	{
-		weapon_first_aid_kit_spawn = 0
-		weapon_adrenaline_spawn = 0
-		weapon_molotov_spawn = 0
-		weapon_vomitjar_spawn = 0
-		weapon_pipebomb_spawn = 0
+		weapon_first_aid_kit = 0
+		weapon_adrenaline = 0
+		weapon_molotov= 0
+		weapon_vomitjar = 0
+		weapon_pipebomb = 0
 	}
 	function AllowWeaponSpawn( classname )
 	{
