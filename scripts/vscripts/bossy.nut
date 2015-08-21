@@ -15,9 +15,9 @@ BDEBUG <- false
 
 //Flow percentages
 RoundVars.TankFlowDist <- 0.0
-RoundVars.HasEncounteredTank <- falses
+RoundVars.HasEncounteredTank <- false
 RoundVars.WitchFlowDist <- 0.0
-RoundVars.HasEncounteredWitch <- false
+RoundVars.HasEncounteredWitch <- true
 //Director control flow
 RoundVars.HasLeftSafeArea <- false
 
@@ -27,7 +27,7 @@ function EasyLogic::Update::BossDirector() {
 			RoundVars.HasLeftSafeArea = true;
 			//Assign a random flow distance to the boss spawns
 			RoundVars.TankFlowDist = GetRandomMapFlow("Tank")
-			RoundVars.WitchFlowDist = GetRandomMapFlow("Witch")
+			//RoundVars.WitchFlowDist = GetRandomMapFlow("Witch")
 			//@TODO Adjust for overlap
 		}
 	} else { //check if a tank/witch needs to be spawned
@@ -42,11 +42,11 @@ function EasyLogic::Update::BossDirector() {
 		}
 		if (FarthestFlow >= RoundVars.TankFlowDist && !RoundVars.HasEncounteredTank) { 
 			//spawn tank
-			Utils.SpawnZombieNearPlayer(FarthestSurvivor, Boss.TANK, MaxSpawnDist, MinSpawnDist, false)
+			Utils.SpawnZombieNearPlayer(FarthestSurvivor, Boss.TANK, MaxSpawnDist, MinSpawnDist, true)
 			RoundVars.HasEncounteredTank = true
 		} else if (FarthestFlow >= RoundVars.WitchFlowDist && !RoundVars.HasEncounteredWitch) { 
-			//spawn witch
-			Utils.SpawnZombieNearPlayer(FarthestSurvivor, Boss.WITCHBRIDE, MaxSpawnDist, MinSpawnDist, false)
+			//spawn witch	
+			Utils.SpawnZombieNearPlayer(FarthestSurvivor, Boss.WITCH, MaxSpawnDist, MinSpawnDist, true)
 			RoundVars.HasEncounteredWitch = true
 		}		
 	}
@@ -71,8 +71,10 @@ function GetRandomMapFlow(BossType) {
 
 function Notifications::OnTankSpawned::LimitTankSpawns (tank, params) {
 	if (Director.GetFurthestSurvivorFlow() < RoundVars.TankFlowDist) { // Tank percentage not yet reached
+		Utils.SayToAll("Early extra tank! Attempting to kill...");
 		tank.Kill();
 	} else if (RoundVars.HasEncounteredTank == true) { // Do not spawn any extra tanks
+		Utils.SayToAll("Early late tank! Attempting to kill...");
 		tank.Kill();
 	}	
 }
