@@ -13,8 +13,9 @@ public Plugin:myinfo = {
 };
 
 new bIsImmobilised[MAXPLAYERS];
+new bool:g_bIsAutoslayerActive = false;
 
-//@TODO: on
+//@TODO SI clears by kill do not seem to consistently trigger the OnPlayerMobilise event hooks
 public OnPluginStart() {
 	//Incapacitated or pinned
 	HookEvent("player_incapacitated", OnPlayerImmobilised, EventHookMode_Pre);
@@ -31,12 +32,16 @@ public OnPluginStart() {
 	HookEvent("charger_pummel_end", OnPlayerMobilised, EventHookMode_Pre);
 	HookEvent("jockey_ride_end", OnPlayerMobilised, EventHookMode_Pre);	
 	HookEvent("player_death", OnPlayerMobilised, EventHookMode_Pre);
+	
+	//Resetting cache
+	HookEvent("round_freeze_end", EventHook:OnRoundFreezeEnd, EventHookMode_PostNoCopy);
 }
 
 public Action:OnPlayerImmobilised(Handle:event, const String:name[], bool:dontBroadcast) {
 	new iImmobilisedSurvivor;
 	if (StrEqual(name, "player_incapacitated") || StrEqual(name, "player_ledge_grab")) {
 		iImmobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "userid"));
+		if (!IsSurvivor(iImmobilisedSurvivor)) return Plugin_Continue; // tank death fires "player_incapacitated" event
 	} else { // Pinned by SI
 		iImmobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "victim"));
 	}	
@@ -44,7 +49,7 @@ public Action:OnPlayerImmobilised(Handle:event, const String:name[], bool:dontBr
 			#if AS_DEBUG
 				decl String:ClientName[32];
 				GetClientName(iImmobilisedSurvivor, ClientName, sizeof(ClientName));
-				PrintToChatAll("\x04%s\x01: \x05%s", name, ClientName);
+				LogMessage("\x03%s\x01: \x05%s", name, ClientName);
 			#endif
 	CheckTeamMobility();
 	return Plugin_Continue;
@@ -56,69 +61,43 @@ public Action:OnPlayerMobilised(Handle:event, const String:name[], bool:dontBroa
 		iMobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "subject"));
 	} else if (StrEqual(name, "player_death")) {
 		new iDeadPlayer = GetClientOfUserId(GetEventInt(event, "userid"));
-		if (!IsValidClient(iDeadPlayer) && IsSurvivor(iDeadPlayer)) return Plugin_Handled;
+		if (!IsValidClient(iDeadPlayer) || !IsSurvivor(iDeadPlayer)) return Plugin_Continue;
 		iMobilisedSurvivor = iDeadPlayer;
-		CheckTeamMobility();
 	} else { // Cleared of SI pinning them
 		iMobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "victim"));
-		if (!IsValidClient(iMobilisedSurvivor)) return Plugin_Handled; //pounce_end gets called when SI die from anything...
+		//pounce_end event is fired at unexpected times; make sure this occassion is relevant
+		if (!IsValidClient(iMobilisedSurvivor)) return Plugin_Handled; 
 	}
-	bIsImmobilised[iMobilisedSurvivor] = false;
+	//Check they have not been incapacited while previously immobilised
+	if (!bool:GetEntProp(iMobilisedSurvivor, Prop_Send, "m_isIncapacitated", 1)) bIsImmobilised[iMobilisedSurvivor] = false;
 			#if AS_DEBUG
 				decl String:ClientName[32];
 				GetClientName(iMobilisedSurvivor, ClientName, sizeof(ClientName));
-				PrintToChatAll("\x04%s\x01: \x05%s", name, ClientName);
+				LogMessage("\x03%s\x01: \x05%s", name, ClientName);
 			#endif
+	CheckTeamMobility();
 	return Plugin_Continue;
 }
 
 public CheckTeamMobility() {
 	if (IsTeamImmobilised()) {
-				#if AS_DEBUG
-					PrintToChatAll("\x03Initiating AUTOSLAYER...");
-				#endif
-		CreateTimer(GRACETIME, Timer_AutoslayTeam, _, TIMER_FLAG_NO_MAPCHANGE);
+		if (!g_bIsAutoslayerActive) {
+			PrintToChatAll("\x04[AS] \x03Initiating Autoslayer...");
+			CreateTimer(GRACETIME, Timer_AutoslayTeam, _, TIMER_FLAG_NO_MAPCHANGE);
+			g_bIsAutoslayerActive = true;
+		}		
 	}
 }
 
-bool:IsTeamImmobilised() {
-	//Check if there is still an upright survivor
-			#if AS_DEBUG
-				PrintToChatAll("\x03Team mobility report:");
-			#endif
-	new bool:bIsTeamImmobilised = true;
-	for (new client = 1; client < MaxClients; client++) {
-		if (IsSurvivor(client) && IsPlayerAlive(client)) {
-			if (!bIsImmobilised[client]) {
-				bIsTeamImmobilised = false;
-				//break;
-						#if AS_DEBUG
-							decl String:ClientName[32];
-							GetClientName(client, ClientName, sizeof(ClientName));
-							PrintToChatAll("\x01- \x04Mobile: \x05%s", ClientName);
-						#endif
-			} else {
-				#if AS_DEBUG
-					decl String:ClientName[32];
-					GetClientName(client, ClientName, sizeof(ClientName));
-					PrintToChatAll("\x01- \x04IMMOBILISED: \x05%s", ClientName);
-				#endif
-			}
-		}
-	}
-	return bIsTeamImmobilised;
-}
 public Action:Timer_AutoslayTeam(Handle:timer) {
 	if (IsTeamImmobilised()) {
-				#if AS_DEBUG
-					PrintToChatAll("\x03AUTOSLAYING TEAM!");
-				#endif
 		SlaySurvivors();
+		PrintToChatAll("\x04[AS] \x03Autoslayed survivors!");		
 		return Plugin_Continue;
+	} else {
+		g_bIsAutoslayerActive = false;
+		PrintToChatAll("\x04[AS] \x03...Autoslayer cancelled!");
 	}
-	#if AS_DEBUG
-		PrintToChatAll("\x03AUTOSLAY cancelled!");
-	#endif
 	return Plugin_Continue;
 }
 
@@ -130,11 +109,45 @@ SlaySurvivors() {
 	}
 }
 
-stock bool:IsValidClient(client, bool:nobots = true)
-{ 
-    if (client <= 0 || client > MaxClients || !IsClientConnected(client) || (nobots && IsFakeClient(client)))
-    {
-        return false; 
-    }
+bool:IsTeamImmobilised() {
+	//Check if there is still an upright survivor
+			#if AS_DEBUG
+				LogMessage("\x01Team mobility report:");
+			#endif
+	new bool:bIsTeamImmobilised = true;
+	for (new client = 1; client < MaxClients; client++) {
+		if (IsSurvivor(client) && IsPlayerAlive(client)) {
+			if (!bIsImmobilised[client]) {
+				bIsTeamImmobilised = false;
+						#if AS_DEBUG
+							decl String:ClientName[32];
+							GetClientName(client, ClientName, sizeof(ClientName));
+							LogMessage("\x01- \x04Mobile: \x05%s", ClientName);
+						#endif
+			} else {
+				#if AS_DEBUG
+					decl String:ClientName[32];
+					GetClientName(client, ClientName, sizeof(ClientName));
+					LogMessage("\x01- \x04IMMOBILISED: \x05%s", ClientName);
+				#endif
+			}
+		}
+	}
+			#if AS_DEBUG
+				LogMessage(" ");
+			#endif
+	return bIsTeamImmobilised;
+}
+
+// Reset cache
+public OnRoundFreezeEnd() {
+	for (new client = 0; client < MaxClients; client++) {
+		bIsImmobilised[client] = false;
+	}
+	g_bIsAutoslayerActive = false;
+}
+
+stock bool:IsValidClient(client) { 
+    if (client <= 0 || client > MaxClients || !IsClientConnected(client)) return false; 
     return IsClientInGame(client); 
 }  

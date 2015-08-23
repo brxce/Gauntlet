@@ -29,17 +29,17 @@ RoundVars.HasFoundSaferoomExitFlow <- false
 //-----------------------------------------------------------------------------------------------------------------------------
 MutationOptions <-
 {
-	ActiveChallenge = 1	
 	cm_AllowSurvivorRescue = 0 //disables rescue closet functionality in coop
 	
 	//SI specifications
-	cm_MaxSpecials = 0 //let CycleStages() manage SI spawning
+	TankLimit = 0 // let 'bossy.nut' handle tank spawning
+	cm_MaxSpecials = 0 // let CycleStages() manage SI spawning
 	cm_BaseSpecialLimit = 3 
-	DominatorLimit = 10 //dominators: charger, smoker, jockey, hunter
+	DominatorLimit = 10 // dominators: charger, smoker, jockey, hunter
 	HunterLimit = 4
 	BoomerLimit = 1
 	SmokerLimit = 2
-	SpitterLimit = 2
+	SpitterLimit = 1
 	ChargerLimit = 2
 	JockeyLimit = 3
 	

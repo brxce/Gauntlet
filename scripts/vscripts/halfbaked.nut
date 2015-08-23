@@ -33,6 +33,7 @@ MutationOptions <-
 	cm_AllowSurvivorRescue = 0 //disables rescue closet functionality in coop
 	
 	//SI specifications
+	TankLimit = 0 // let 'bossy.nut' handle tank spawning
 	cm_MaxSpecials = 0 //let CycleStages() manage SI spawning
 	cm_BaseSpecialLimit = 3 
 	DominatorLimit = 5 //dominators: charger, smoker, jockey, hunter
