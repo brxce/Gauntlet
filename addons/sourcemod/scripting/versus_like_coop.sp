@@ -19,34 +19,21 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	HookEvent("round_freeze_end", Event_RoundFreezeEnd, EventHookMode_Pre);
-	HookEvent("map_transition", Event_MapTransition, EventHookMode_PostNoCopy);
+	HookEvent("map_transition", EventHook:ResetSurvivors, EventHookMode_PostNoCopy);
+	//fail-safe in case map transition health restoration does not work
+	HookEvent("round_freeze_end", EventHook:ResetSurvivors, EventHookMode_PostNoCopy); 
 }
 
- //for when a survivor died the previous map, and starts the next with partial permanent health
-public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
-{
+public ResetSurvivors() {
+	RestoreHealth();
+	ResetInventory();
+}
+
+ //restoring health of survivors respawning with 50 health from a death in the previous map
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	#if VLC_DEBUG
 		PrintToChatAll("L4D_OnFirstSurvivorLeftSafeArea (Left4Downtown2)");
 	#endif
-	RestoreHealth();
-}
-
-//fail-safe in case end of map health restoration does not work
-public Action:Event_RoundFreezeEnd(Handle:event, const String:name[], bool:dontBroadcast)
-{
-#if VLC_DEBUG
-	PrintToChatAll("round_freeze_end");
-#endif
-	RestoreHealth(); 
-}
-
-public Action:Event_MapTransition(Handle:event, const String:name[], bool:dontBroadcast)
-{
-#if VLC_DEBUG
-	PrintToChatAll("(post)map_transition");
-#endif
-	ResetInventory();
 	RestoreHealth();
 }
 
@@ -56,18 +43,18 @@ public RestoreHealth()
 	{
 		if ( IsSurvivor(client) )
 		{
-#if VLC_DEBUG
-	new String:ClientName[256];
-	GetClientName(client, ClientName, sizeof(ClientName));
-	PrintToChatAll("Restored health and reset revive count on %s (client/entity ID %i):", ClientName, client);
-#endif
+					#if VLC_DEBUG
+						new String:ClientName[256];
+						GetClientName(client, ClientName, sizeof(ClientName));
+						PrintToChatAll("Restored health and reset revive count on %s (client/entity ID %i):", ClientName, client);
+					#endif
 			GiveItem(client, "health"); //give full health			
 			new Float:buffhp = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
 			if (buffhp > 0.0) //remove temp hp
 			{
-#if VLC_DEBUG
-	PrintToChatAll("- temporary health was detected and removed");
-#endif
+						#if VLC_DEBUG
+							PrintToChatAll("- temporary health was detected and removed");
+						#endif
 				//alternate way
 				//new temphpoffset = FindSendPropOffs("CTerrorPlayer","m_healthBuffer");
 				//SetEntDataFloat(client, temphpoffset, NO_TEMP_HEALTH, true);
@@ -83,25 +70,25 @@ public ResetInventory()
 {
 	for (new client = 0; client <= MaxClients; client++) {
 		if ( IsSurvivor(client) ) {
-#if VLC_DEBUG
-	new String:ClientName[256];
-	GetClientName(client, ClientName, sizeof(ClientName));
-	PrintToChatAll("Resetting inventory of %s (client/entity ID %i):", ClientName, client);
-#endif
+					#if VLC_DEBUG
+						new String:ClientName[256];
+						GetClientName(client, ClientName, sizeof(ClientName));
+						PrintToChatAll("Resetting inventory of %s (client/entity ID %i):", ClientName, client);
+					#endif
 			for (new i = 0; i < 5; i++) { //clear all slots in player's inventory
 				 	new equipment = GetPlayerWeaponSlot(client, i);
 					if (equipment != -1) { //if slot is not empty
 						if (i == SECONDARY_SLOT) { 
 							RemovePlayerItem(client, equipment);
 							GiveItem(client, "pistol"); //start maps with a single pistol
-#if VLC_DEBUG
-PrintToChatAll("- confiscated a secondary weapon");
-#endif
+									#if VLC_DEBUG
+									PrintToChatAll("- confiscated a secondary weapon");
+									#endif
 						} else {							
 							RemovePlayerItem(client, equipment);
-#if VLC_DEBUG
-	PrintToChatAll("- confiscated a piece of weaponry/equipment");
-#endif
+									#if VLC_DEBUG
+										PrintToChatAll("- confiscated a piece of weaponry/equipment");
+									#endif
 						}
 					}				
 			}	

@@ -1,10 +1,13 @@
 ###Features  
 *Custom scoring system*  
-> end of round health bonus  
+> distance points + health bonus (!scoring/sm_scoring for more info)
 > HUD display  
 
 ##Potential Future Features  
-> l4d_boss_percent.smx for coop; tank and witch offsets for CDirectorChallengeMode?
-> manipulate "player_now_it" event: force SI to target health bonus, block them piling boomed players
-> block smoker coop behaviour where they take extra damage while shooting tongue
-> apply versus SI stumble to survivors
+> !setscore admin only; mapskipper cycles campaigns and resets the score on campaign change  
+> plugin replacement for 'bossy' vscript (guaranteed tank (and witch) percentage every map)
+> manipulate SI tendency to pile boomed survivors (player_now_it & player_no_longer_it events?) 
+###Little things:  
+> coop functional reduced water slowdown
+> block smoker coop behaviour where they take extra damage while shooting tongue  
+> apply versus SI stumble to survivors  
