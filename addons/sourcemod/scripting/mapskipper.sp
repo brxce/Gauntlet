@@ -1,7 +1,7 @@
 #pragma semicolon 1
 #include <sourcemod>
 #include <sdktools>
-#include <nextmap> //ForceChangeLevel()
+#include <nextmap> // ForceChangeLevel()
 #include <smlib>
 #define MISSIONS_PATH "missions"
 #define DELAY_FORCEMAP 6.5
@@ -74,15 +74,15 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 		// Skip folders and credits file
 		if (DirExists(buffer) || StrEqual(buffer, "credits.txt", false)) {continue;}
 
-		// Create the keyvalues structure from the current iteration's mission text file
+		// Create a keyvalues structure from the current iteration's mission .txt
 		Format(full_path, sizeof(full_path), "%s/%s", MISSIONS_PATH, buffer); 
-		new Handle: missions_kv = CreateKeyValues("mission"); //define "mission" as the root node
+		new Handle: missions_kv = CreateKeyValues("mission"); // use "mission" as the structure's root node
 		FileToKeyValues(missions_kv, full_path);
 		#if MS_DEBUG
 			LogMessage("Searching for current map in file: %s", full_path);
 		#endif
 	
-		// Get to correct position so we can start our loop
+		// Get to "coop" section to start looping
 		KvJumpToKey(missions_kv, "modes", false);
 		if(!KvJumpToKey(missions_kv, "coop", false)) {
 			#if MS_DEBUG
@@ -93,6 +93,7 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 			do { 
 				new String:map_name[256];
 				KvGetString(missions_kv, "map", map_name, sizeof(map_name));
+				// If we have found the map name in this missions file, read in the next map
 				if (StrEqual(map_name, current_map, false)) { // third parameter indicates case sensitivity
 					if (KvGotoNextKey(missions_kv)) { // if finale is not being played
 						KvGetString(missions_kv, "map", NextMap, sizeof(NextMap));
@@ -110,10 +111,10 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 				}
 			} while (KvGotoNextKey(missions_kv));
 		}
-		CloseHandle(missions_kv); // Close the KV handle for the next loop	
+		CloseHandle(missions_kv); // Close the KV handle for this missions file
 	}		
 	LogMessage("The next map could not be found. No valid missions file?");
-	CloseHandle(missions_dir); // Close the directory handle
+	CloseHandle(missions_dir); // Close the handle for this folder/directory
 	return false; 
 }
 
