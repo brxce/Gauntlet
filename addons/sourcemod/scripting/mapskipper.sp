@@ -6,6 +6,8 @@
 #define MISSIONS_PATH "missions"
 #define DELAY_FORCEMAP 6.5
 #define MS_DEBUG 0
+#define VOTE_YES 0
+#define VOTE_NO 1
 /*
  * Bibliography
  * "[L4D/2] Campaign Manager" by Bigbuck
@@ -22,25 +24,29 @@ public Plugin: myinfo = {
 	url = ""
 };
 
+new Handle:hCVarCanVoteRetry;
 public OnPluginStart() {
 	// Make sure the 'missions' folder exists
 	if (!DirExists(MISSIONS_PATH)) {
 		SetFailState("Missions directory does not exist on this server.  Map Skipper cannot continue operation");
 	}
-	HookEvent("mission_lost", Event_MissionLost, EventHookMode_PostNoCopy);
+	hCVarCanVoteRetry = CreateConVar("enable_vote_retry", "0", "Is voting to retry a map enabled");
+	HookEvent("mission_lost", EventHook:OnMissionLost, EventHookMode_PostNoCopy);	
 }
 
-public Event_MissionLost(Handle:hEvent, const String:name[], bool:dontBroadcast) {
+public OnMissionLost() {
 	if (GetNextMapName()) {
 		DoRetryMap = false; // reset
-		DoVoteMenu();
+		if (bool:GetConVarInt(hCVarCanVoteRetry)) {
+			DoVoteRetry();
+		}
 		CreateTimer(DELAY_FORCEMAP, Timer_ForceNextMap, TIMER_FLAG_NO_MAPCHANGE);
 	}	
 }
 
 public Action:Timer_ForceNextMap(Handle:timer) {
 	if (NextMap[0] == EOS) { // empty
-		LogMessage("No valid next map determined");
+		LogMessage("No valid next map found");
 		return Plugin_Handled;
 	} else if (!DoRetryMap){
 		//Fire a map_transition event for static scoremod
@@ -117,30 +123,55 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 	CloseHandle(missions_dir); // Close the handle for this folder/directory
 	return false; 
 }
+ 
+DoVoteRetry() {
+	if (IsVoteInProgress()) return;
+	new Handle:hVoteRetry_Menu = CreateMenu(Handle_VoteMenu);
+	//SetVoteResultCallback(hVoteRetry_Menu, VoteHandler:Manage_VoteResults);
+	SetMenuTitle(hVoteRetry_Menu, "Try again?");
+	AddMenuItem(hVoteRetry_Menu, "yes", "Yes");
+	AddMenuItem(hVoteRetry_Menu, "no", "No");
+	SetMenuExitButton(hVoteRetry_Menu, false);
+	VoteMenuToAll(hVoteRetry_Menu, 6);
+}
+
+/*
+public Manage_VoteResults (Handle:voteMenu, numVotes, numClients, const clientInfo[][2], numItems, const itemInfo[][2]) {
+	// yea or nay?
+	PrintToChatAll("numVotes: %i", numVotes);
+	PrintToChatAll("numClients: %i", numClients);
+	PrintToChatAll("numItems: %i", numItems);
+	new yeaVotes = itemInfo[VOTE_YES][VOTEINFO_ITEM_VOTES];
+	new nayVotes = itemInfo[VOTE_NO][VOTEINFO_ITEM_VOTES];
+	if (yeaVotes >= nayVotes) { // Majority 'yes' or equal 'yes' & 'no'
+		Client_PrintToChatAll(true, "{G}Vote Retry PASSED! {N}({B}%i {N}yes, {B}%i {N}no)", yeaVotes, nayVotes);
+		DoRetryMap = true;
+	} else {
+		Client_PrintToChatAll(true, "{O}Vote Retry FAILED! {N}({B}%i {N}yes, {B}%i {N}no)", yeaVotes, nayVotes);
+	}
+} 
+*/
 
 public Handle_VoteMenu(Handle:menu, MenuAction:action, param1, param2) {
 	if (action == MenuAction_End) {
-		/* This is called after VoteEnd */
-		CloseHandle(menu);
+		CloseHandle(menu); 
+	} else if (action == MenuAction_Select) {
+		new voter = param1;
+		new String:voterName[32];
+		GetClientName(voter, voterName, sizeof(voterName));
+		if (param2 == 0) {
+			Client_PrintToChatAll(true, "{O}'{B}%s{O}' {N}voted {G}yes!", voterName);
+		} else if (param2 == 1){
+			Client_PrintToChatAll(true, "{O}'{B}%s{O}' {N}voted {O}no!", voterName);
+		} else {
+			Client_PrintToChatAll(true, "{O}'{B}%s{O}' {N}selected an invalid vote option");
+		}
 	} else if (action == MenuAction_VoteEnd) {
-		/* 0=yes, 1=no */
 		if (param1 == 0) {
-			Client_PrintToChatAll(true, "{G}Retry vote PASSED!");
+			Client_PrintToChatAll(true, "{G}Vote Retry PASSED!");
 			DoRetryMap = true;
 		} else {
-			Client_PrintToChatAll(true, "{O}Retry vote FAILED!");
+			Client_PrintToChatAll(true, "{O}Vote Retry FAILED!");
 		}
 	}
-}
- 
-DoVoteMenu() {
-	if (IsVoteInProgress()) {
-		return;
-	} 
-	new Handle:menu = CreateMenu(Handle_VoteMenu);
-	SetMenuTitle(menu, "Try again?");
-	AddMenuItem(menu, "yes", "Yes");
-	AddMenuItem(menu, "no", "No");
-	SetMenuExitButton(menu, false);
-	VoteMenuToAll(menu, 6);
 }

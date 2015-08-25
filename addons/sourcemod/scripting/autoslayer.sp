@@ -1,9 +1,9 @@
 #pragma semicolon 1
 #define AS_DEBUG 1
 #define GRACETIME 6.0
+#define TEAM_SURVIVOR 2
 #include <sourcemod>
-#define L4D2UTIL_STOCKS_ONLY
-#include <l4d2util>
+#include <sdktools_functions> // ForcePlayerSuicide()
 
 public Plugin:myinfo = {
 	name = "Autoslayer",
@@ -41,7 +41,7 @@ public Action:OnPlayerImmobilised(Handle:event, const String:name[], bool:dontBr
 	new iImmobilisedSurvivor;
 	if (StrEqual(name, "player_incapacitated") || StrEqual(name, "player_ledge_grab")) {
 		iImmobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "userid"));
-		if (!IsSurvivor(iImmobilisedSurvivor)) return Plugin_Continue; // tank death fires "player_incapacitated" event
+		if (!(iImmobilisedSurvivor)) return Plugin_Continue; // tank death fires "player_incapacitated" event
 	} else { // Pinned by SI
 		iImmobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "victim"));
 	}	
@@ -61,7 +61,7 @@ public Action:OnPlayerMobilised(Handle:event, const String:name[], bool:dontBroa
 		iMobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "subject"));
 	} else if (StrEqual(name, "player_death")) {
 		new iDeadPlayer = GetClientOfUserId(GetEventInt(event, "userid"));
-		if (!IsValidClient(iDeadPlayer) || !IsSurvivor(iDeadPlayer)) return Plugin_Continue;
+		if (!IsSurvivor(iDeadPlayer)) return Plugin_Continue;
 		iMobilisedSurvivor = iDeadPlayer;
 	} else { // Cleared of SI pinning them
 		iMobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "victim"));
@@ -147,7 +147,11 @@ public OnRoundFreezeEnd() {
 	g_bIsAutoslayerActive = false;
 }
 
-stock bool:IsValidClient(client) { 
+bool:IsSurvivor(client) {
+	return IsValidClient(client) && GetClientTeam(client) == TEAM_SURVIVOR;
+}
+
+bool:IsValidClient(client) { 
     if (client <= 0 || client > MaxClients || !IsClientConnected(client)) return false; 
     return IsClientInGame(client); 
 }  
