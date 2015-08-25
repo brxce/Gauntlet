@@ -7,8 +7,8 @@
  * l4d2_scout_precache.smx    
  * l4d2_playstats_fixed.smx  
  * l4d_tank_damage_announce_fixed.smx  
- * versus_like_coop.smx    
- * drugged_coop.smx  
+ * survivor_reset.smx    
+ * starting_pills.smx  
  * static_scoremod.smx  
  * mapskipper.smx  
  * autoslayer.smx  

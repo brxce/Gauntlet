@@ -10,7 +10,7 @@
 
 public Plugin:myinfo =
 {
-	name = "Versus Like Coop",
+	name = "Survivor Reset",
 	author = "Breezy",
 	description = "Start each map in a campaign with full health and a single pistol",
 	version = "1.0",
