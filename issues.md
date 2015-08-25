@@ -8,6 +8,7 @@
 > Preset tanks are broken:
 >> c7m1_docks(The Sacrifice): Train Tank does not spawn -> carriage door cannot be opened
 >> c6m3_port(The Passing): only 'bossy.nut' tanks spawn; cannot pour gas cans
+> SI do not path well in Hard Rain buildings; tanks die from lack of LOS due to this
 
 
 

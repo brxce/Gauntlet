@@ -47,16 +47,10 @@ public OnCvarChange(Handle:convar, const String:oldValue[], const String:newValu
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
 	// Proceed for charger bots
 	if(isBotCharger(client)) {
-		new charger = client;
-		// Check how close they are to the survivors
-		new iClosestSurvivor = GetClosestSurvivor(charger);
-		new Float:chargerPosition[3];
-		new Float:survivorPosition[3];
-		GetEntPropVector(charger, Prop_Send, "m_vecOrigin", chargerPosition);
-		GetEntPropVector(iClosestSurvivor, Prop_Send, "m_vecOrigin", survivorPosition);
-		new iProximity = RoundToNearest(GetVectorDistance(chargerPosition, survivorPosition));
+		new charger = client;	
 		// allow charge if close enough to survivors
-		if (iProximity < g_iChargeProximity) {
+		new iSurvivorsProximity = GetSurvivorProximity(charger);
+		if (iSurvivorsProximity < g_iChargeProximity) {
 			// Check if ability is off cooldown
 			if (canCharge[charger]) {
 				SetChargeCooldown(charger, 0.0);
@@ -105,30 +99,28 @@ bool:isBotCharger(client) {
 	return false; // otherwise
 }
   
-GetClosestSurvivor(me) {
+GetSurvivorProximity(referenceClient) {
 	// Get the reference's position
-	new Float:myPosition[3];
-	GetEntPropVector(me, Prop_Send, "m_vecOrigin", myPosition);
-	// Find the closest survivorPosition
-	new iClosestSurvivor = -1;
+	new Float:referencePosition[3];
+	GetEntPropVector(referenceClient, Prop_Send, "m_vecOrigin", referencePosition);
+	// Find the proximity of the closest survivor
 	new iClosestAbsDisplacement = -1; // closest absolute displacement
 	for (new client = 1; client < MaxClients; client++) {
 		if (IsValidClient(client) && IsSurvivor(client)) {
 			// Get displacement between this survivor and the reference
 			new Float:survivorPosition[3];
 			GetEntPropVector(client, Prop_Send, "m_vecOrigin", survivorPosition);
-			new iAbsDisplacement = RoundToNearest(GetVectorDistance(myPosition, survivorPosition));
+			new iAbsDisplacement = RoundToNearest(GetVectorDistance(referencePosition, survivorPosition));
 			// Start with the absolute displacement to the first survivor found:
 			if (iClosestAbsDisplacement == -1) {
-				iClosestSurvivor = client;
 				iClosestAbsDisplacement = iAbsDisplacement;
 			} else if (iAbsDisplacement < iClosestAbsDisplacement) { // closest survivor so far
-				iClosestSurvivor = client;
 				iClosestAbsDisplacement = iAbsDisplacement;
 			}			
 		}
 	}
-	return iClosestSurvivor;
+	// return the closest survivor's proximity
+	return iClosestAbsDisplacement;
 }
 
 bool:IsValidClient(client) {

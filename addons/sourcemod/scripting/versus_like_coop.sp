@@ -19,9 +19,8 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	HookEvent("map_transition", EventHook:ResetSurvivors, EventHookMode_PostNoCopy);
-	//fail-safe in case map transition health restoration does not work
-	HookEvent("round_freeze_end", EventHook:ResetSurvivors, EventHookMode_PostNoCopy); 
+	HookEvent("map_transition", EventHook:ResetSurvivors, EventHookMode_PostNoCopy); // finishing a map
+	HookEvent("round_freeze_end", EventHook:ResetSurvivors, EventHookMode_PostNoCopy); // restarting map after a wipe 
 }
 
 public ResetSurvivors() {
@@ -31,18 +30,15 @@ public ResetSurvivors() {
 
  //restoring health of survivors respawning with 50 health from a death in the previous map
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
-	#if VLC_DEBUG
-		PrintToChatAll("L4D_OnFirstSurvivorLeftSafeArea (Left4Downtown2)");
-	#endif
 	RestoreHealth();
+			#if VLC_DEBUG
+				PrintToChatAll("L4D_OnFirstSurvivorLeftSafeArea (Left4Downtown2)");
+			#endif
 }
 
-public RestoreHealth()
-{
-	for (new client = 0; client <= MaxClients; client++)
-	{
-		if ( IsSurvivor(client) )
-		{
+public RestoreHealth() {
+	for (new client = 0; client <= MaxClients; client++) {
+		if ( IsSurvivor(client) ) {
 					#if VLC_DEBUG
 						new String:ClientName[256];
 						GetClientName(client, ClientName, sizeof(ClientName));
@@ -50,8 +46,7 @@ public RestoreHealth()
 					#endif
 			GiveItem(client, "health"); //give full health			
 			new Float:buffhp = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
-			if (buffhp > 0.0) //remove temp hp
-			{
+			if (buffhp > 0.0) {//remove temp hp
 						#if VLC_DEBUG
 							PrintToChatAll("- temporary health was detected and removed");
 						#endif
@@ -66,8 +61,7 @@ public RestoreHealth()
 	}
 }
 
-public ResetInventory()
-{
+public ResetInventory() {
 	for (new client = 0; client <= MaxClients; client++) {
 		if ( IsSurvivor(client) ) {
 					#if VLC_DEBUG
@@ -76,28 +70,27 @@ public ResetInventory()
 						PrintToChatAll("Resetting inventory of %s (client/entity ID %i):", ClientName, client);
 					#endif
 			for (new i = 0; i < 5; i++) { //clear all slots in player's inventory
-				 	new equipment = GetPlayerWeaponSlot(client, i);
-					if (equipment != -1) { //if slot is not empty
-						if (i == SECONDARY_SLOT) { 
-							RemovePlayerItem(client, equipment);
-							GiveItem(client, "pistol"); //start maps with a single pistol
-									#if VLC_DEBUG
-									PrintToChatAll("- confiscated a secondary weapon");
-									#endif
-						} else {							
-							RemovePlayerItem(client, equipment);
-									#if VLC_DEBUG
-										PrintToChatAll("- confiscated a piece of weaponry/equipment");
-									#endif
-						}
-					}				
+				new equipment = GetPlayerWeaponSlot(client, i);
+				if (equipment != -1) { //if slot is not empty
+					if (i == SECONDARY_SLOT) { 
+						RemovePlayerItem(client, equipment);
+						GiveItem(client, "pistol"); //start maps with a single pistol
+								#if VLC_DEBUG
+								PrintToChatAll("- confiscated a secondary weapon");
+								#endif
+					} else {							
+						RemovePlayerItem(client, equipment);
+								#if VLC_DEBUG
+									PrintToChatAll("- confiscated a piece of weaponry/equipment");
+								#endif
+					}
+				}				
 			}	
 		}
 	}		
 }
 
-GiveItem(client, String:Item[22])
-{
+GiveItem(client, String:Item[22]) {
 	new flags = GetCommandFlags("give");
 	SetCommandFlags("give", flags & ~FCVAR_CHEAT);
 	FakeClientCommand(client, "give %s", Item);
