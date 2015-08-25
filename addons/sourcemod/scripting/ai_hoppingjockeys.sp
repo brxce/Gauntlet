@@ -29,9 +29,14 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	// Proceed for jockey bots
 	if(IsJockeyBot(client)) {
 		new jockey = client;
-		// Start hopping if within range		
-		new iSurvivorsProximity = GetSurvivorProximity(jockey);
-		if (iSurvivorsProximity < g_iHopActivationProximity) {
+		// Check how close they are to the survivors
+		new iClosestSurvivor = GetClosestSurvivor(jockey);
+		new Float:jockeyPosition[3];
+		new Float:survivorPosition[3];
+		GetEntPropVector(jockey, Prop_Send, "m_vecOrigin", jockeyPosition);
+		GetEntPropVector(iClosestSurvivor, Prop_Send, "m_vecOrigin", survivorPosition);
+		new iProximity = RoundToNearest(GetVectorDistance(jockeyPosition, survivorPosition));
+		if (iProximity < g_iHopActivationProximity) {
 			// Force them to hop 
 			new flags = GetEntityFlags(jockey);
 			buttons |= IN_FORWARD;
@@ -40,6 +45,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 				if (bDoNormalJump[jockey]) {
 					buttons |= IN_JUMP; // normal jump
 				} else {
+					buttons |= IN_MOVERIGHT;
 					buttons |= IN_ATTACK; // pounce leap
 				}
 				bDoNormalJump[jockey] = !bDoNormalJump[jockey];
@@ -67,28 +73,30 @@ bool:IsJockeyBot(client) {
 	return false; // otherwise
 }
   
-GetSurvivorProximity(referenceClient) {
+GetClosestSurvivor(me) {
 	// Get the reference's position
-	new Float:referencePosition[3];
-	GetEntPropVector(referenceClient, Prop_Send, "m_vecOrigin", referencePosition);
-	// Find the proximity of the closest survivor
+	new Float:myPosition[3];
+	GetEntPropVector(me, Prop_Send, "m_vecOrigin", myPosition);
+	// Find the closest survivorPosition
+	new iClosestSurvivor = -1;
 	new iClosestAbsDisplacement = -1; // closest absolute displacement
 	for (new client = 1; client < MaxClients; client++) {
 		if (IsValidClient(client) && IsSurvivor(client)) {
 			// Get displacement between this survivor and the reference
 			new Float:survivorPosition[3];
 			GetEntPropVector(client, Prop_Send, "m_vecOrigin", survivorPosition);
-			new iAbsDisplacement = RoundToNearest(GetVectorDistance(referencePosition, survivorPosition));
+			new iAbsDisplacement = RoundToNearest(GetVectorDistance(myPosition, survivorPosition));
 			// Start with the absolute displacement to the first survivor found:
 			if (iClosestAbsDisplacement == -1) {
+				iClosestSurvivor = client;
 				iClosestAbsDisplacement = iAbsDisplacement;
 			} else if (iAbsDisplacement < iClosestAbsDisplacement) { // closest survivor so far
+				iClosestSurvivor = client;
 				iClosestAbsDisplacement = iAbsDisplacement;
 			}			
 		}
 	}
-	// return the closest survivor's proximity
-	return iClosestAbsDisplacement;
+	return iClosestSurvivor;
 }
 
 bool:IsValidClient(client) {
