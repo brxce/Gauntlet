@@ -66,7 +66,7 @@ public Action:OnPlayerMobilised(Handle:event, const String:name[], bool:dontBroa
 	} else { // Cleared of SI pinning them
 		iMobilisedSurvivor = GetClientOfUserId(GetEventInt(event, "victim"));
 		//pounce_end event is fired at unexpected times; make sure this occassion is relevant
-		if (!IsValidClient(iMobilisedSurvivor)) return Plugin_Handled; 
+		if (!IsValidClient(iMobilisedSurvivor)) return Plugin_Continue; 
 	}
 	//Check they have not been incapacited while previously immobilised
 	if (!bool:GetEntProp(iMobilisedSurvivor, Prop_Send, "m_isIncapacitated", 1)) bIsImmobilised[iMobilisedSurvivor] = false;
