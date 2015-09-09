@@ -1,9 +1,8 @@
 //-----------------------------------------------------------------------------------------------------------------------------
-Msg("Loaded Baker's Dozen script\n");
+Msg("Loaded Half Baked script\n");
 
 // Include the VScript Library
 IncludeScript("VSLib")
-IncludeScript("bossy")
 
 //Stages
 enum Stage {
@@ -33,7 +32,6 @@ MutationOptions <-
 	cm_AllowSurvivorRescue = 0 //disables rescue closet functionality in coop
 	
 	//SI specifications
-	TankLimit = 0 // let 'bossy.nut' handle tank spawning
 	cm_MaxSpecials = 0 //let CycleStages() manage SI spawning
 	cm_BaseSpecialLimit = 3 
 	DominatorLimit = 5 //dominators: charger, smoker, jockey, hunter
@@ -213,11 +211,10 @@ function Notifications::OnDeath::PlayerInfectedDied( victim, attacker, params )
 	}
 }
 
-//No spitters during tank
-function Notifications::OnTankSpawned::BlockSpitterSpawns( entity, params ) {
+//SI spawning during tank
+function Notifications::OnTankSpawned::ModifySpecialSpawning( entity, params ) {
 	SessionOptions.SpitterLimit = 0
-	RoundVars.TimeBeforeNextHit = floor(SessionState.WaveInterval/2)
-	RoundVars.CurrentStage = Stage.COOLDOWN 
+	RoundVars.CurrentStage = Stage.SPAWNING_SI 
 }
 function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, params ) {
 	SessionOptions.SpitterLimit = 2

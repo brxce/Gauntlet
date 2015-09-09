@@ -25,7 +25,7 @@
 new     const           TEAM_SURVIVOR               = 2;
 new     const           TEAM_INFECTED               = 3;
 new     const           ZOMBIECLASS_TANK            = 8;                // Zombie class of the tank, used to find tank after he have been passed to another player
-new		bool:	g_bIsVersusMode		    = false;
+new				bool:	g_bIsVersusMode		    	= false;
 new             bool:   g_bEnabled                  = true;
 new             bool:   g_bAnnounceTankDamage       = false;            // Whether or not tank damage should be announced
 new             bool:   g_bIsTankInPlay             = false;            // Whether or not the tank is active
@@ -35,6 +35,7 @@ new                     g_iLastTankHealth           = 0;                // Used 
 new                     g_iSurvivorLimit            = 4;                // For survivor array in damage print
 new                     g_iDamage[MAXPLAYERS + 1];
 new             Float:  g_fMaxTankHealth            = 6000.0;
+new 			Handle:	g_hCvarGameMode 				= INVALID_HANDLE;
 new             Handle: g_hCvarEnabled              = INVALID_HANDLE;
 new             Handle: g_hCvarTankHealth           = INVALID_HANDLE;
 new             Handle: g_hCvarSurvivorLimit        = INVALID_HANDLE;
@@ -62,20 +63,22 @@ public OnPluginStart()
         g_hCvarEnabled = CreateConVar("l4d_tankdamage_enabled", "1", "Announce damage done to tanks when enabled", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0, true, 1.0);
         g_hCvarSurvivorLimit = FindConVar("survivor_limit");
         g_hCvarTankHealth = FindConVar("z_tank_health");
-     
-        HookConVarChange(g_hCvarEnabled, Cvar_Enabled);
-        HookConVarChange(g_hCvarSurvivorLimit, Cvar_SurvivorLimit);
-        HookConVarChange(g_hCvarTankHealth, Cvar_TankHealth);
+     	g_hCvarGameMode = FindConVar("mp_gamemode");
+     	
+        HookConVarChange(g_hCvarEnabled, OnCvarChange);
+        HookConVarChange(g_hCvarSurvivorLimit, OnCvarChange);
+        HookConVarChange(g_hCvarTankHealth, OnCvarChange);
+        HookConVarChange(g_hCvarGameMode, OnCvarChange);
      
         g_bEnabled = GetConVarBool(g_hCvarEnabled);
         CalculateTankHealth();
+        
      
         g_iOffset_Incapacitated = FindSendPropInfo("Tank", "m_isIncapacitated");
 }
      
 public OnMapStart()
 {
-        CheckGameMode();
         // In cases where a tank spawns and map is changed manually, bypassing round end
         ClearTankDamage();
 }
@@ -86,29 +89,28 @@ public OnClientDisconnect_Post(client)
         CreateTimer(0.1, Timer_CheckTank, client); // Use a delayed timer due to bugs where the tank passes to another player
 }
      
-public Cvar_Enabled(Handle:convar, const String:oldValue[], const String:newValue[])
+public OnCvarChange(Handle:convar, const String:oldValue[], const String:newValue[]) 
 {
-        g_bEnabled = StringToInt(newValue) > 0 ? true:false;
-}
-     
-public Cvar_SurvivorLimit(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-        g_iSurvivorLimit = StringToInt(newValue);
-}
-     
-public Cvar_TankHealth(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-        CalculateTankHealth();
+	if (convar == g_hCvarTankHealth) {
+		 CalculateTankHealth();
+	} else if (convar == g_hCvarGameMode) {
+		CheckGameMode();
+	} else if (convar == g_hCvarEnabled) {
+		g_bEnabled = bool:StringToInt(newValue);		
+	} else if (convar == g_hCvarSurvivorLimit) {
+		g_iSurvivorLimit = StringToInt(newValue);
+	}
 }
      
 CalculateTankHealth()
 {
-        if (g_bIsVersusMode) {
+    CheckGameMode();
+    if (g_bIsVersusMode) {
 		g_fMaxTankHealth = GetConVarFloat(g_hCvarTankHealth) * 1.5; //1.5 multiplier applied to tank health in versus mod
 	} else {
 		g_fMaxTankHealth = GetConVarFloat(g_hCvarTankHealth); 
 	}
-        if (g_fMaxTankHealth <= 0.0) g_fMaxTankHealth = 1.0; // No dividing by 0!
+    if (g_fMaxTankHealth <= 0.0) g_fMaxTankHealth = 1.0; // No dividing by 0!
 }
      
 public Event_PlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
@@ -151,6 +153,7 @@ public Event_PlayerKilled(Handle:event, const String:name[], bool:dontBroadcast)
      
 public Event_TankSpawn(Handle:event, const String:name[], bool:dontBroadcast)
 {
+        CalculateTankHealth();
         new client = GetClientOfUserId(GetEventInt(event, "userid"));
         g_iTankClient = client;
      
@@ -207,15 +210,16 @@ bool:IsTankDying()
         return bool:GetEntData(tankclient, g_iOffset_Incapacitated);
 }
 
-CheckGameMode() //Needed because versus tank health is adjusted internally from the cvar value
+CheckGameMode() // Needed because versus tank health is calculated from a 1.5 multiplier applied to z_tank_health
 {
     // check gamemode for 'coop' gamemodes
-    new String:tmpStr[24];
-    GetConVarString( FindConVar("mp_gamemode"), tmpStr, sizeof(tmpStr) );
-    
-    if ( StrEqual(tmpStr, "versus", false) ) {
-        g_bIsVersusMode = true;
-    }
+	new String:tmpStr[24];
+	GetConVarString( g_hCvarGameMode, tmpStr, sizeof(tmpStr) );    
+	if ( StrEqual(tmpStr, "versus", false) ) {
+  		g_bIsVersusMode = true;
+	} else {
+   		g_bIsVersusMode = false;
+	}
 }
 
 PrintRemainingHealth()

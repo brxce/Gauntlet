@@ -11,7 +11,11 @@
  * starting_pills.smx  
  * static_scoremod.smx  
  * mapskipper.smx  
- * autoslayer.smx  
+ * autowipe.smx  
+ * ai_hunterpouncing.smx
+ * ai_hoppingjockeys.smx
+ * ai_chargefromclose.smx
+ * joinsurvivors.smx
  * missions folder - N.B. missions file must be extracted from respective .vpks for custom campaigns
  * cfg, modes and scripts folders  
 

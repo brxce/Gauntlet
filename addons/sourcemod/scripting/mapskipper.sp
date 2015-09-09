@@ -6,15 +6,15 @@
 #define MISSIONS_PATH "missions"
 #define DELAY_FORCEMAP 6.5
 #define MS_DEBUG 0
-#define VOTE_YES 0
-#define VOTE_NO 1
+
 /*
  * Bibliography
  * "[L4D/2] Campaign Manager" by Bigbuck
 */
 
 new String:NextMap[256];
-new bool:DoRetryMap = false;
+new bool:g_bCanRetry = false;
+new Handle:hCvarEnableRetry;
 
 public Plugin: myinfo = {
 	name = "Map Skipper",
@@ -24,31 +24,34 @@ public Plugin: myinfo = {
 	url = ""
 };
 
-new Handle:hCVarCanVoteRetry;
 public OnPluginStart() {
 	// Make sure the 'missions' folder exists
 	if (!DirExists(MISSIONS_PATH)) {
 		SetFailState("Missions directory does not exist on this server.  Map Skipper cannot continue operation");
 	}
-	hCVarCanVoteRetry = CreateConVar("enable_vote_retry", "0", "Is voting to retry a map enabled");
+	hCvarEnableRetry = CreateConVar("enable_retry", "0", "Enable retry of a map if team wipes");
+	g_bCanRetry = GetConVarBool(hCvarEnableRetry);
+	RegConsoleCmd("sm_toggleretry", Cmd_ToggleRetry);
 	HookEvent("mission_lost", EventHook:OnMissionLost, EventHookMode_PostNoCopy);	
+}
+
+public Action:Cmd_ToggleRetry(client, args) {
+	g_bCanRetry = !g_bCanRetry;
+	if (g_bCanRetry) {
+		Client_PrintToChatAll(true, "Retry is {G}enabled!");
+	} else {
+		Client_PrintToChatAll(true, "Retry is {O}disabled!");
+	}
 }
 
 public OnMissionLost() {
 	if (GetNextMapName()) {
-		DoRetryMap = false; // reset
-		if (bool:GetConVarInt(hCVarCanVoteRetry)) {
-			DoVoteRetry();
-		}
 		CreateTimer(DELAY_FORCEMAP, Timer_ForceNextMap, TIMER_FLAG_NO_MAPCHANGE);
 	}	
 }
 
 public Action:Timer_ForceNextMap(Handle:timer) {
-	if (NextMap[0] == EOS) { // empty
-		LogMessage("No valid next map found");
-		return Plugin_Handled;
-	} else if (!DoRetryMap){
+	if (!g_bCanRetry){
 		//Fire a map_transition event for static scoremod
 		new Handle:event = CreateEvent("map_transition");
 		FireEvent(event);
@@ -60,7 +63,7 @@ public Action:Timer_ForceNextMap(Handle:timer) {
 	}
 }
 
-bool:GetNextMapName() { // return true if the current map is not the finale
+bool:GetNextMapName() { // returns true if the next map was found
 	// Open the missions directory
 	new Handle: missions_dir = INVALID_HANDLE;
 	missions_dir = OpenDirectory(MISSIONS_PATH);
@@ -92,7 +95,7 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 		KvJumpToKey(missions_kv, "modes", false);
 		if(!KvJumpToKey(missions_kv, "coop", false)) {
 			#if MS_DEBUG
-				LogMessage("Could not find coop path in missions file %s", full_path);
+				LogMessage("Could not find a coop section in missions file: %s", full_path);
 			#endif
 		} else { // check if the current map belongs to this mission file
 			KvGotoFirstSubKey(missions_kv); // first map
@@ -122,56 +125,4 @@ bool:GetNextMapName() { // return true if the current map is not the finale
 	LogMessage("The next map could not be found. No valid missions file?");
 	CloseHandle(missions_dir); // Close the handle for this folder/directory
 	return false; 
-}
- 
-DoVoteRetry() {
-	if (IsVoteInProgress()) return;
-	new Handle:hVoteRetry_Menu = CreateMenu(Handle_VoteMenu);
-	//SetVoteResultCallback(hVoteRetry_Menu, VoteHandler:Manage_VoteResults);
-	SetMenuTitle(hVoteRetry_Menu, "Try again?");
-	AddMenuItem(hVoteRetry_Menu, "yes", "Yes");
-	AddMenuItem(hVoteRetry_Menu, "no", "No");
-	SetMenuExitButton(hVoteRetry_Menu, false);
-	VoteMenuToAll(hVoteRetry_Menu, 6);
-}
-
-/*
-public Manage_VoteResults (Handle:voteMenu, numVotes, numClients, const clientInfo[][2], numItems, const itemInfo[][2]) {
-	// yea or nay?
-	PrintToChatAll("numVotes: %i", numVotes);
-	PrintToChatAll("numClients: %i", numClients);
-	PrintToChatAll("numItems: %i", numItems);
-	new yeaVotes = itemInfo[VOTE_YES][VOTEINFO_ITEM_VOTES];
-	new nayVotes = itemInfo[VOTE_NO][VOTEINFO_ITEM_VOTES];
-	if (yeaVotes >= nayVotes) { // Majority 'yes' or equal 'yes' & 'no'
-		Client_PrintToChatAll(true, "{G}Vote Retry PASSED! {N}({B}%i {N}yes, {B}%i {N}no)", yeaVotes, nayVotes);
-		DoRetryMap = true;
-	} else {
-		Client_PrintToChatAll(true, "{O}Vote Retry FAILED! {N}({B}%i {N}yes, {B}%i {N}no)", yeaVotes, nayVotes);
-	}
-} 
-*/
-
-public Handle_VoteMenu(Handle:menu, MenuAction:action, param1, param2) {
-	if (action == MenuAction_End) {
-		CloseHandle(menu); 
-	} else if (action == MenuAction_Select) {
-		new voter = param1;
-		new String:voterName[32];
-		GetClientName(voter, voterName, sizeof(voterName));
-		if (param2 == 0) {
-			Client_PrintToChatAll(true, "{O}'{B}%s{O}' {N}voted {G}yes!", voterName);
-		} else if (param2 == 1){
-			Client_PrintToChatAll(true, "{O}'{B}%s{O}' {N}voted {O}no!", voterName);
-		} else {
-			Client_PrintToChatAll(true, "{O}'{B}%s{O}' {N}selected an invalid vote option");
-		}
-	} else if (action == MenuAction_VoteEnd) {
-		if (param1 == 0) {
-			Client_PrintToChatAll(true, "{G}Vote Retry PASSED!");
-			DoRetryMap = true;
-		} else {
-			Client_PrintToChatAll(true, "{O}Vote Retry FAILED!");
-		}
-	}
 }

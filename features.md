@@ -1,7 +1,9 @@
 ###Features  
 *Custom scoring system*  
 > distance points + health bonus (!scoring/sm_scoring for more info)
-> HUD display  
+> HUD display    
+
+> !join command  
 
 ##Potential Future Features  
 > !setscore admin only; mapskipper cycles campaigns and resets the score on campaign change  

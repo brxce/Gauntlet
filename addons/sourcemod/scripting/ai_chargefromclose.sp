@@ -4,39 +4,25 @@
 #define INFECTED_TEAM 3
 
 public Plugin:myinfo = {
-	name = "AI: Smarter Chargers",
+	name = "AI: Charge From Close",
 	author = "Breezy",
 	description = "Force AI chargers to get close to survivors before charging",
 	version = "1.0"
 };
 
-new Handle:hCvarChargeInterval;
 // custom convar
 new Handle:hCvarChargeProximity;
 new g_iChargeProximity;
-// manually track charge cooldown
-new canCharge[MAXPLAYERS]; 
-new onCooldown[MAXPLAYERS];
+
+new bShouldCharge[MAXPLAYERS];
 
 public OnPluginStart() {
-	// "z_charge_interval"
-	hCvarChargeInterval = FindConVar("z_charge_interval");
-	HookConVarChange(hCvarChargeInterval, OnCvarChange);
 	// "ai_charge_proximity"
-	hCvarChargeProximity = CreateConVar("ai_charge_proximity", "250", "How close a charger will approach before charging");
+	hCvarChargeProximity = CreateConVar("ai_charge_proximity", "300", "How close a charger will approach before charging");
 	g_iChargeProximity = GetConVarInt(hCvarChargeProximity);
 	HookConVarChange(hCvarChargeProximity, OnCvarChange);
 	
-	// Allow charging on newly spawned chargers
 	HookEvent("player_spawn", OnPlayerSpawn, EventHookMode_Pre);
-}
-
-public Action:OnPlayerSpawn(Handle:event, String:name[], bool:dontBroadcast) {
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (isBotCharger(client)) {
-		canCharge[client] = true;
-	}
-	return Plugin_Continue;
 }
 
 //Update convars if they have been changed midgame
@@ -44,47 +30,49 @@ public OnCvarChange(Handle:convar, const String:oldValue[], const String:newValu
 	if (!StrEqual(oldValue, newValue)) g_iChargeProximity = GetConVarInt(hCvarChargeProximity);		
 }
 
+/***********************************************************************************************************************************************************************************
+
+																KEEP CHARGE ON COOLDOWN UNTIL WITHIN PROXIMITY
+
+***********************************************************************************************************************************************************************************/
+
+// Initiate spawned chargers
+public Action:OnPlayerSpawn(Handle:event, String:name[], bool:dontBroadcast) {
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (IsBotCharger(client)) {
+		bShouldCharge[client] = false;
+	}	
+}
+
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
 	// Proceed for charger bots
-	if(isBotCharger(client)) {
+	if(IsBotCharger(client)) {
 		new charger = client;	
-		// allow charge if close enough to survivors
-		new iSurvivorsProximity = GetSurvivorProximity(charger);
-		if (iSurvivorsProximity < g_iChargeProximity) {
-			// Check if ability is off cooldown
-			if (canCharge[charger]) {
-				SetChargeCooldown(charger, 0.0);
-				canCharge[charger] = false;
-				// Start the cooldown timer if it has not already been started
-				if (!onCooldown[charger]) {
-					new Float:fChargeInterval = float(GetConVarInt(hCvarChargeInterval));
-					CreateTimer(fChargeInterval, Timer_ChargeInterval, any:charger, TIMER_FLAG_NO_MAPCHANGE);
-					onCooldown[charger] = true;
-				}				
-			}
+		// if survivors are too far
+		new iProximity = GetSurvivorProximity(charger);
+		if (iProximity > g_iChargeProximity) {
+			// if charger has not yet approached within range
+			if (!bShouldCharge[charger]) {
+				// prevent charge until survivors are within the defined proximity
+				new chargeEntity = GetEntPropEnt(charger, Prop_Send, "m_customAbility");
+				if (chargeEntity > 0) {  // charger entity persists for a short while after death; check ability entity is valid
+					SetEntPropFloat(chargeEntity, Prop_Send, "m_timestamp", GetGameTime() + 0.1); // keep extending cooldown period
+				}		
+			}				
 		} else {
-			SetChargeCooldown(charger, 12.0); // keep charge on cooldown
+			bShouldCharge[charger] = true; // charger has come within proximity
 		}
 	}
 	return Plugin_Changed;
 }
 
-SetChargeCooldown(client, Float:time) {
-	if (isBotCharger(client)) {
-		new ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-		if (ability > 0) {
-			SetEntPropFloat(ability, Prop_Send, "m_duration", time);
-			SetEntPropFloat(ability, Prop_Send, "m_timestamp", GetGameTime() + time);
-		}
-	}
-}
+/***********************************************************************************************************************************************************************************
 
-public Action:Timer_ChargeInterval(Handle:timer, any:charger) {
-	onCooldown[charger] = false;
-	canCharge[charger] = true;
-}
+																				UTILITY
 
-bool:isBotCharger(client) {
+***********************************************************************************************************************************************************************************/
+
+bool:IsBotCharger(client) {
 	// Check the input is valid
 	if (!IsValidClient(client)) return false;
 	// Check if player is on the infected team, a jockey, and a bot
