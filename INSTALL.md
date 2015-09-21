@@ -3,24 +3,40 @@
  * download vanillacookie.vpk into your add-ons folder 
 
 >##Confogl based configs: Baker's Dozen, Half Baked   
->>###*If ProMod 4.0 or above is already installed on the server, only install the following:  
- * l4d2_scout_precache.smx    
+>>###*If ProMod 4.0 or above is already installed on the server, only following are required:    
+ * l4d2_scout_precache.smx (if EQ 2.0 is not installed on server)   
+
+>>####AI improvements  
+>>
+ * ai_hunterpouncing.smx  
+ * ai_chargefromclose.smx  
+ * ai_jockeybehaviour.smx  
+ * ai_smokersettings.smx  
+ * norockthrows.smx  
+ * ai_targeting.smx  
+
+>>####Versus simulation
+>>
+ * static_scoremod.smx
+ * survivor_reset.smx
+ * pillsonly.smx
+ * mapskipper.smx
+ * coopbosses.smx
+ * special_infected_wave_spawner
+
+>>####Misc.
+>>
+ * autowipe.smx
+ * survivormanagement.smx
  * l4d2_playstats_fixed.smx  
  * l4d_tank_damage_announce_fixed.smx  
- * survivor_reset.smx    
- * starting_pills.smx  
- * static_scoremod.smx  
- * mapskipper.smx  
- * autowipe.smx  
- * ai_hunterpouncing.smx
- * ai_hoppingjockeys.smx
- * ai_chargefromclose.smx
- * joinsurvivors.smx
- * missions folder - N.B. missions file must be extracted from respective .vpks for custom campaigns
- * cfg, modes and scripts folders  
+ 
+>>####Folders
+>>
+ * (for mapskipper.smx) missions folder - N.B.for custom campaigns, missions file must be extracted from respective .vpks 
+ * cfg &modes folders 
 
 >>###*Otherwise*  
  * Copy all folders into your server directory    
- * In the case of any VSLib version clashes, download the latest version of VSLIB instead  
 
 
