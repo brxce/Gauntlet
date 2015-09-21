@@ -13,7 +13,10 @@
 */
 
 new String:NextMap[256];
-new bool:g_bCanRetry = false;
+
+new bool:g_bIsFinale;
+
+new bool:g_bCanRetry;
 new Handle:hCvarEnableRetry;
 
 public Plugin: myinfo = {
@@ -45,8 +48,8 @@ public Action:Cmd_ToggleRetry(client, args) {
 }
 
 public OnMissionLost() {
-	if (GetNextMapName()) {
-		CreateTimer(DELAY_FORCEMAP, Timer_ForceNextMap, TIMER_FLAG_NO_MAPCHANGE);
+	if (GetNextMapName()) { 
+		CreateTimer(DELAY_FORCEMAP, Timer_ForceNextMap, _, TIMER_FLAG_NO_MAPCHANGE);
 	}	
 }
 
@@ -54,13 +57,14 @@ public Action:Timer_ForceNextMap(Handle:timer) {
 	if (!g_bCanRetry){
 		//Fire a map_transition event for static scoremod
 		new Handle:event = CreateEvent("map_transition");
+		if (g_bIsFinale) {
+			SetEventBool(event, "finale", true);
+		}
 		FireEvent(event);
-		LogMessage("Force changing map to %s", NextMap);
+		// Change level
 		ForceChangeLevel(NextMap, "Map Skipper");
-		return Plugin_Handled;
-	} else {
-		return Plugin_Handled;
-	}
+		LogMessage("Force changing map to %s", NextMap);
+	} 
 }
 
 bool:GetNextMapName() { // returns true if the next map was found
@@ -85,43 +89,68 @@ bool:GetNextMapName() { // returns true if the next map was found
 
 		// Create a keyvalues structure from the current iteration's mission .txt
 		Format(full_path, sizeof(full_path), "%s/%s", MISSIONS_PATH, buffer); 
-		new Handle: missions_kv = CreateKeyValues("mission"); // use "mission" as the structure's root node
+		new Handle: missions_kv = CreateKeyValues("mission"); // find "mission" to use as the structure's root node
 		FileToKeyValues(missions_kv, full_path);
-		#if MS_DEBUG
-			LogMessage("Searching for current map in file: %s", full_path);
-		#endif
+		
+				#if MS_DEBUG
+					LogMessage("Searching for current map in file: %s", full_path);
+				#endif
 	
 		// Get to "coop" section to start looping
 		KvJumpToKey(missions_kv, "modes", false);
-		if(!KvJumpToKey(missions_kv, "coop", false)) {
-			#if MS_DEBUG
-				LogMessage("Could not find a coop section in missions file: %s", full_path);
-			#endif
-		} else { // check if the current map belongs to this mission file
+		
+		// Check if a "coop" section exists
+		if(KvJumpToKey(missions_kv, "coop", false)) { 			
+		
 			KvGotoFirstSubKey(missions_kv); // first map
+			
+			// Check the current maps against all the maps in this missions file
 			do { 
 				new String:map_name[256];
 				KvGetString(missions_kv, "map", map_name, sizeof(map_name));
+				
 				// If we have found the map name in this missions file, read in the next map
 				if (StrEqual(map_name, current_map, false)) { // third parameter indicates case sensitivity
-					if (KvGotoNextKey(missions_kv)) { // if finale is not being played
-						KvGetString(missions_kv, "map", NextMap, sizeof(NextMap));
+					
+					// If there is a map listed next, a finale is not being played
+					if (KvGotoNextKey(missions_kv)) { 
 						LogMessage("Found next map: %s", NextMap); 
-						CloseHandle(missions_kv); // Close the KV handle for the next loop
-						CloseHandle(missions_dir); // Close the directory handle
+						g_bIsFinale = false;
+						// Get the next map's name
+						KvGetString(missions_kv, "map", NextMap, sizeof(NextMap));						
+						// Close handles
+						CloseHandle(missions_kv); 
+						CloseHandle(missions_dir); 
 						return true;
-					}  else { 
+						
+					} 
+					
+					// else a finale is being played
+					else { 
 						LogMessage("Finale being played, map skip will restart campaign");
+						g_bIsFinale = true;
+						// Loop back to the first map
 						KvGoBack(missions_kv);
 						KvGotoFirstSubKey(missions_kv);
 						KvGetString(missions_kv, "map", NextMap, sizeof(NextMap));
-						return true;
-					}
-				}
+						// Close handles
+						CloseHandle(missions_kv); 
+						CloseHandle(missions_dir); 
+						return true;						
+					}		
+					
+				} 
 			} while (KvGotoNextKey(missions_kv));
+		
+		} else {
+			#if MS_DEBUG
+				LogMessage("Could not find a coop section in missions file: %s", full_path);	
+			#endif			
 		}
+		
 		CloseHandle(missions_kv); // Close the KV handle for this missions file
-	}		
+	}	
+	
 	LogMessage("The next map could not be found. No valid missions file?");
 	CloseHandle(missions_dir); // Close the handle for this folder/directory
 	return false; 

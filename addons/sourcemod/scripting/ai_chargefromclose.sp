@@ -60,7 +60,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 				}		
 			}				
 		} else {
-			bShouldCharge[charger] = true; // charger has come within proximity
+			bShouldCharge[charger] = true; // charger has been within proximity
 		}
 	}
 	return Plugin_Changed;

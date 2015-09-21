@@ -1,9 +1,9 @@
 #pragma semicolon 1
+
 #include <sourcemod>
-#define ZC_HUNTER 3
-#define HEADS 0
-#define TAILS 1
+
 #define INFECTED_TEAM 3
+#define ZC_HUNTER 3
 #define MIN_LUNGE_ANGLE 15.0
 #define MAX_LUNGE_ANGLE 35.0
 #define STRAIGHT_POUNCE_PROXIMITY 100
@@ -15,31 +15,42 @@ public Plugin:myinfo = {
 	version = "1.0"
 };
 
-new Handle:hCvarHunterLeapAwayGiveUpRange; // vanilla cvar
-
-new Handle:hCvarHunterPounceMaxLoftAngle; // vanilla cvar
-
-new Handle:hCvarLungeInterval; // vanilla cvar
-new Float:g_fLungeInterval; 
+// Vanilla Cvars
+new Handle:hCvarHunterCommittedAttackRange;
+new Handle:hCvarHunterPounceReadyRange;
+new Handle:hCvarHunterLeapAwayGiveUpRange; 
+new Handle:hCvarHunterPounceMaxLoftAngle; 
+new Handle:hCvarLungeInterval; 
 
 new Handle:hCvarFastPounceProximity; // Distance at which hunter begins pouncing fast
 new g_iFastPounceProximity;
 
 new bool:bHasQueuedLunge[MAXPLAYERS];
 new bool:bCanLunge[MAXPLAYERS];
+new bool:bHasBeenShoved[MAXPLAYERS];
 
 public OnPluginStart() {
 	// CONSOLE VARIABLES:	
+	
+	// range at which hunter is committed to attack
+	hCvarHunterCommittedAttackRange = FindConVar("hunter_committed_attack_range");
+	SetCheatConVarInt(hCvarHunterCommittedAttackRange, 10000);
+	
+	// range at which hunter prepares pounce
+	hCvarHunterPounceReadyRange = FindConVar("hunter_pounce_ready_range");
+	SetCheatConVarInt(hCvarHunterPounceReadyRange, 1000);
+	
 	// range at which shooting a non-committed hunter will cause it to leap away
 	hCvarHunterLeapAwayGiveUpRange = FindConVar("hunter_leap_away_give_up_range");
 	SetCheatConVarInt(hCvarHunterLeapAwayGiveUpRange, 0); 
+	
 	// cooldown on lunges
 	hCvarLungeInterval = FindConVar("z_lunge_interval");
-	HookConVarChange(hCvarLungeInterval, OnConVarChange);
-	g_fLungeInterval = GetConVarFloat(hCvarLungeInterval);
+	
 	// maximum loft angle hunters can pounce
 	hCvarHunterPounceMaxLoftAngle = FindConVar("hunter_pounce_max_loft_angle");
 	SetCheatConVarInt(hCvarHunterPounceMaxLoftAngle, 0);
+	
 	// proximity to nearest survivor when plugin starts to force hunters to lunge ASAP
 	hCvarFastPounceProximity = CreateConVar("ai_fast_pounce_proximity", "1000", "At what distance to start pouncing fast");
 	HookConVarChange(hCvarFastPounceProximity, OnConVarChange);
@@ -56,13 +67,12 @@ public Action:OnPlayerSpawn(Handle:event, String:name[], bool:dontBroadcast) {
 	if (IsBotHunter(client)) {
 		bHasQueuedLunge[client] = false;
 		bCanLunge[client] = true;
+		bHasBeenShoved[client] = false;
 	}
-	return Plugin_Continue;
 }
 
-// update internally when a hooked cvar changes
+// Update internally when a hooked cvar changes
 public OnConVarChange(Handle:convar, const String:oldValue[], const String:newValue[]) {
-	g_fLungeInterval = GetConVarFloat(hCvarLungeInterval);
 	g_iFastPounceProximity = GetConVarInt(hCvarFastPounceProximity);
 }
 
@@ -73,7 +83,7 @@ public OnPluginEnd() {
 
 /***********************************************************************************************************************************************************************************
 
-																	POUNCING AT AN ANGLE
+																	POUNCING AT AN ANGLE TO SURVIVORS
 
 ***********************************************************************************************************************************************************************************/
 
@@ -84,25 +94,30 @@ public Action:OnAbilityUse(Handle:event, String:name[], bool:dontBroadcast) {
 	if (StrEqual(abilityName, "ability_lunge")) { 
 		// is it a bot
 		new hunter = GetClientOfUserId(GetEventInt(event, "userid"));
-		if (IsBotHunter(hunter)) {
+		if (IsBotHunter(hunter)) {		
+			bHasBeenShoved[hunter] = false;
+			
 			// Get the hunter's lunge entity
 			new entLunge = GetEntPropEnt(hunter, Prop_Send, "m_customAbility");	
+			
 			// get the vector from the lunge entity
 			new Float:lungeVector[3];
 			GetEntPropVector(entLunge, Prop_Send, "m_queuedLunge", lungeVector);
-			// if survivor is not too close
+			
+			// if survivor is not too close, set a new vector that's angled slightly to the original
 			if (GetSurvivorProximity(hunter) > STRAIGHT_POUNCE_PROXIMITY) {
-				// set a new vector that's angled slightly to the original
+				// Generate a random angle within the configured range
 				new Float:randomAngle = GetRandomFloat(MIN_LUNGE_ANGLE, MAX_LUNGE_ANGLE); // angle in degrees
+				
 				// positive or negative direction (angle lunge leftwards/rightwards)
 				new Float:angleSign;
-				new coinToss = GetRandomInt(HEADS, TAILS);
-				if (coinToss == HEADS) {
+				if (GetRandomInt(0, 1) == 0) {
 					angleSign = 1.0;
 				} else {
 					angleSign = -1.0;
-				}
-				AngleLunge(entLunge, FloatMul(randomAngle, angleSign));							
+				}				
+				AngleLunge(entLunge, FloatMul(randomAngle, angleSign));	
+				
 				return Plugin_Changed;
 			}			
 		}		
@@ -138,29 +153,30 @@ AngleLunge(lungeEntity, Float:turnAngle) {
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
 	//Proceed if this player is a hunter
 	if(IsBotHunter(client)) {
-		new hunter = client;
-		new flags = GetEntityFlags(hunter);
-		//Proceed if the hunter is crouching 
-		if(flags & FL_DUCKING) {
-			//If hunter is grounded, determine if it should pounce
-			if (flags & FL_ONGROUND) {
-				// Start fast pouncing if close enough to survivors
+		new hunter = client;		
+		if (!bHasBeenShoved[hunter]) {
+			new flags = GetEntityFlags(hunter);
+			//Proceed if the hunter is in a position to pounce
+			if( (flags & FL_DUCKING) && (flags & FL_ONGROUND) ) {				
 				new iSurvivorsProximity = GetSurvivorProximity(hunter);
 				new bool:bHasLOS = bool:GetEntProp(hunter, Prop_Send, "m_hasVisibleThreats"); //Line of sight to survivors
+				
+				// Start fast pouncing if close enough to survivors
 				if (bHasLOS && (iSurvivorsProximity < g_iFastPounceProximity) ) {
 					buttons &= ~IN_ATTACK; // release attack button; precautionary
+					
 					// Queue a pounce/lunge
 					if (!bHasQueuedLunge[hunter]) { // check lunge interval timer has not already been initiated
 						bCanLunge[hunter] = false;
 						bHasQueuedLunge[hunter] = true; // block duplicate lunge interval timers
-						CreateTimer(g_fLungeInterval, Timer_LungeInterval, any:hunter, TIMER_FLAG_NO_MAPCHANGE);
+						CreateTimer(GetConVarFloat(hCvarLungeInterval), Timer_LungeInterval, any:hunter, TIMER_FLAG_NO_MAPCHANGE);
 					} else if (bCanLunge[hunter]) { // end of lunge interval; lunge!
-						buttons |= IN_ATTACK; 
+						buttons |= IN_ATTACK;
 						bHasQueuedLunge[hunter] = false; // unblock lunge interval timer
 					} // else lunge queue is being processed
 				}				
-			} 
-		}
+			}
+		}		
 	}
 	return Plugin_Changed;
 }
@@ -168,6 +184,14 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 // After the given interval, hunter is allowed to pounce/lunge
 public Action:Timer_LungeInterval(Handle:timer, any:client) {
 	bCanLunge[client] = true;
+}
+
+// Disable fast pouncing when shoved
+public Action:OnPlayerShoved(Handle:event, String:name[], bool:dontBroadcast) {
+	new shovedPlayer = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (IsBotHunter(shovedPlayer)) {
+		bHasBeenShoved[shovedPlayer] = true;
+	}
 }
 
 /***********************************************************************************************************************************************************************************
@@ -218,12 +242,10 @@ GetSurvivorProximity(referenceClient) {
 SetCheatConVarInt(Handle:hCvarHandle, value) {
 	// unset cheat flag
 	new cvarFlags = GetConVarFlags(hCvarHandle);
-	cvarFlags &= ~FCVAR_CHEAT;
-	SetConVarFlags(hCvarHandle, cvarFlags);
+	SetConVarFlags(hCvarHandle, cvarFlags ^ FCVAR_CHEAT);
 	// set new value
 	SetConVarInt(hCvarHandle, value);
 	// reset cheat flag
-	cvarFlags &= FCVAR_CHEAT;
 	SetConVarFlags(hCvarHandle, cvarFlags);
 }
 

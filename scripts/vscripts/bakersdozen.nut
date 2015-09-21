@@ -13,7 +13,7 @@ enum Stage {
 	COOLDOWN		 
 }
 DEBUGMODE <- false
-const MAX_SPECIALS = 12
+MAX_SPECIALS <- 12
 const UNDEFINED_FLOW = -1
 	
 //Round Variables are reset every round	
@@ -32,20 +32,20 @@ MutationOptions <-
 	
 	//SI specifications
 	cm_MaxSpecials = 0 // let CycleStages() manage SI spawning
-	cm_BaseSpecialLimit = 3 
-	DominatorLimit = 10 // dominators: charger, smoker, jockey, hunter
-	HunterLimit = 4
+	cm_BaseSpecialLimit = 12 
+	DominatorLimit = 8 // dominators: charger, smoker, jockey, hunter
+	HunterLimit = 2
 	BoomerLimit = 1
 	SmokerLimit = 2
 	SpitterLimit = 1
 	ChargerLimit = 2
-	JockeyLimit = 3
+	JockeyLimit = 2
 	
 	//SI frequency
-	cm_SpecialRespawnInterval = 0 //Time for an SI spawn slot to become available
-	SpecialInitialSpawnDelayMin = 0 //Time between spawns in any particular SI class
-	SpecialInitialSpawnDelayMax = 0	
-	cm_SpecialSlotCountdownTime = 0
+	cm_SpecialRespawnInterval = 1 //Time for an SI spawn slot to become available
+	SpecialInitialSpawnDelayMin = 1 //Time between spawns in any particular SI class
+	SpecialInitialSpawnDelayMax = 1	
+	cm_SpecialSlotCountdownTime = 1
 	
 	//SI behaviour
 	cm_AggressiveSpecials = true
@@ -53,24 +53,6 @@ MutationOptions <-
 	BehindSurvivorsSpawnDistance = 0
 	ShouldAllowSpecialsWithTank = true
 	ShouldAllowMobsWithTank = false
-	
-	//Blocking items
-	weaponsToRemove =
-	{
-		weapon_first_aid_kit = 0
-		weapon_adrenaline = 0
-		weapon_molotov = 0
-		weapon_vomitjar = 0
-		weapon_pipe_bomb = 0
-	}
-	function AllowWeaponSpawn( classname )
-	{
-		if ( classname in weaponsToRemove )
-		{
-			return false;
-		}
-		return true;
-	}	
 }	
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -78,7 +60,7 @@ MutationOptions <-
 //-----------------------------------------------------------------------------------------------------------------------------
 MutationState <-
 {
-	WaveInterval = 40 //Time between SI hits
+	WaveInterval = 30 //Time between SI hits
 	SaferoomExitFlow = UNDEFINED_FLOW
 	BaitFlowTolerance = UNDEFINED_FLOW
 	BaitThreshold = UNDEFINED_FLOW
@@ -131,7 +113,7 @@ function EasyLogic::Update::CyleStages() {
 			if (DEBUGMODE) { Utils.SayToAll("-> Stage.COOLDOWN") }
 			break;
 		case Stage.COOLDOWN:				
-			//If cooldownperiod has finished, change current stage
+			//If cooldown period has finished, change current stage
 			if ( RoundVars.TimeBeforeNextHit == 0 ) {
 				SessionOptions.cm_MaxSpecials = MAX_SPECIALS
 				RoundVars.CurrentStage = Stage.SPAWNING_SI
@@ -212,13 +194,15 @@ function Notifications::OnDeath::PlayerInfectedDied( victim, attacker, params )
 
 //No spitters during tank
 function Notifications::OnTankSpawned::ModifySpecialSpawning( entity, params ) {
+	MAX_SPECIALS = 8
 	SessionOptions.SpitterLimit = 0
-	SessionState.WaveInterval = 35
-	RoundVars.CurrentStage = Stage.SPAWNING_SI
+	RoundVars.CurrentStage = Stage.COOLDOWN
+	RoundVars.TimeBeforeNextHit = 0
 }
 function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, params ) {
+	MAX_SPECIALS = 12
 	SessionOptions.SpitterLimit = 2
-	SessionState.WaveInterval = 40
+	SessionState.WaveInterval = 30
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------

@@ -22,7 +22,6 @@ public OnPluginStart() {
 	HookEvent("mission_lost", EventHook:DisableAutoWipe, EventHookMode_PostNoCopy);
 }
 
-
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	g_bIsAutoWipeActive = false;
 }
@@ -50,7 +49,6 @@ public Action:Timer_AutoWipe(Handle:timer) {
 		PrintToChatAll("[AW] ...AutoWipe cancelled!");
 		g_bIsAutoWipeActive = false;	
 	}
-	return Plugin_Handled;
 }
 
 WipeSurvivors() { //incap everyone

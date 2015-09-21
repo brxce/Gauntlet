@@ -17,12 +17,15 @@ public Plugin:myinfo =
 	url = ""
 };
 
+
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
-	if (IsBotTank(client)) {
+	if (IsBotTank(client)) {	
 		buttons &= ~IN_ATTACK2;
-	}
+		return Plugin_Changed;
+	} 
 	return Plugin_Continue;
 }
+
 
 bool:IsBotTank(client) {
 	// Check the input is valid

@@ -5,7 +5,6 @@
 #include <left4downtown>
 
 #define VLC_DEBUG 0
-#define	FULL_PERM_HEALTH 100
 #define	NO_TEMP_HEALTH 0.0
 #define SECONDARY_SLOT 1
 
@@ -18,10 +17,17 @@ public Plugin:myinfo =
 	url = ""
 };
 
-public OnPluginStart()
-{
+new Handle:hCvarSurvivorRespawnHealth;
+
+public OnPluginStart() {
+	hCvarSurvivorRespawnHealth = FindConVar("z_survivor_respawn_health");
+	SetCheatConVarInt(hCvarSurvivorRespawnHealth, 100);
 	HookEvent("map_transition", EventHook:ResetSurvivors, EventHookMode_PostNoCopy); // finishing a map
 	HookEvent("round_freeze_end", EventHook:ResetSurvivors, EventHookMode_PostNoCopy); // restarting map after a wipe 
+}
+
+public OnPluginEnd() {
+	ResetConVar(hCvarSurvivorRespawnHealth);
 }
 
 public ResetSurvivors() {
@@ -38,9 +44,9 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 }
 
 public RestoreHealth() {
-	for (new client = 0; client <= MaxClients; client++) {
+	for (new client = 1; client <= MaxClients; client++) {
 		if ( IsSurvivor(client) ) {
-			SetEntProp(client, Prop_Send, "m_iHealth", FULL_PERM_HEALTH);
+			GiveItem(client, "health");
 			SetEntPropFloat(client, Prop_Send, "m_healthBuffer", NO_TEMP_HEALTH);		
 			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0); //reset incaps
 			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", false);
@@ -65,26 +71,35 @@ public ResetInventory() {
 			for (new i = 0; i < 5; i++) { 
 				DeleteInventoryItem(client, i);		
 			}	
-			GivePistol(client);
+			GiveItem(client, "pistol");
 		}
 	}		
 }
 
-GivePistol(client) {
+GiveItem(client, String:itemName[]) {
 	new flags = GetCommandFlags("give");
-	SetCommandFlags("give", flags & ~FCVAR_CHEAT);
-	FakeClientCommand(client, "give pistol");
-	SetCommandFlags("give", flags|FCVAR_CHEAT);
+	SetCommandFlags("give", flags ^ FCVAR_CHEAT);
+	FakeClientCommand(client, "give %s", itemName);
+	SetCommandFlags("give", flags);
 }
 
 DeleteInventoryItem(client, slot) {
 	new item = GetPlayerWeaponSlot(client, slot);
 	if (item > 0) {
 		RemovePlayerItem(client, item);
-		RemoveEdict(item);
 	}	
 }
 
 bool:IsSurvivor(client) {
 	return client > 0 && client <= MaxClients && IsClientInGame(client) && GetClientTeam(client) == 2;
+}
+
+SetCheatConVarInt(Handle:hCvarHandle, value) {
+	// unset cheat flag
+	new cvarFlags = GetConVarFlags(hCvarHandle);
+	SetConVarFlags(hCvarHandle, cvarFlags ^ FCVAR_CHEAT);
+	// set new value
+	SetConVarInt(hCvarHandle, value);
+	// reset cheat flag
+	SetConVarFlags(hCvarHandle, cvarFlags);
 }

@@ -33,14 +33,14 @@ MutationOptions <-
 	
 	//SI specifications
 	cm_MaxSpecials = 0 //let CycleStages() manage SI spawning
-	cm_BaseSpecialLimit = 3 
-	DominatorLimit = 5 //dominators: charger, smoker, jockey, hunter
-	HunterLimit = 2
+	cm_BaseSpecialLimit = 6 
+	DominatorLimit = 4 //dominators: charger, smoker, jockey, hunter
+	HunterLimit = 1
 	BoomerLimit = 1
 	SmokerLimit = 1
 	SpitterLimit = 1
 	ChargerLimit = 1
-	JockeyLimit = 2
+	JockeyLimit = 1
 	
 	//SI frequency
 	cm_SpecialRespawnInterval = 0 //Time for an SI spawn slot to become available
@@ -53,25 +53,7 @@ MutationOptions <-
 	PreferredSpecialDirection = SPAWN_SPECIALS_ANYWHERE
 	BehindSurvivorsSpawnDistance = 0
 	ShouldAllowSpecialsWithTank = true
-	ShouldAllowMobsWithTank = false
-	
-	//Removing spawns
-	weaponsToRemove =
-	{
-		weapon_first_aid_kit = 0
-		weapon_adrenaline = 0
-		weapon_molotov= 0
-		weapon_vomitjar = 0
-		weapon_pipebomb = 0
-	}
-	function AllowWeaponSpawn( classname )
-	{
-		if ( classname in weaponsToRemove )
-		{
-			return false;
-		}
-		return true;
-	}	
+	ShouldAllowMobsWithTank = false	
 }	
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -214,7 +196,8 @@ function Notifications::OnDeath::PlayerInfectedDied( victim, attacker, params )
 //SI spawning during tank
 function Notifications::OnTankSpawned::ModifySpecialSpawning( entity, params ) {
 	SessionOptions.SpitterLimit = 0
-	RoundVars.CurrentStage = Stage.SPAWNING_SI 
+	RoundVars.CurrentStage = Stage.COOLDOWN
+	RoundVars.TimeBeforeNextHit = 0
 }
 function Notifications::OnTankKilled::RestoreSpitterSpawns( entity, attacker, params ) {
 	SessionOptions.SpitterLimit = 2
