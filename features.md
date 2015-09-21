@@ -1,10 +1,7 @@
 #Features  
-*Custom scoring system*  
-> distance points + health bonus (!scoring/sm_scoring for more info)
->  
 
->>##AI improvements  
->>
+>##AI improvements  
+>
  * ai_hunterpouncing.smx  
    * hunters pounce as fast as players, in a zig zag pattern
  * ai_chargefromclose.smx  
@@ -21,6 +18,7 @@
 >>##Versus simulation
 >>
  * static_scoremod.smx
+   * distance points + health bonus (!scoring/sm_scoring for more info)
  * survivor_reset.smx
    * full health, single pistol at the start of every round
  * pillsonly.smx
