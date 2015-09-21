@@ -1,4 +1,4 @@
-# Hardcore Coop! 
+# HARDCORE COOP! 
 ------------------------------------------------------------------  
 **SI encroach in waves of 12! Preserve health to earn _bonus points_ at the saferoom!**  
 >######"VANILLA COOKIE" (future)
