@@ -1,7 +1,7 @@
 #Features  
 
 >##AI improvements  
->
+
  * ai_hunterpouncing.smx  
    * hunters pounce as fast as players, in a zig zag pattern
  * ai_chargefromclose.smx  
@@ -16,7 +16,7 @@
    * special infected are assigned health bonus target preferences
 
 >##Versus simulation
->
+
  * static_scoremod.smx
    * distance points + health bonus (!scoring/sm_scoring for more info)
  * survivor_reset.smx
@@ -31,7 +31,7 @@
    * spawns infected in waves
 
 >##Misc.
->
+
  * autowipe.smx
    * wipes survivors after a period of time if they are all incapped/pinned
  * survivormanagement.smx
