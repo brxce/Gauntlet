@@ -15,8 +15,8 @@
  * ai_targeting.smx  
    * special infected are assigned health bonus target preferences
 
->>##Versus simulation
->>
+>##Versus simulation
+>
  * static_scoremod.smx
    * distance points + health bonus (!scoring/sm_scoring for more info)
  * survivor_reset.smx
@@ -30,8 +30,8 @@
  * special_infected_wave_spawner 
    * spawns infected in waves
 
->>##Misc.
->>
+>##Misc.
+>
  * autowipe.smx
    * wipes survivors after a period of time if they are all incapped/pinned
  * survivormanagement.smx
