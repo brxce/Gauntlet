@@ -3,7 +3,7 @@
  * download vanillacookie.vpk into your add-ons folder 
 
 >##Confogl based configs: Baker's Dozen, Half Baked   
->>###*If ProMod 4.0 or above is already installed on the server, only following are required:    
+>>###*If ProMod 4.0 or above is already installed on the server, only the following are required:    
  * l4d2_scout_precache.smx (if EQ 2.0 is not installed on server)   
 
 >>####AI improvements  
