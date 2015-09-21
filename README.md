@@ -1,7 +1,7 @@
-#'Quadruple' the Special Infected limit 
+# Hardcore Coop! 
 ------------------------------------------------------------------  
 **SI encroach in waves of 12! Preserve health to earn _bonus points_ at the saferoom!**  
->######"VANILLA COOKIE" 
+>######"VANILLA COOKIE" (future)
 >>_Vanilla L4D2_  
 >>< 4 player >  
   
