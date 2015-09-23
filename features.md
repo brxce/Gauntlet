@@ -1,19 +1,21 @@
 #Features  
 
->##AI improvements  
-
- * **ai_hunterpouncing.smx**  
-   * hunters pounce as fast as players, in a zig zag pattern
- * **ai_chargefromclose.smx**  
-   * chargers only charge when they are close to survivors
- * **ai_jockeybehaviour.smx**  
-   * jockeys alternate jumps and pounces, and cause stumble
+>##AI improvements
+ * **ai_aggressivespecials.smx**
+   * special infected are aggressive upon spawn and do not ever run away  
+ * **ai_targeting.smx**  
+   * special infected are assigned health bonus target preferences  
  * **ai_smokersettings.smx**  
    * smokers attack faster and take damage like in versus
- * **norockthrows.smx**  
+ * **ai_hunterpouncing.smx**  
+   * hunters pounce as fast as players, in a zig zag pattern
+ * **ai_jockeybehaviour.smx**  
+   * jockeys alternate jumps and pounces, and cause stumble
+ * **ai_chargefromclose.smx**  
+   * chargers only charge when they are close to survivors
+ * **ai_tankbehaviour.smx**  
    * tanks do not throw rocks
- * **ai_targeting.smx**  
-   * special infected are assigned health bonus target preferences
+
 
 >##Versus simulation
 

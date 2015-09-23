@@ -77,6 +77,8 @@ public OnConVarChange(Handle:convar, const String:oldValue[], const String:newVa
 }
 
 public OnPluginEnd() {
+	ResetConVar(hCvarHunterCommittedAttackRange);
+	ResetConVar(hCvarHunterPounceReadyRange);
 	ResetConVar(hCvarHunterLeapAwayGiveUpRange);
 	ResetConVar(hCvarHunterPounceMaxLoftAngle);
 }
@@ -159,7 +161,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 			//Proceed if the hunter is in a position to pounce
 			if( (flags & FL_DUCKING) && (flags & FL_ONGROUND) ) {				
 				new iSurvivorsProximity = GetSurvivorProximity(hunter);
-				new bool:bHasLOS = bool:GetEntProp(hunter, Prop_Send, "m_hasVisibleThreats"); //Line of sight to survivors
+				new bool:bHasLOS = bool:GetEntProp(hunter, Prop_Send, "m_hasVisibleThreats"); // Line of sight to survivors
 				
 				// Start fast pouncing if close enough to survivors
 				if (bHasLOS && (iSurvivorsProximity < g_iFastPounceProximity) ) {

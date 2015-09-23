@@ -57,6 +57,7 @@ enum SpawnDirection {
 };
 
 // Vanilla cvars
+new Handle:hCvarSafeSpawnRange;
 new Handle:hCvarSpawnSafetyRange;
 new Handle:hCvarFinaleSpawnSafetyRange;
 new Handle:hCvarSpawnMaxDist;
@@ -75,7 +76,6 @@ new bool:g_bIsSpawnerActive; // cooldown between waves
 
 // Interval(seconds) between waves of SI
 new Handle:hCvarWaveInterval;
-new Float:g_fWaveInterval;
 
 // Custom SI limits (not the vanilla cvars)
 new Handle:hCvarMaxSpecials;
@@ -101,6 +101,9 @@ public Plugin:myinfo =
 public OnPluginStart() {
 	
 	// Vanilla Cvars
+	hCvarSafeSpawnRange = FindConVar("z_safe_spawn_range"); // minimum range for spawning special infected
+	SetConVarInt(hCvarSafeSpawnRange, 0);
+	
 	hCvarSpawnSafetyRange = FindConVar("z_spawn_safety_range"); // Spawn safety range
 	SetConVarInt(hCvarSpawnSafetyRange, 0);
 	
@@ -110,10 +113,9 @@ public OnPluginStart() {
 	hCvarSpawnMaxDist = FindConVar("z_spawn_range"); // Maximum spawn range
 	SetConVarInt(hCvarSpawnMaxDist, MAX_SPAWN_RANGE);
 	
-	// Appears to be ineffective; setting PreferredSpecialDirection through 'script' console command appears effective:
-	// e.g. ScriptCommand(client, "g_ModeScript.DirectorOptions.PreferredSpecialDirection<-4") - this uses the same enumerations for the direction parameter
+	// Appears to be ineffective; setting PreferredSpecialDirection through 'script' console command appears effective: e.g. ScriptCommand(client, "g_ModeScript.DirectorOptions.PreferredSpecialDirection<-4") - this uses the same enumerations for the direction parameter
 	// hCvarSpawnDirection = FindConVar("z_debug_spawn_set"); // 0=Anywhere, 1=Behind, 2=IT, 3=Specials in front, 4=Specials anywhere, 5=Far Away, 6=Above
-	// SetConVarInt(hCvarSpawnDirection, SPECIALS_ANYWHERE); // Not sure if this cvar actually has an effect on the "z_spawn_old" command used in this plugin
+	// SetConVarInt(hCvarSpawnDirection, SPECIALS_ANYWHERE); // Does not appear to have an effect on the "z_spawn_old" command used in this plugin
 	
 	hCvarDirectorNoSpecials = FindConVar("director_no_specials");
 	SetConVarBool(hCvarDirectorNoSpecials, true); // Disable Director spawning specials naturally
@@ -123,8 +125,6 @@ public OnPluginStart() {
 	
 	// Wave interval
 	hCvarWaveInterval = CreateConVar("siws_wave_interval", "30", "Interval in seconds between special infected waves");
-	g_fWaveInterval = float(GetConVarInt(hCvarWaveInterval));
-	HookConVarChange(hCvarWaveInterval, ConVarChanged:OnCvarChange);
 	
 	// Custom class limits
 	hCvarMaxSpecials 	= CreateConVar("siws_max_specials", 	"6", "Maximum Specials alive at any time");
@@ -147,6 +147,11 @@ public OnPluginStart() {
 	#if DEBUG
 		HookEvent("player_spawn", OnPlayerSpawn, EventHookMode_Pre);
 	#endif
+	
+	// Console commands
+	RegConsoleCmd("sm_limit", Cmd_SetLimit, "Set individual or total SI limits");
+	RegConsoleCmd("sm_waveinterval", Cmd_SetWaveInterval, "Set the interval between waves");
+	RegConsoleCmd("sm_supportpercent", Cmd_SetTankSupportHealthPercent, "Set the percentage of tank health at which support wave will spawn");
 }
 
 #if DEBUG	
@@ -168,19 +173,160 @@ public OnConfigsExecuted() {
 	SetConVarBounds(FindConVar("z_max_player_zombies"), ConVarBound_Upper, true, float(GetConVarInt(hCvarMaxSpecials)));
 }
 
+// Update wave interval if it is changed mid-game
+public Action:OnCvarChange() {
+	SetConVarBounds(FindConVar("z_minion_limit"), ConVarBound_Upper, true, float(GetConVarInt(hCvarMaxSpecials)));
+	SetConVarBounds(FindConVar("z_max_player_zombies"), ConVarBound_Upper, true, float(GetConVarInt(hCvarMaxSpecials)));
+}
+
 public OnPluginEnd() {
 	// Reset convars
+	ResetConVar(hCvarSafeSpawnRange);
 	ResetConVar(hCvarSpawnSafetyRange);
 	ResetConVar(hCvarSpawnMaxDist);
 	ResetConVar(hCvarDirectorNoSpecials);
 	ResetConVar(hCvarDiscardRange);
+	SetConVarBounds(FindConVar("z_minion_limit"), ConVarBound_Upper, true, 3.0);
+	SetConVarBounds(FindConVar("z_max_player_zombies"), ConVarBound_Upper, true, 4.0);
 }
 
-// Update wave interval if it is changed mid-game
-public Action:OnCvarChange() {
-	g_fWaveInterval = float(GetConVarInt(hCvarWaveInterval));
-	SetConVarBounds(FindConVar("z_minion_limit"), ConVarBound_Upper, true, float(GetConVarInt(hCvarMaxSpecials)));
-	SetConVarBounds(FindConVar("z_max_player_zombies"), ConVarBound_Upper, true, float(GetConVarInt(hCvarMaxSpecials)));
+/***********************************************************************************************************************************************************************************
+
+																				COMMANDS
+																	
+***********************************************************************************************************************************************************************************/
+
+public Action:Cmd_SetLimit(client, args) {
+	// Check a valid number of arguments was enetered
+	if (args == 2) {
+		
+		// Read in the SI class
+		new String:sTargetClass[32];
+		GetCmdArg(1, sTargetClass, sizeof(sTargetClass));
+		
+		// Read in limit value and check validity
+		new String:sLimitValue[32];		
+		GetCmdArg(2, sLimitValue, sizeof(sLimitValue));
+		new iLimitValue = StringToInt(sLimitValue);
+		if (iLimitValue < 0) {			
+			PrintToCmdUser(client, "<limit> cannot be negative");
+			return Plugin_Handled;	
+		}
+		
+		// Max specials
+		if (StrEqual(sTargetClass, "max", false)) {
+			SetConVarInt(hCvarMaxSpecials, iLimitValue);		
+			PrintToChatAll("Max specials set to %i", iLimitValue);	
+			return Plugin_Changed;			
+		} 
+		// Smoker limit
+		else if (StrEqual(sTargetClass, "smoker", false)) {
+			SetConVarInt(hCvarSmokerLimit, iLimitValue);
+			PrintToChatAll("Smoker limit set to %i", iLimitValue);
+			return Plugin_Changed;			
+		} 
+		// Boomer limit
+		else if (StrEqual(sTargetClass, "boomer", false)) {
+			SetConVarInt(hCvarBoomerLimit, iLimitValue);
+			PrintToChatAll("Boomer limit set to %i", iLimitValue);
+			return Plugin_Changed;			
+		} 
+		// Hunter limit
+		else if (StrEqual(sTargetClass, "hunter", false)) {
+			SetConVarInt(hCvarHunterLimit, iLimitValue);
+			PrintToChatAll("Hunter limit set to %i", iLimitValue);
+			return Plugin_Changed;			
+		} 
+		// Spitter limit
+		else if (StrEqual(sTargetClass, "spitter", false)) {
+			SetConVarInt(hCvarSpitterLimit, iLimitValue);
+			PrintToChatAll("Spitter limit set to %i", iLimitValue);
+			return Plugin_Changed;			
+		} 
+		// Jockey limit
+		else if (StrEqual(sTargetClass, "jockey", false)) {
+			SetConVarInt(hCvarJockeyLimit, iLimitValue);
+			PrintToChatAll("Jockey limit set to %i", iLimitValue);
+			return Plugin_Changed;			
+		} 
+		// Charger limit
+		else if (StrEqual(sTargetClass, "charger", false)) {
+			SetConVarInt(hCvarChargerLimit, iLimitValue);
+			PrintToChatAll("Charger limit set to %i", iLimitValue);
+			return Plugin_Changed;			
+		} 
+		
+		// An invalid class has been entered
+		else {
+			PrintToCmdUser(client, "<class> = max | smoker | boomer | hunter | spitter | jockey | charger");
+			return Plugin_Handled;
+		}
+		
+	} 
+	
+	// Invalid command syntax
+	else {
+		PrintToCmdUser(client, "Usage: limit <class> <limit>");
+		return Plugin_Handled;	
+	}
+}
+
+public Action:Cmd_SetWaveInterval(client, args) {
+	if (args == 1) {
+		// Read in argument
+		new String:sIntervalValue[32]; 
+		GetCmdArg(1, sIntervalValue, sizeof(sIntervalValue));
+		new iIntervalValue = StringToInt(sIntervalValue);
+		
+		// Valid interval length entered; apply setting
+		if (iIntervalValue > 0) {
+			SetConVarInt(hCvarWaveInterval, iIntervalValue);
+			PrintToChatAll("Interval between special infected waves set to %i", iIntervalValue);
+		} 
+		
+		// Invalid value entered
+		else {
+			PrintToCmdUser(client, "Wave interval must be greater than zero");
+		}
+	} 
+	
+	// Incorrect number of arguments
+	else {
+		PrintToCmdUser(client, "Usage: waveinterval <time(seconds)>");
+	}
+}
+
+public Action:Cmd_SetTankSupportHealthPercent(client, args) {
+	if (args == 1) {
+		// Read in argument
+		new String:sPercentValue[32]; 
+		GetCmdArg(1, sPercentValue, sizeof(sPercentValue));
+		new iPercentValue = StringToInt(sPercentValue);
+		
+		// Valid percent value entered; apply setting
+		if (iPercentValue < 100 && iPercentValue > 0) {
+			SetConVarInt(hCvarTankSupportHealthPercent, iPercentValue);
+			PrintToChatAll("Support wave for tank will now spawn at %i%% health", iPercentValue);
+		} 
+		
+		// Invalid value entered
+		else {
+			PrintToCmdUser(client, "Percent value must be between 0 and 100, exclusive");
+		}
+	} 
+	
+	// Incorrect number of arguments
+	else {
+		PrintToCmdUser(client, "Usage: setsupportpercent <percent>");
+	}
+}
+
+PrintToCmdUser(client, const String:message[]) {
+	if (client > 0) {
+		PrintToChat(client, message);
+	} else {
+		PrintToServer(message); 
+	}
 }
 
 /***********************************************************************************************************************************************************************************
@@ -239,7 +385,7 @@ public OnGameFrame() {
 				// Spawn wave and create timer counting down to next wave
 				SpawnWave();
 				g_bIsSpawnerActive = false;
-				CreateTimer(g_fWaveInterval, Timer_ActivateSpawner, _, TIMER_FLAG_NO_MAPCHANGE); 
+				CreateTimer(GetConVarFloat(hCvarWaveInterval), Timer_ActivateSpawner, _, TIMER_FLAG_NO_MAPCHANGE); 
 			}
 		} else {  // Check if survivors have passed the flow threshold for spawning
 			new Float:currentFlow = GetAverageSurvivorFlow();
