@@ -44,7 +44,7 @@ public OnPluginStart() {
 	
 	// Stumble
 	HookEvent("jockey_ride", OnJockeyRide, EventHookMode_Pre); 
-	hCvarJockeyStumbleRadius = CreateConVar("ai_jockey_stumble_radius", "100", "Stumble radius of a jockey landing a ride");
+	hCvarJockeyStumbleRadius = CreateConVar("ai_jockey_stumble_radius", "50", "Stumble radius of a jockey landing a ride");
 }
 
 //Update convars if they have been changed midgame
