@@ -104,7 +104,6 @@ public Action:Cmd_Respawn(client, args) {
 			// Kick bot
 			SetEntityRenderColor(bot, 128, 0, 0, 255);	 			
 			CreateTimer(1.0, Timer_Kick, bot, TIMER_FLAG_NO_MAPCHANGE);  
-			PrintToChatAll("\x01Created bot sucessfully, type !join to join survivors");
 		}
 		
 		// Take control of new survivor
@@ -126,7 +125,7 @@ public Action:Timer_Kick(Handle:timer, any:bot) {
 CheatCommand(client, const String:command[]) {
 	new flags = GetCommandFlags(command);
 	SetCommandFlags(command, flags ^ FCVAR_CHEAT);
-	FakeClientCommand(client, "warp_to_start_area");
+	FakeClientCommand(client, command);
 	SetCommandFlags(command, flags);
 }
 
