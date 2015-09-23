@@ -9,12 +9,13 @@
 
 >>####AI improvements  
 >>
- * ai_hunterpouncing.smx  
- * ai_chargefromclose.smx  
- * ai_jockeybehaviour.smx  
- * ai_smokersettings.smx  
- * norockthrows.smx  
+ * ai_aggressivespecials.smx
  * ai_targeting.smx  
+ * ai_smokersettings.smx  
+ * ai_hunterpouncing.smx  
+ * ai_jockeybehaviour.smx  
+ * ai_chargefromclose.smx  
+ * ai_tankbehaviour.smx  
 
 >>####Versus simulation
 >>
@@ -31,10 +32,11 @@
  * survivormanagement.smx
  * l4d2_playstats_fixed.smx  
  * l4d_tank_damage_announce_fixed.smx  
+ * sb_godmode.smx
  
 >>####Folders
 >>
- * (for mapskipper.smx) missions folder - N.B.for custom campaigns, missions file must be extracted from respective .vpks 
+ * missions folder (for mapskipper.smx)- N.B. for custom campaigns, missions file must be extracted from respective .vpks 
  * cfg &modes folders 
 
 >>###*Otherwise*  
