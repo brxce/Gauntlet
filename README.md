@@ -1,5 +1,6 @@
 # HARDCORE COOP!
-####SI encroach in waves of 12! Preserve health to earn _bonus points_ at the saferoom!  
+####SI encroach in waves of 12!  
+####Preserve health to earn _bonus points_ at the saferoom!  
 >*Please read the* **'Issues'** *file before downloading as this config still has major bugs*   
 >*Installation instructions are found in the* **'Install'** *file*   
 
