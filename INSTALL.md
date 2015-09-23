@@ -38,6 +38,7 @@
 >>
  * missions folder (for mapskipper.smx)- N.B. for custom campaigns, missions file must be extracted from respective .vpks 
  * cfg &modes folders 
+ * 'scripts' folder is vestigial
 
 >>###*Otherwise*  
  * Copy all folders into your server directory    
