@@ -475,6 +475,8 @@ public OnTankSpawn(tank) {
 
 public OnTankDeath(tank) {
 	SDKUnhook(tank, SDKHook_OnTakeDamage, OnTakeDamage);	
+	g_bIsSpawnerActive = false;
+	CreateTimer(GetConVarFloat(hCvarWaveInterval), Timer_ActivateSpawner, _, TIMER_FLAG_NO_MAPCHANGE); 
 }
 
 public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damagetype) {

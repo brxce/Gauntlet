@@ -1,6 +1,6 @@
 #pragma semicolon 1
 
-#define DEBUG 1
+#define DEBUG 0
 #define INFECTED_TEAM 3
 #define ZC_BOOMER 2
 #define ZC_SPITTER 4
@@ -9,7 +9,6 @@
 
 #define PLUGIN_AUTHOR "Breezy"
 #define PLUGIN_VERSION "1.0"
-#define BLOCKSIZE 32
 
 #include <sourcemod>
 #include <sdktools>
@@ -32,7 +31,7 @@ new targetSurvivor[MAXPLAYERS]; // survivor target of each special infected
 
 public OnPluginStart() {
 	// Initialise dynamic arrays
-	arraySurvivors = CreateArray(BLOCKSIZE);
+	arraySurvivors = CreateArray();
 	// Assigning targets to spawned infected
 	HookEvent("player_spawn", OnPlayerSpawnPre, EventHookMode_Pre);
 	HookEvent("player_incapacitated", OnPlayerImmobilised, EventHookMode_Pre);

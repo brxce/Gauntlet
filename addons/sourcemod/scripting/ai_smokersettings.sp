@@ -8,6 +8,7 @@
 #include <sourcemod>
 
 new Handle:hCvarTongueDelay;
+new Handle:hCvarTongueRange;
 new Handle:hCvarSmokerHealth;
 new Handle:hCvarChokeDamageInterrupt;
 new Handle:hCvarChokeDamage;
@@ -31,6 +32,9 @@ public OnPluginStart() {
 	// Delay before smoker shoots its tongue
 	hCvarTongueDelay = FindConVar("smoker_tongue_delay"); // default 1.5
 	SetCheatConVarFloat(hCvarTongueDelay, 1.0);
+	// Range of smoker tongue
+	hCvarTongueRange = FindConVar("tongue_range"); // default 750
+	SetCheatConVarInt(hCvarTongueRange, 500);
 	// Damage done by choke
 	hCvarChokeDamage = FindConVar("tongue_choke_damage_amount"); // default 10
 	SetCheatConVarInt(hCvarChokeDamage, 4);
@@ -44,6 +48,7 @@ public Action:OnSmokerHealthChanged() {
 public OnPluginEnd() {
 	ResetConVar(hCvarChokeDamageInterrupt);
 	ResetConVar(hCvarTongueDelay);
+	ResetConVar(hCvarTongueRange);
 	ResetConVar(hCvarChokeDamage);
 }
 

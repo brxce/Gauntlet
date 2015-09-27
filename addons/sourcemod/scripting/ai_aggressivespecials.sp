@@ -12,7 +12,7 @@
 
 public Plugin:myinfo = 
 {
-	name = "AI Anti Stragglers",
+	name = "AI Aggressive Specials",
 	author = PLUGIN_AUTHOR,
 	description = "Force SI to be aggressive",
 	version = PLUGIN_VERSION,
@@ -30,6 +30,7 @@ public OnPluginStart() {
 	SetConVarFloat(hCvarBoomerVomitDelay, 0.1);
 	
 	HookEvent("player_spawn", OnPlayerSpawn, EventHookMode_Pre);
+	HookEvent("ability_use", OnAbilityUse, EventHookMode_Pre);
 }
 
 public OnPluginEnd() {
@@ -53,6 +54,22 @@ public Action:OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcas
 
 public Action:Timer_PostSpawnAssault(Handle:timer) {
 	CheatCommand("nb_assault");
+}
+
+/***********************************************************************************************************************************************************************************
+
+																			STOP SMOKERS & SPITTERS FLEEING
+
+***********************************************************************************************************************************************************************************/
+
+// Stop smokers running away
+public Action:OnAbilityUse(Handle:event, const String:name[], bool:dontBroadcast) {
+	new String:abilityName[MAX_NAME_LENGTH];
+	GetEventString(event, "ability", abilityName, sizeof(abilityName));
+	if (StrEqual(abilityName, "ability_tongue") || StrEqual(abilityName, "ability_spit")) {
+		new client = GetClientOfUserId(GetEventInt(event, "userid"));
+		SetEntityMoveType(client, MOVETYPE_NONE);
+	}
 }
 
 /***********************************************************************************************************************************************************************************
