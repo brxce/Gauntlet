@@ -1,6 +1,7 @@
 #pragma semicolon 1
 
 #define DEBUG 0
+#define KICKDELAY 0.1
 #define INFECTED_TEAM 3
 #define ZC_BOOMER 2
 #define ZC_SPITTER 4
@@ -156,9 +157,12 @@ AttackTarget(client) {
 		// if not already pinned
 		if (IsMobile(target)) {
 			new targetID = GetClientUserId(target);		
-			// Client commands appear to continue firing sometimes for a short while after death; check bot is still alive
-			if (IsBotInfected(client)) {
-				ScriptCommand("CommandABot({cmd=%i,bot=GetPlayerFromUserID(%i),target=GetPlayerFromUserID(%i)})", CMD_ATTACK, botID, targetID); // attack
+			// Check bot is still alive, and not a dummy client 
+			new String:clientName[MAX_NAME_LENGTH];
+			if (IsBotInfected(client) && GetClientName(client, clientName, sizeof(clientName)) ) {
+				if (StrContains(clientName, "dummy", false) == -1) { // naming convention used in 'special_infected_wave_spawner.smx'
+					ScriptCommand("CommandABot({cmd=%i,bot=GetPlayerFromUserID(%i),target=GetPlayerFromUserID(%i)})", CMD_ATTACK, botID, targetID); // attack
+				}
 			}				
 		}			
 	}
@@ -180,20 +184,22 @@ CheatCommand(const String:command[], const String:parameter1[] = "", const Strin
 	new flags = GetCommandFlags(command);	
 	// Check this is a valid command
 	if (flags != INVALID_FCVAR_FLAGS) {
-		new commandClient = GetAnyValidClient();
-		if (commandClient != -1) {
-			new userFlagBits = GetUserFlagBits(commandClient);
+		new commandDummy = CreateFakeClient("[AI_T] Command Dummy");
+		if (commandDummy > 0) {			
+			ChangeClientTeam(commandDummy, INFECTED_TEAM);
+			new userFlagBits = GetUserFlagBits(commandDummy);
 		
 			// Unset cheat flag & allow admin access
 			SetCommandFlags(command, flags ^ FCVAR_CHEAT);
-			SetUserFlagBits(commandClient, ADMFLAG_ROOT);
+			SetUserFlagBits(commandDummy, ADMFLAG_ROOT);
 			
 			//Execute command
-			FakeClientCommand(commandClient, "%s %s %s", command, parameter1, parameter2);
+			FakeClientCommand(commandDummy, "%s %s %s", command, parameter1, parameter2);
+			CreateTimer(KICKDELAY, Timer_KickBot, any:commandDummy, TIMER_FLAG_NO_MAPCHANGE);
 			
 			// Reset cheat flag and user flags
 			SetCommandFlags(command, flags | FCVAR_CHEAT);
-			SetUserFlagBits(commandClient, userFlagBits);
+			SetUserFlagBits(commandDummy, userFlagBits);
 		}		
 	}
 }
@@ -250,15 +256,25 @@ bool:IsBotInfected(client) {
 	return (IsValidClient(client) && GetClientTeam(client) == INFECTED_TEAM && IsFakeClient(client) && IsPlayerAlive(client));
 }
 
-GetAnyValidClient() {
+// Creating a fake client to run the fake command works (kicking newly created client after command execution)
+/* @return: entity index of any ingame client, -1 if none could be found
+GetAnyClientInGame() {
 	for (new target = 1; target <= MaxClients; target++) {
-		if (IsClientInGame(target)) return target;
+		if (IsClientInGame(target))return target;
 	}
-	return -1;
+	return -1; // no valid client found
 }
+*/
 
 bool:IsValidClient(client) {
     if ( !( 1 <= client <= MaxClients ) || !IsClientInGame(client) ) return false;      
     return true; 
+}
+
+// Kick dummy bot 
+public Action:Timer_KickBot(Handle:timer, any:client) {
+	if (IsClientInGame(client) && (!IsClientInKickQueue(client))) {
+		if (IsFakeClient(client))KickClient(client);
+	}
 }
 

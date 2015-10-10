@@ -16,6 +16,17 @@
 >>>_confogl based_  
 >>>< 2 player >  
 
+- thanks to MikanPenguin's config for inspiration, promod and eq plugin developers, people who playtested with me and KFC
+- works like versus
+- promod based + scout + static scoremod
+- ai improvements
+- fully configurable
+- waves
+- hard limit on max specials configuration
+- tank support percent
+- actually hard 10
+- rushing tank
+
 **Package includes a custom plugin 'Static Scoremod'**  
 For more information:  
 https://www.github.com/breezyplease/static-scoremod

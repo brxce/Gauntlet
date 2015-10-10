@@ -4,6 +4,8 @@
 // misc constants
 #define SI_HARDLIMIT 2
 #define MAX_SPAWN_RANGE 750
+#define TANK_RUSH_FLOW_TOLERANCE 1000.0
+#define WAVE_SIZE_HARDLIMIT 20
 
 // timer
 #define KICKDELAY 0.1
@@ -12,9 +14,6 @@
 // functions
 #define MAX(%0,%1) (((%0) > (%1)) ? (%0) : (%1))
 #define TEAM_CLASS(%1) (%1 == ZC_SMOKER ? "smoker" : (%1 == ZC_BOOMER ? "boomer" : (%1 == ZC_HUNTER ? "hunter" :(%1 == ZC_SPITTER ? "spitter" : (%1 == ZC_JOCKEY ? "jockey" : (%1 == ZC_CHARGER ? "charger" : (%1 == ZC_WITCH ? "witch" : (%1 == ZC_TANK ? "tank" : "None"))))))))
-
-#define PLUGIN_AUTHOR "Breezy"
-#define PLUGIN_VERSION "1.0"
 
 #include <sourcemod>
 #include <sdktools>
@@ -77,6 +76,9 @@ new bool:g_bIsSpawnerActive; // cooldown between waves
 // Interval(seconds) between waves of SI
 new Handle:hCvarWaveInterval;
 
+// Rushing past tank
+new Float:g_fTankRushThreshold;
+
 // Custom SI limits (not the vanilla cvars)
 new Handle:hCvarMaxSpecials;
 new Handle:hCvarSmokerLimit;
@@ -92,9 +94,9 @@ new Handle:hCvarTankSupportHealthPercent; // at what percent of tank health will
 public Plugin:myinfo = 
 {
 	name = "Special Infected Wave Spawner", 
-	author = PLUGIN_AUTHOR, 
+	author = "Breezy", 
 	description = "Spawns SI in waves", 
-	version = PLUGIN_VERSION, 
+	version = "1.0", 
 	url = ""
 };
 
@@ -102,13 +104,13 @@ public OnPluginStart() {
 	
 	// Vanilla Cvars
 	hCvarSafeSpawnRange = FindConVar("z_safe_spawn_range"); // minimum range for spawning special infected
-	SetConVarInt(hCvarSafeSpawnRange, 0);
+	SetConVarInt(hCvarSafeSpawnRange, 100);
 	
 	hCvarSpawnSafetyRange = FindConVar("z_spawn_safety_range"); // Spawn safety range
-	SetConVarInt(hCvarSpawnSafetyRange, 0);
+	SetConVarInt(hCvarSpawnSafetyRange, 100);
 	
 	hCvarFinaleSpawnSafetyRange = FindConVar("z_finale_spawn_safety_range");
-	SetConVarInt(hCvarFinaleSpawnSafetyRange, 0);
+	SetConVarInt(hCvarFinaleSpawnSafetyRange, 100);
 	
 	hCvarSpawnMaxDist = FindConVar("z_spawn_range"); // Maximum spawn range
 	SetConVarInt(hCvarSpawnMaxDist, MAX_SPAWN_RANGE);
@@ -174,7 +176,7 @@ public OnConfigsExecuted() {
 }
 
 // Update wave interval if it is changed mid-game
-public Action:OnCvarChange() {
+public OnCvarChange() {
 	SetConVarBounds(FindConVar("z_minion_limit"), ConVarBound_Upper, true, float(GetConVarInt(hCvarMaxSpecials)));
 	SetConVarBounds(FindConVar("z_max_player_zombies"), ConVarBound_Upper, true, float(GetConVarInt(hCvarMaxSpecials)));
 }
@@ -215,9 +217,17 @@ public Action:Cmd_SetLimit(client, args) {
 		
 		// Max specials
 		if (StrEqual(sTargetClass, "max", false)) {
-			SetConVarInt(hCvarMaxSpecials, iLimitValue);		
-			PrintToChatAll("Max specials set to %i", iLimitValue);	
-			return Plugin_Changed;			
+			// Allow values below or equal to defined hard limit
+			if (iLimitValue > WAVE_SIZE_HARDLIMIT) {
+				new String:sMsgNotifyLimit[256];
+				Format(sMsgNotifyLimit, sizeof(sMsgNotifyLimit), "Cannot set a value higher than 'max' hardlimit: %i", WAVE_SIZE_HARDLIMIT);
+				PrintToCmdUser(client, sMsgNotifyLimit);
+				return Plugin_Handled;
+			} else {
+				SetConVarInt(hCvarMaxSpecials, iLimitValue);		
+				PrintToChatAll("Max specials set to %i", iLimitValue);	
+				return Plugin_Changed;		
+			}				
 		} 
 		// Smoker limit
 		else if (StrEqual(sTargetClass, "smoker", false)) {
@@ -266,7 +276,9 @@ public Action:Cmd_SetLimit(client, args) {
 	
 	// Invalid command syntax
 	else {
-		PrintToCmdUser(client, "Usage: limit <class> <limit>");
+		PrintToCmdUser(client, "Usage: !limit/sm_limit <class> <limit>");
+		PrintToCmdUser(client, "<class> = max | smoker | boomer | hunter | spitter | jockey | charger");
+		PrintToCmdUser(client, "<limit> >= 0");
 		return Plugin_Handled;	
 	}
 }
@@ -366,6 +378,7 @@ public OnRoundOver() {
 	g_bIsRoundActive = false;
 	g_bHasPassedBaitThreshold = false;
 	g_bIsSpawnerActive = false;
+	g_fTankRushThreshold = 0.0;
 }
 
 /***********************************************************************************************************************************************************************************
@@ -381,11 +394,17 @@ public OnGameFrame() {
 		// If survivors have progressed at least past a certain distance from saferoom
 		if (g_bHasPassedBaitThreshold) {
 			// If survivors are not currently between waves or in a tank fight
-			if (g_bIsSpawnerActive && !IsTankInPlay()) {
-				// Spawn wave and create timer counting down to next wave
-				SpawnWave();
-				g_bIsSpawnerActive = false;
-				CreateTimer(GetConVarFloat(hCvarWaveInterval), Timer_ActivateSpawner, _, TIMER_FLAG_NO_MAPCHANGE); 
+			if (IsTankInPlay()) {
+				if (GetFarthestSurvivorFlow() > g_fTankRushThreshold) {
+					// SpawnWave(); // Every game frame though?
+				}
+			} else {
+				if (g_bIsSpawnerActive) {
+					// Spawn wave and create timer counting down to next wave
+					SpawnWave();
+					g_bIsSpawnerActive = false;
+					CreateTimer(GetConVarFloat(hCvarWaveInterval), Timer_ActivateSpawner, _, TIMER_FLAG_NO_MAPCHANGE); 
+				}
 			}
 		} else {  // Check if survivors have passed the flow threshold for spawning
 			new Float:currentFlow = GetAverageSurvivorFlow();
@@ -405,11 +424,11 @@ SpawnWave() {
 		PrintToChatAll("\x04Spawning Wave \x01(%i SI carryover)", infectedBotCount);
 	#endif
 	
-	SpawnClassPopulation(ZC_HUNTER);
 	SpawnClassPopulation(ZC_JOCKEY);
-	SpawnClassPopulation(ZC_SMOKER);
 	SpawnClassPopulation(ZC_CHARGER);
 	SpawnClassPopulation(ZC_SPITTER);
+	SpawnClassPopulation(ZC_SMOKER);
+	SpawnClassPopulation(ZC_HUNTER);
 	SpawnClassPopulation(ZC_BOOMER);
 }
 
@@ -435,32 +454,17 @@ AttemptSpawn(ZombieClass:zombieClassNum) {
 	
 	if (iSpawnedSpecialsCount >= SI_HARDLIMIT) {
 		new String:sBotName[32];
-		Format(sBotName, sizeof(sBotName), "(dummy) %s", TEAM_CLASS(zombieClassNum));
+		Format(sBotName, sizeof(sBotName), "Dummy %s", TEAM_CLASS(zombieClassNum));
 		new bot = CreateFakeClient(sBotName); 
 		if (bot != 0) {
 			ChangeClientTeam(bot, _:L4D2Team_Infected);
-			CreateTimer(KICKDELAY, KickBot, bot, TIMER_FLAG_NO_MAPCHANGE);
+			CreateTimer(KICKDELAY, Timer_KickBot, bot, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
-	// Spawn with z_spawn_old using 'auto' parameter to let the Director find a spawn position
-	new client = GetAnyClientInGame();
-	if (client != -1) {
-		new String:zombieClassName[7];
-		zombieClassName = TEAM_CLASS(zombieClassNum);
-		CheatCommand(client, "z_spawn_old", zombieClassName, "auto");
-	}
-}
-
-// Allow spawning
-public Action:Timer_ActivateSpawner(Handle:timer) {
-	g_bIsSpawnerActive = true;
-}
-
-// Kick dummy bot 
-public Action:KickBot(Handle:timer, any:client) {
-	if (IsClientInGame(client) && (!IsClientInKickQueue(client))) {
-		if (IsFakeClient(client))KickClient(client);
-	}
+	// Spawn with z_spawn_old using 'auto' parameter to let the Director find a spawn position	
+	new String:zombieClassName[7];
+	zombieClassName = TEAM_CLASS(zombieClassNum);
+	CheatCommand("z_spawn_old", zombieClassName, "auto");
 }
 
 /***********************************************************************************************************************************************************************************
@@ -471,6 +475,7 @@ public Action:KickBot(Handle:timer, any:client) {
 
 public OnTankSpawn(tank) {
 	SDKHook(tank, SDKHook_OnTakeDamage, OnTakeDamage);
+	g_fTankRushThreshold = GetFarthestSurvivorFlow() + TANK_RUSH_FLOW_TOLERANCE;
 }
 
 public OnTankDeath(tank) {
@@ -505,6 +510,37 @@ public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damage
 																	
 ***********************************************************************************************************************************************************************************/
 
+// Allow spawning
+public Action:Timer_ActivateSpawner(Handle:timer) {
+	g_bIsSpawnerActive = true;
+}
+
+// Kick dummy bot 
+public Action:Timer_KickBot(Handle:timer, any:client) {
+	if (IsClientInGame(client) && (!IsClientInKickQueue(client))) {
+		if (IsFakeClient(client))KickClient(client);
+	}
+}
+
+Float:GetFarthestSurvivorFlow() {
+	new Float:farthestFlow = 0.0;
+	decl Float:origin[3];
+	decl Address:pNavArea;
+	for (new client = 1; client <= MaxClients; client++) {
+		if (IsClientInGame(client) && L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor) {
+			GetClientAbsOrigin(client, origin);
+			pNavArea = L4D2Direct_GetTerrorNavArea(origin);
+			if (pNavArea != Address_Null) {
+				new Float:flow = L4D2Direct_GetTerrorNavAreaFlow(pNavArea);
+				if (flow > farthestFlow) {
+					farthestFlow = flow;
+				}
+			}
+		}
+	}
+	return farthestFlow;
+}
+
 // @return: average flow distance covered by survivors
 Float:GetAverageSurvivorFlow() {
 	new survivorCount = 0;
@@ -525,47 +561,56 @@ Float:GetAverageSurvivorFlow() {
 }
 
 // Sets the spawn direction for SI, relative to the survivors
-
+// Yet to test whether map specific scripts override this option, and if so, how to rewrite this script line
 SetSpawnDirection(SpawnDirection:direction) {
-	new client = GetAnyClientInGame();
-	ScriptCommand(client, "g_ModeScript.DirectorOptions.PreferredSpecialDirection<-%i", _:direction);	
+	ScriptCommand("g_ModeScript.DirectorOptions.PreferredSpecialDirection<-%i", _:direction);	
 }
 
 // Executes vscript code through the "script" console command
-ScriptCommand(client, const String:arguments[], any:...) {
+ScriptCommand(const String:arguments[], any:...) {
 	// format vscript input
 	new String:vscript[PLATFORM_MAX_PATH];
-	VFormat(vscript, sizeof(vscript), arguments, 3);
+	VFormat(vscript, sizeof(vscript), arguments, 2);
 	
 	// Execute vscript input
-	CheatCommand(client, "script", vscript, "");
+	CheatCommand("script", vscript, "");
 }
 
 // Executes, without setting sv_cheats to 1, a console command marked as a cheat
-CheatCommand(client, String:command[], String:argument1[], String:argument2[]) {
-	// Get user bits and command flags
-	new userFlagsOriginal = GetUserFlagBits(client);
-	new flagsOriginal = GetCommandFlags(command);
-	
-	// Set as Cheat
-	SetUserFlagBits(client, ADMFLAG_ROOT);
-	SetCommandFlags(command, flagsOriginal ^ FCVAR_CHEAT);
-	
-	// Execute command
-	FakeClientCommand(client, "%s %s %s", command, argument1, argument2); 
-	
-	// Reset user bits and command flags
-	SetCommandFlags(command, flagsOriginal);
-	SetUserFlagBits(client, userFlagsOriginal);
+CheatCommand(String:command[], String:argument1[], String:argument2[]) {
+	//new client = GetAnyClientInGame();
+	new client = CreateFakeClient("[SIWS] Command Dummy");
+	if (client > 0) {
+		ChangeClientTeam(client, _:L4D2Team_Infected);
+		// Get user bits and command flags
+		new userFlagsOriginal = GetUserFlagBits(client);
+		new flagsOriginal = GetCommandFlags(command);
+		
+		// Set as Cheat
+		SetUserFlagBits(client, ADMFLAG_ROOT);
+		SetCommandFlags(command, flagsOriginal ^ FCVAR_CHEAT);
+		
+		// Execute command
+		FakeClientCommand(client, "%s %s %s", command, argument1, argument2); 
+		CreateTimer(KICKDELAY, Timer_KickBot, client, TIMER_FLAG_NO_MAPCHANGE);
+		
+		// Reset user bits and command flags
+		SetCommandFlags(command, flagsOriginal);
+		SetUserFlagBits(client, userFlagsOriginal);
+	} else {
+		LogError("Could not create a dummy client to execute cheat command");
+	}	
 }
 
-// @return: entity index of any ingame client, -1 if none could be found
+// Creating a fake client to run the fake command works (kicking newly created client after command execution)
+/* @return: entity index of any ingame client, -1 if none could be found
 GetAnyClientInGame() {
 	for (new target = 1; target <= MaxClients; target++) {
 		if (IsClientInGame(target))return target;
 	}
 	return -1; // no valid client found
 }
+*/
 
 //@return: true if neither the target SI class population limit nor the number of spawned specials  have reached their limit
 bool:IsClassLimitReached(ZombieClass:targetClass) {

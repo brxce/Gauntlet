@@ -37,10 +37,10 @@ public Action:Cmd_Join(client, args) {
 	// Check if they are using the command from spectator
 	if (GetClientTeam(client) == TEAM_SPECTATORS) {
 		if (IsSurvivorBotAvailable()) { // Check if survivor team is full
-			PrintToChat(client, "Survivor team is full");
-		} else {
 			// Take control of a survivor
 			CheatCommand(client, "sb_takecontrol");
+		} else {
+			PrintToChat(client, "Survivor team is full");
 		}
 	} 
 	return Plugin_Handled;
@@ -143,9 +143,9 @@ public bool:IsSurvivorBotAvailable() {
 	new maxSurvivors =  GetConVarInt(FindConVar("survivor_limit"));
 	// Determine whether the team is full
 	if (playerSurvivorCount < maxSurvivors) {
-		return false;
+		return true;
 	} else {
-		return true; // all survivors are controlled by players
+		return false; // all survivors are controlled by players
 	}
 }
 

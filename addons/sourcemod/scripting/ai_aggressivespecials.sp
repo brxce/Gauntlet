@@ -1,6 +1,7 @@
 #pragma semicolon 1
 
 #define DEBUG
+#define KICKDELAY 0.1
 #define INFECTED_TEAM 3
 #define ASSAULT_DELAY 0.3 // using 0.3 to be safe (command does not register in the first 0.2 seconds after spawn)1
 
@@ -62,7 +63,7 @@ public Action:Timer_PostSpawnAssault(Handle:timer) {
 
 ***********************************************************************************************************************************************************************************/
 
-// Stop smokers running away
+// Stop smokers and spitters running away
 public Action:OnAbilityUse(Handle:event, const String:name[], bool:dontBroadcast) {
 	new String:abilityName[MAX_NAME_LENGTH];
 	GetEventString(event, "ability", abilityName, sizeof(abilityName));
@@ -82,20 +83,21 @@ CheatCommand(const String:command[], const String:parameter1[] = "", const Strin
 	new flags = GetCommandFlags(command);	
 	// Check this is a valid command
 	if (flags != INVALID_FCVAR_FLAGS) {
-		new commandClient = GetAnyValidClient();
-		if (commandClient != -1) {
-			new userFlagBits = GetUserFlagBits(commandClient);
+		new commandDummy = CreateFakeClient("[AI_AS] Command Dummy");
+		if (commandDummy > 0) {
+			new userFlagBits = GetUserFlagBits(commandDummy);
 		
 			// Unset cheat flag & allow admin access
 			SetCommandFlags(command, flags ^ FCVAR_CHEAT);
-			SetUserFlagBits(commandClient, ADMFLAG_ROOT);
+			SetUserFlagBits(commandDummy, ADMFLAG_ROOT);
 			
 			//Execute command
-			FakeClientCommand(commandClient, "%s %s %s", command, parameter1, parameter2);
+			FakeClientCommand(commandDummy, "%s %s %s", command, parameter1, parameter2);
+			CreateTimer(KICKDELAY, Timer_KickBot, any:commandDummy, TIMER_FLAG_NO_MAPCHANGE);
 			
 			// Reset cheat flag and user flags
 			SetCommandFlags(command, flags | FCVAR_CHEAT);
-			SetUserFlagBits(commandClient, userFlagBits);
+			SetUserFlagBits(commandDummy, userFlagBits);
 		}		
 	}
 }
@@ -104,14 +106,14 @@ bool:IsBotInfected(client) {
 	return (IsValidClient(client) && GetClientTeam(client) == INFECTED_TEAM && IsFakeClient(client) && IsPlayerAlive(client));
 }
 
-GetAnyValidClient() {
-	for (new target = 1; target <= MaxClients; target++) {
-		if (IsClientInGame(target)) return target;
-	}
-	return -1;
-}
-
 bool:IsValidClient(client) {
     if ( !( 1 <= client <= MaxClients ) || !IsClientInGame(client) ) return false;      
     return true; 
+}
+
+// Kick dummy bot 
+public Action:Timer_KickBot(Handle:timer, any:client) {
+	if (IsClientInGame(client) && (!IsClientInKickQueue(client))) {
+		if (IsFakeClient(client))KickClient(client);
+	}
 }

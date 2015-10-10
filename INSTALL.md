@@ -24,7 +24,7 @@
  * pillsonly.smx
  * mapskipper.smx
  * coopbosses.smx
- * special_infected_wave_spawner
+ * special_infected_wave_spawner.smx
 
 >>####Misc.
 >>
@@ -32,13 +32,12 @@
  * survivormanagement.smx
  * l4d2_playstats_fixed.smx  
  * l4d_tank_damage_announce_fixed.smx  
- * sb_godmode.smx
  
 >>####Folders
 >>
  * missions folder (for mapskipper.smx)- N.B. for custom campaigns, missions file must be extracted from respective .vpks 
- * cfg &modes folders 
- * 'scripts' folder is vestigial
+ * cfg folders
+ * 'modes' and 'scripts' folders are vestigial; not needed for download
 
 >>###*Otherwise*  
  * Copy all folders into your server directory    

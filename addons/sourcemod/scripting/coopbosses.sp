@@ -1,6 +1,7 @@
 #pragma semicolon 1
 
 #define DEBUG 1
+#define KICKDELAY 0.1
 #define INFECTED_TEAM 3
 #define ZC_TANK 8
 
@@ -43,6 +44,7 @@ public OnPluginStart() {
 	HookEvent("tank_spawn", LimitTankSpawns, EventHookMode_Pre);
 	HookEvent("mission_lost", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
+	HookEvent("finale_win", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("finale_start", EventHook:OnFinaleStart, EventHookMode_PostNoCopy);
 	
 	// Console Variables
@@ -102,18 +104,23 @@ public OnGameFrame() {
 		if (iMaxSurvivorCompletion > g_iTankPercent) {
 			// If they have not already fought the tank
 			if (!g_bHasEncounteredTank && !g_bIsFinale) {			
-				// spawn a tank with z_spawn_old (uses director to find a suitable location ahead of survivors)				
-				new flags = GetCommandFlags("z_spawn_old");
-				SetCommandFlags("z_spawn_old", flags ^ FCVAR_CHEAT);
-				FakeClientCommand(1, "z_spawn_old tank auto");
-				#if DEBUG
-					PrintToChatAll("[CB] Spawning intended percent tank..."); 
-				#endif
-				SetCommandFlags("z_spawn_old", flags);
-				g_bHasEncounteredTank = true;
+				SpawnTank();
 			} 
 		}
 	} 
+}
+
+SpawnTank() {	
+	// spawn a tank with z_spawn_old (cmd uses director to find a suitable location)			
+		#if DEBUG
+			PrintToChatAll("[CB] Spawning intended percent tank..."); 
+		#endif
+		
+	while (!IsTankInPlay()) {
+		CheatCommand("z_spawn_old", "tank", "auto");
+	}
+	
+	g_bHasEncounteredTank = true;
 }
 
 // Slay extra tanks
@@ -178,6 +185,33 @@ stock GetMaxSurvivorCompletion() {
 	return RoundToNearest(flow * 100 / L4D2Direct_GetMapMaxFlowDistance());
 }
 
+// Executes, without setting sv_cheats to 1, a console command marked as a cheat
+CheatCommand(String:command[], String:argument1[], String:argument2[]) {
+	//new client = GetAnyClientInGame();
+	new client = CreateFakeClient("[CB] Command Dummy");
+	if (client > 0) {
+		ChangeClientTeam(client, INFECTED_TEAM);
+		
+		// Get user bits and command flags
+		new userFlagsOriginal = GetUserFlagBits(client);
+		new flagsOriginal = GetCommandFlags(command);
+		
+		// Set as Cheat
+		SetUserFlagBits(client, ADMFLAG_ROOT);
+		SetCommandFlags(command, flagsOriginal ^ FCVAR_CHEAT);
+		
+		// Execute command
+		FakeClientCommand(client, "%s %s %s", command, argument1, argument2); 
+		CreateTimer(KICKDELAY, Timer_KickBot, client, TIMER_FLAG_NO_MAPCHANGE);
+		
+		// Reset user bits and command flags
+		SetCommandFlags(command, flagsOriginal);
+		SetUserFlagBits(client, userFlagsOriginal);
+	} else {
+		LogError("Could not create a dummy client to execute cheat command");
+	}	
+}
+
 bool:IsBotTank(client) {
 	// Check the input is valid
 	if (!IsValidClient(client)) return false;
@@ -198,3 +232,9 @@ bool:IsValidClient(client) {
     return true; 
 }
 
+// Kick dummy bot 
+public Action:Timer_KickBot(Handle:timer, any:client) {
+	if (IsClientInGame(client) && (!IsClientInKickQueue(client))) {
+		if (IsFakeClient(client))KickClient(client);
+	}
+}

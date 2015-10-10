@@ -1,5 +1,5 @@
 # KNOWN ISSUES
-
+ * weapon(s) not spawning in saferoom
 >##Bugs     
 There are a few difficult to replicate, unsolved bugs to which workarounds have been applied 
  * sometimes SI do not deal damage: 
