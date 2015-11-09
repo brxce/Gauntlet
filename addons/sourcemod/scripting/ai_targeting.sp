@@ -15,12 +15,14 @@
 #include <sdktools>
 #include <adt_array>
 #include <left4downtown>
+#define L4D2UTIL_STOCKS_ONLY
+#include <l4d2util>
 
 // Bibliography: "[L4D2] Defib using bots" by "DeathChaos25"
 
 public Plugin:myinfo = 
 {
-	name = "AI targeting",
+	name = "AI: Targeting",
 	author = PLUGIN_AUTHOR,
 	description = "Controls the survivor targeting behaviour of special infected",
 	version = PLUGIN_VERSION,
@@ -73,7 +75,7 @@ public Action:OnPlayerImmobilised(Handle:event, String:name[], bool:dontBroadcas
 RefreshTargets() {
 	// Refresh survivor array
 	ClearArray(arraySurvivors);
-	for (new i = 0; i < MaxClients; i++) {
+	for (new i = 1; i < MaxClients; i++) {
 		if (IsSurvivor(i)) {
 			PushArrayCell(arraySurvivors, i);
 		}
@@ -153,7 +155,7 @@ AttackTarget(client) {
 	new botID = GetClientUserId(client);
 	// Prefer health bonus survivors
 	new target = targetSurvivor[client];
-	if (IsSurvivor(target)) {
+	if (IsValidClient(target) && IsSurvivor(target)) {
 		// if not already pinned
 		if (IsMobile(target)) {
 			new targetID = GetClientUserId(target);		
@@ -180,27 +182,26 @@ ScriptCommand(const String:arguments[], any:...) {
 	CheatCommand("script", vscript);
 }
 
-CheatCommand(const String:command[], const String:parameter1[] = "", const String:parameter2[] = "") {	
-	new flags = GetCommandFlags(command);	
-	// Check this is a valid command
-	if (flags != INVALID_FCVAR_FLAGS) {
-		new commandDummy = CreateFakeClient("[AI_T] Command Dummy");
-		if (commandDummy > 0) {			
-			ChangeClientTeam(commandDummy, INFECTED_TEAM);
-			new userFlagBits = GetUserFlagBits(commandDummy);
-		
-			// Unset cheat flag & allow admin access
-			SetCommandFlags(command, flags ^ FCVAR_CHEAT);
-			SetUserFlagBits(commandDummy, ADMFLAG_ROOT);
-			
-			//Execute command
-			FakeClientCommand(commandDummy, "%s %s %s", command, parameter1, parameter2);
-			CreateTimer(KICKDELAY, Timer_KickBot, any:commandDummy, TIMER_FLAG_NO_MAPCHANGE);
-			
-			// Reset cheat flag and user flags
-			SetCommandFlags(command, flags | FCVAR_CHEAT);
-			SetUserFlagBits(commandDummy, userFlagBits);
-		}		
+// Executes through a dummy client, without setting sv_cheats to 1, a console command marked as a cheat
+CheatCommand(String:command[], String:argument1[] = "", String:argument2[] = "") {
+	static commandDummy;
+	new flags = GetCommandFlags(command);		
+	if ( flags != INVALID_FCVAR_FLAGS ) {
+		if ( !IsValidClient(commandDummy) || IsClientInKickQueue(commandDummy) ) { // Dummy may get kicked by SMAC_Antispam.smx
+			commandDummy = CreateFakeClient("[AI_T] Command Dummy");
+			ChangeClientTeam(commandDummy, _:L4D2Team_Spectator);
+		}
+		if ( IsValidClient(commandDummy) ) {
+			new originalUserFlags = GetUserFlagBits(commandDummy);
+			new originalCommandFlags = GetCommandFlags(command);			
+			SetUserFlagBits(commandDummy, ADMFLAG_ROOT); 
+			SetCommandFlags(command, originalCommandFlags ^ FCVAR_CHEAT);				
+			FakeClientCommand(commandDummy, "%s %s %s", command, argument1, argument2);
+			SetCommandFlags(command, originalCommandFlags);
+			SetUserFlagBits(commandDummy, originalUserFlags);
+		} else {
+			LogError("Could not create a dummy client to execute cheat command");
+		}	
 	}
 }
 
@@ -208,7 +209,7 @@ CheatCommand(const String:command[], const String:parameter1[] = "", const Strin
 bool:IsMobile(client) {
 	new bool:bIsMobile = true;
 	if (IsSurvivor(client)) {
-		if (IsPinned(client) || IsIncapacitated(client)) {
+		if (IsPinned(client) || IsIncap(client)) {
 			bIsMobile = false;
 		}
 	} 
@@ -229,17 +230,13 @@ bool:IsPinned(client) {
 }
 
 // @return: true if player is a dead/incapacitated survivor
-bool:IsIncapacitated(client) {
+bool:IsIncap(client) {
 	new bool:bIsIncapped = false;
 	if ( IsSurvivor(client) ) {
 		if (GetEntProp(client, Prop_Send, "m_isIncapacitated") > 0) bIsIncapped = true;
 		if (!IsPlayerAlive(client)) bIsIncapped = true;
 	}
 	return bIsIncapped;
-}
-
-bool:IsSurvivor(client) {
-	return (IsValidClient(client) && GetClientTeam(client) == 2);
 }
 
 bool:IsBotCapper(client) {

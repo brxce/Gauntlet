@@ -38,7 +38,7 @@ public OnPluginStart() {
 	
 	// range at which hunter prepares pounce
 	hCvarHunterPounceReadyRange = FindConVar("hunter_pounce_ready_range");
-	SetCheatConVarInt(hCvarHunterPounceReadyRange, 1000);
+	SetCheatConVarInt(hCvarHunterPounceReadyRange, 500);
 	
 	// range at which shooting a non-committed hunter will cause it to leap away
 	hCvarHunterLeapAwayGiveUpRange = FindConVar("hunter_leap_away_give_up_range");
@@ -259,3 +259,13 @@ bool:IsValidClient(client) {
 bool:IsSurvivor(client) {
 	return (IsValidClient(client) && GetClientTeam(client) == 2);
 }
+
+/*
+	Angle
+	= 0.5 * Exp[ - (x - MEAN) ^ 2 / (2 * DEVIATION ^ 2) ] 
+	+ 0.5 * Exp[ - (x + MEAN) ^ 2 / (2 * DEVIATION ^ 2) ]) / sqrt[ 2 * pi ] *15
+	
+	Suggested 
+	- MEAN = 30
+	- DEVIATION = 15
+*/

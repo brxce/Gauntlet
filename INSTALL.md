@@ -1,10 +1,8 @@
 # Installation  
->##Standalone vscript add-on: Vanilla Cookie (Vanilla L4D2 based)  
- * download vanillacookie.vpk into your add-ons folder 
 
 >##Confogl based configs: Baker's Dozen, Half Baked   
 **_Remember to add entries for these configs in your matchmodes.txt!_**
->>###*If ProMod 4.0 or above is already installed on the server, only the following are required:    
+>>###*If ProMod 4.0 or above is already installed on the server, download the 'hardcoop' folder:    
  * l4d2_scout_precache.smx (if EQ 2.0 is not installed on server)   
 
 >>####AI improvements  

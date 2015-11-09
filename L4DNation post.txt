@@ -1,0 +1,12 @@
+A while back when L4D2 world champions NV made MikanPenguin's Hard12 config infamous, I was one of the disappointed to find the coop gamemode was not public and region locked to parts of Asia. 
+
+The past few months however, I have been developing my own version, learning Sourcepawn along the way. I have written plugins to simulate a confogl versus game in coop. I have also written some plugins to improve the AI special infected's movement patterns, making them harder to kill without resorting to any wacky DLR style modifications.
+Now that I feel I have done almost as much as I can for the config, I am sharing it here for others to enjoy and in the hope that others may decide to contribute to improving the config. I am looking forward to suggestions for improvement. I would like to acknowledge the Confogl team for all of their plugins I have included in their package. Thanks to High Cookie, Manu and KFC (you know who you are) for their contributions to creating/testing my new plugins. Thanks to PenPen for providing inspiration in his HardAlways configs. Also, I kindly request that you let me know if you are intending to use any of my plugins in your own configs.
+You can find installation instructions and detailed information on the config here: github.com/breezyplease/hard12
+
+This project has shifted from being a simple modification of the Hard 8 mutation into a separate config that relies totally on plugins, without needing any vscripts. I have left the old vscripts in the github but they are not needed. The config is ProMod based, without tank slowdown.
+
+- promod based + scout + static scoremod
+- fully configurable
+- hard limit on max specials configuration
+- tank support percent

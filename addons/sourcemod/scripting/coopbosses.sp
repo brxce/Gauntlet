@@ -1,7 +1,6 @@
 #pragma semicolon 1
 
-#define DEBUG 1
-#define KICKDELAY 0.1
+#define DEBUG 0
 #define INFECTED_TEAM 3
 #define ZC_TANK 8
 
@@ -41,7 +40,7 @@ public OnPluginStart() {
 	RegConsoleCmd("sm_witch", Cmd_BossPercent, "Spawn percent for boss");
 	
 	// Event hooks
-	HookEvent("tank_spawn", LimitTankSpawns, EventHookMode_Pre);
+	//HookEvent("tank_spawn", LimitTankSpawns, EventHookMode_Pre);
 	HookEvent("mission_lost", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("finale_win", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
@@ -182,37 +181,41 @@ stock GetMaxSurvivorCompletion() {
 			}
 		}
 	}
+	#if DEBUG
+		static max = 0;
+		new current = RoundToNearest(flow * 100 / L4D2Direct_GetMapMaxFlowDistance());
+		if (max != current) {
+			max = current;
+			PrintToChatAll("%d%%", max);
+		} 	
+	#endif
 	return RoundToNearest(flow * 100 / L4D2Direct_GetMapMaxFlowDistance());
 }
 
-// Executes, without setting sv_cheats to 1, a console command marked as a cheat
-CheatCommand(String:command[], String:argument1[], String:argument2[]) {
-	//new client = GetAnyClientInGame();
-	new client = CreateFakeClient("[CB] Command Dummy");
-	if (client > 0) {
-		ChangeClientTeam(client, INFECTED_TEAM);
-		
-		// Get user bits and command flags
-		new userFlagsOriginal = GetUserFlagBits(client);
-		new flagsOriginal = GetCommandFlags(command);
-		
-		// Set as Cheat
-		SetUserFlagBits(client, ADMFLAG_ROOT);
-		SetCommandFlags(command, flagsOriginal ^ FCVAR_CHEAT);
-		
-		// Execute command
-		FakeClientCommand(client, "%s %s %s", command, argument1, argument2); 
-		CreateTimer(KICKDELAY, Timer_KickBot, client, TIMER_FLAG_NO_MAPCHANGE);
-		
-		// Reset user bits and command flags
-		SetCommandFlags(command, flagsOriginal);
-		SetUserFlagBits(client, userFlagsOriginal);
-	} else {
-		LogError("Could not create a dummy client to execute cheat command");
-	}	
+// Executes through a dummy client, without setting sv_cheats to 1, a console command marked as a cheat
+CheatCommand(String:command[], String:argument1[] = "", String:argument2[] = "") {
+	static commandDummy;
+	new flags = GetCommandFlags(command);		
+	if ( flags != INVALID_FCVAR_FLAGS ) {
+		if ( !IsValidClient(commandDummy) || IsClientInKickQueue(commandDummy) ) { // Dummy may get kicked by SMAC_Antispam.smx
+			commandDummy = CreateFakeClient("[CB] Command Dummy");
+			ChangeClientTeam(commandDummy, _:L4D2Team_Spectator);
+		}
+		if ( IsValidClient(commandDummy) ) {
+			new originalUserFlags = GetUserFlagBits(commandDummy);
+			new originalCommandFlags = GetCommandFlags(command);			
+			SetUserFlagBits(commandDummy, ADMFLAG_ROOT); 
+			SetCommandFlags(command, originalCommandFlags ^ FCVAR_CHEAT);				
+			FakeClientCommand(commandDummy, "%s %s %s", command, argument1, argument2);
+			SetCommandFlags(command, originalCommandFlags);
+			SetUserFlagBits(commandDummy, originalUserFlags);
+		} else {
+			LogError("Could not create a dummy client to execute cheat command");
+		}	
+	}
 }
 
-bool:IsBotTank(client) {
+stock bool:IsBotTank(client) {
 	// Check the input is valid
 	if (!IsValidClient(client)) return false;
 	// Check if player is on the infected team, a hunter, and a bot

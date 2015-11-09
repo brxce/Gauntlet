@@ -10,15 +10,18 @@
 
 #include <sourcemod>
 #include <sdktools>
+#define L4D2UTIL_STOCKS_ONLY
+#include <l4d2util>
 
 public Plugin:myinfo = 
 {
-	name = "AI Aggressive Specials",
+	name = "AI: Aggressive Specials",
 	author = PLUGIN_AUTHOR,
 	description = "Force SI to be aggressive",
 	version = PLUGIN_VERSION,
 	url = ""
 };
+
 
 new Handle:hCvarBoomerExposedTimeTolerance;
 new Handle:hCvarBoomerVomitDelay;
@@ -79,26 +82,26 @@ public Action:OnAbilityUse(Handle:event, const String:name[], bool:dontBroadcast
 
 ***********************************************************************************************************************************************************************************/
 
-CheatCommand(const String:command[], const String:parameter1[] = "", const String:parameter2[] = "") {	
-	new flags = GetCommandFlags(command);	
-	// Check this is a valid command
-	if (flags != INVALID_FCVAR_FLAGS) {
-		new commandDummy = CreateFakeClient("[AI_AS] Command Dummy");
-		if (commandDummy > 0) {
-			new userFlagBits = GetUserFlagBits(commandDummy);
-		
-			// Unset cheat flag & allow admin access
-			SetCommandFlags(command, flags ^ FCVAR_CHEAT);
-			SetUserFlagBits(commandDummy, ADMFLAG_ROOT);
-			
-			//Execute command
-			FakeClientCommand(commandDummy, "%s %s %s", command, parameter1, parameter2);
-			CreateTimer(KICKDELAY, Timer_KickBot, any:commandDummy, TIMER_FLAG_NO_MAPCHANGE);
-			
-			// Reset cheat flag and user flags
-			SetCommandFlags(command, flags | FCVAR_CHEAT);
-			SetUserFlagBits(commandDummy, userFlagBits);
-		}		
+// Executes through a dummy client, without setting sv_cheats to 1, a console command marked as a cheat
+CheatCommand(String:command[], String:argument1[] = "", String:argument2[] = "") {
+	static commandDummy;
+	new flags = GetCommandFlags(command);		
+	if ( flags != INVALID_FCVAR_FLAGS ) {
+		if ( !IsValidClient(commandDummy) || IsClientInKickQueue(commandDummy) ) { // Dummy may get kicked by SMAC_Antispam.smx
+			commandDummy = CreateFakeClient("[AI_AS] Command Dummy");
+			ChangeClientTeam(commandDummy, _:L4D2Team_Spectator);
+		}
+		if ( IsValidClient(commandDummy) ) {
+			new originalUserFlags = GetUserFlagBits(commandDummy);
+			new originalCommandFlags = GetCommandFlags(command);			
+			SetUserFlagBits(commandDummy, ADMFLAG_ROOT); 
+			SetCommandFlags(command, originalCommandFlags ^ FCVAR_CHEAT);				
+			FakeClientCommand(commandDummy, "%s %s %s", command, argument1, argument2);
+			SetCommandFlags(command, originalCommandFlags);
+			SetUserFlagBits(commandDummy, originalUserFlags);
+		} else {
+			LogError("Could not create a dummy client to execute cheat command");
+		}	
 	}
 }
 
