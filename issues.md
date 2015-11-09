@@ -1,7 +1,7 @@
 # KNOWN ISSUES
  * weapon(s) not spawning in saferoom  
- * on rare occassions, restarting map dead after a wipe
- 
+  * on rare occassions, restarting map dead after a wipe
+  
 >##Major Bugs
 
 There are a few difficult to replicate, unsolved bugs to which workarounds have been applied 
@@ -11,6 +11,5 @@ There are a few difficult to replicate, unsolved bugs to which workarounds have 
    * **!respawn** to be readded as a survivor to the team
  * respawning out of saferoom
    * **!return** to be teleported to the starting safe area (does not working after any survivor has left saferoom)
-
 
 
