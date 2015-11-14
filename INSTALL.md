@@ -1,6 +1,6 @@
 # Installation  
 
->##Confogl based configs: Baker's Dozen, Half Baked   
+>##Confogl based configs: Gauntlet, Gauntlette, In The Hood   
 **_Remember to add entries for these configs in your matchmodes.txt!_**
 >>###*If ProMod 4.0 or above is already installed on the server, download the 'hardcoop' folder:    
  * l4d2_scout_precache.smx (if EQ 2.0 is not installed on server)   
