@@ -2,7 +2,7 @@
 
 >##Confogl based configs: Gauntlet, Gauntlette, In The Hood   
 **_Remember to add entries for these configs in your matchmodes.txt!_**
->>###*If ProMod 4.0 or above is already installed on the server, download the 'hardcoop' folder:    
+>>###*If ProMod 4.0 or above is already installed on the server, download the 'optional/hardcoop' folder:    
  * l4d2_scout_precache.smx (if EQ 2.0 is not installed on server)   
 
 >>####AI improvements  
@@ -33,8 +33,8 @@
  
 >>####Folders
 >>
- * missions folder (for mapskipper.smx)- N.B. for custom campaigns, missions file must be extracted from respective .vpks 
- * cfg folders
+ * 'missions' folder (for mapskipper.smx)- N.B. for custom campaigns, the missions text file must be extracted from respective .vpks 
+ * 'cfg' folder
  * 'modes' and 'scripts' folders are vestigial; not needed for download
 
 >>###*Otherwise*  

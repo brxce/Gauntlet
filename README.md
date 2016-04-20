@@ -1,7 +1,7 @@
 # HARDCORE COOP!
 ####Can you survive to saferoom as SI encroach in endless waves?
 ####Preserve health to earn _bonus points_ at the saferoom!
-####Hunters pounce fast and zig zag like human players, and jockeys bounce around!   
+####Hunters and jockeys have more humanlike movement!   
 >*Please read the* **'Issues'** *file before downloading as this config still has major bugs*   
 >*Installation instructions are found in the* **'Install'** *file*   
   
