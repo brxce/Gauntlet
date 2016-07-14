@@ -4,6 +4,7 @@
 **_Remember to add entries for these configs in your matchmodes.txt!_**
 >>###*If ProMod 4.0 or above is already installed on the server, download the 'optional/hardcoop' folder:    
  * l4d2_scout_precache.smx (if EQ 2.0 is not installed on server)   
+ * l4d2_smg_reload_tweak.smx (if Acemod is not installed on server)
 
 >>####AI improvements  
 >>

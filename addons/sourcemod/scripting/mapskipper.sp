@@ -3,6 +3,8 @@
 #include <sdktools>
 #include <nextmap> // ForceChangeLevel()
 #include <smlib>
+#include <left4downtown>
+
 #define MISSIONS_PATH "missions"
 #define DELAY_FORCEMAP 6.5
 #define MS_DEBUG 0
@@ -32,15 +34,23 @@ public OnPluginStart() {
 	if (!DirExists(MISSIONS_PATH)) {
 		SetFailState("Missions directory does not exist on this server.  Map Skipper cannot continue operation");
 	}
-	hCvarEnableRetry = CreateConVar("enable_retry", "0", "Enable retry of a map if team wipes");
+	hCvarEnableRetry = CreateConVar("enable_retry", "1", "Enable retry of a map if team wipes");
 	g_bCanRetry = GetConVarBool(hCvarEnableRetry);
 	RegConsoleCmd("sm_toggleretry", Cmd_ToggleRetry);
 	HookEvent("mission_lost", EventHook:OnMissionLost, EventHookMode_PostNoCopy);	
 }
 
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
+   PrintRetryOption();
+}
+
 public Action:Cmd_ToggleRetry(client, args) {
 	g_bCanRetry = !g_bCanRetry;
-	if (g_bCanRetry) {
+	PrintRetryOption();
+}
+
+PrintRetryOption() {
+    if (g_bCanRetry) {
 		Client_PrintToChatAll(true, "Retry is {G}enabled!");
 	} else {
 		Client_PrintToChatAll(true, "Retry is {O}disabled!");

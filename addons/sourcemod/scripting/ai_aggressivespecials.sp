@@ -3,7 +3,7 @@
 #define DEBUG
 #define KICKDELAY 0.1
 #define INFECTED_TEAM 3
-#define ASSAULT_DELAY 0.3 // using 0.3 to be safe (command does not register in the first 0.2 seconds after spawn)1
+#define ASSAULT_DELAY 0.3 // using 0.3 to be safe (command does not register in the first 0.2 seconds after spawn)
 
 #define PLUGIN_AUTHOR "Breezy"
 #define PLUGIN_VERSION "1.0"
@@ -12,6 +12,7 @@
 #include <sdktools>
 #define L4D2UTIL_STOCKS_ONLY
 #include <l4d2util>
+#include <left4downtown>
 
 public Plugin:myinfo = 
 {
@@ -27,14 +28,15 @@ new Handle:hCvarBoomerExposedTimeTolerance;
 new Handle:hCvarBoomerVomitDelay;
 
 public OnPluginStart() {
-	hCvarBoomerExposedTimeTolerance = FindConVar("boomer_exposed_time_tolerance");
-	SetConVarFloat(hCvarBoomerExposedTimeTolerance, 10000.0);
-	
-	hCvarBoomerVomitDelay = FindConVar("boomer_vomit_delay");
-	SetConVarFloat(hCvarBoomerVomitDelay, 0.1);
-	
+	hCvarBoomerExposedTimeTolerance = FindConVar("boomer_exposed_time_tolerance");	
+	hCvarBoomerVomitDelay = FindConVar("boomer_vomit_delay");	
 	HookEvent("player_spawn", OnPlayerSpawn, EventHookMode_Pre);
 	HookEvent("ability_use", OnAbilityUse, EventHookMode_Pre);
+}
+
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
+    SetConVarFloat(hCvarBoomerExposedTimeTolerance, 10000.0);
+    SetConVarFloat(hCvarBoomerVomitDelay, 0.1);
 }
 
 public OnPluginEnd() {
@@ -58,6 +60,7 @@ public Action:OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcas
 
 public Action:Timer_PostSpawnAssault(Handle:timer) {
 	CheatCommand("nb_assault");
+	return Plugin_Stop;
 }
 
 /***********************************************************************************************************************************************************************************

@@ -1,16 +1,22 @@
 #pragma semicolon 1
 
 #include <sourcemod>
+#include <left4downtown>
+
+#define DEBUG 0
 
 #define INFECTED_TEAM 3
 #define ZC_HUNTER 3
-#define MIN_LUNGE_ANGLE 15.0
-#define MAX_LUNGE_ANGLE 35.0
+#define POSITIVE 0
+#define NEGATIVE 1
+#define X 0
+#define Y 1
+#define Z 2
 #define STRAIGHT_POUNCE_PROXIMITY 100
 
 public Plugin:myinfo = {
 	name = "AI: Hunter Pouncing",
-	author = "Breezy, High Cookie, Standalone",
+	author = "Breezy, High Cookie, Standalone, Newteee",
 	description = "Modifies AI hunter lunge patterns",
 	version = "1.0"
 };
@@ -22,7 +28,10 @@ new Handle:hCvarHunterLeapAwayGiveUpRange;
 new Handle:hCvarHunterPounceMaxLoftAngle; 
 new Handle:hCvarLungeInterval; 
 
-new Handle:hCvarFastPounceProximity; // Distance at which hunter begins pouncing fast
+new Handle:hCvarPounceAngleMean;
+new Handle:hCvarPounceAngleStd; // standard deviation
+// Distance at which hunter begins pouncing fast
+new Handle:hCvarFastPounceProximity; 
 new g_iFastPounceProximity;
 
 new bool:bHasQueuedLunge[MAXPLAYERS];
@@ -30,44 +39,38 @@ new bool:bCanLunge[MAXPLAYERS];
 new bool:bHasBeenShoved[MAXPLAYERS];
 
 public OnPluginStart() {
-	// CONSOLE VARIABLES:	
-	
-	// range at which hunter is committed to attack
-	hCvarHunterCommittedAttackRange = FindConVar("hunter_committed_attack_range");
-	SetCheatConVarInt(hCvarHunterCommittedAttackRange, 10000);
-	
-	// range at which hunter prepares pounce
-	hCvarHunterPounceReadyRange = FindConVar("hunter_pounce_ready_range");
-	SetCheatConVarInt(hCvarHunterPounceReadyRange, 500);
-	
-	// range at which shooting a non-committed hunter will cause it to leap away
-	hCvarHunterLeapAwayGiveUpRange = FindConVar("hunter_leap_away_give_up_range");
-	SetCheatConVarInt(hCvarHunterLeapAwayGiveUpRange, 0); 
-	
-	// cooldown on lunges
-	hCvarLungeInterval = FindConVar("z_lunge_interval");
-	
-	// maximum loft angle hunters can pounce
-	hCvarHunterPounceMaxLoftAngle = FindConVar("hunter_pounce_max_loft_angle");
-	SetCheatConVarInt(hCvarHunterPounceMaxLoftAngle, 0);
+	// CONSOLE VARIABLES:		
+	hCvarHunterCommittedAttackRange = FindConVar("hunter_committed_attack_range"); // range at which hunter is committed to attack	
+	hCvarHunterPounceReadyRange = FindConVar("hunter_pounce_ready_range"); // range at which hunter prepares pounce	
+	hCvarHunterLeapAwayGiveUpRange = FindConVar("hunter_leap_away_give_up_range"); // range at which shooting a non-committed hunter will cause it to leap away	
+	hCvarLungeInterval = FindConVar("z_lunge_interval"); // cooldown on lunges
+	hCvarHunterPounceMaxLoftAngle = FindConVar("hunter_pounce_max_loft_angle"); // maximum vertical angle hunters can pounce
 	
 	// proximity to nearest survivor when plugin starts to force hunters to lunge ASAP
 	hCvarFastPounceProximity = CreateConVar("ai_fast_pounce_proximity", "1000", "At what distance to start pouncing fast");
 	HookConVarChange(hCvarFastPounceProximity, OnConVarChange);
 	g_iFastPounceProximity = GetConVarInt(hCvarFastPounceProximity);
 	
+	// Pounce angle
+	hCvarPounceAngleMean = CreateConVar( "ai_pounce_angle_mean", "20", "Mean angle produced by Gaussian RNG" );
+	hCvarPounceAngleStd = CreateConVar( "ai_pounce_angle_std", "30", "One standard deviation from mean as produced by Gaussian RNG" );
+	
 	// EVENT HOOKS:
-	HookEvent("player_spawn", OnPlayerSpawn, EventHookMode_Pre); // Allow fast pouncing on newly spawned hunters
+	HookEvent("player_spawn", InitialiseSpawnedHunters, EventHookMode_Pre); // Allow fast pouncing on newly spawned hunters
 	HookEvent("ability_use", OnAbilityUse, EventHookMode_Pre); // Zig zag pouncing
 }
 
-// Initiating plugin for hunters as they spawn
-public Action:OnPlayerSpawn(Handle:event, String:name[], bool:dontBroadcast) {
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
+	SetAggressiveHunterCvars();
+}
+
+public Action:InitialiseSpawnedHunters(Handle:event, String:name[], bool:dontBroadcast) {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	if (IsBotHunter(client)) {
-		bHasQueuedLunge[client] = false;
-		bCanLunge[client] = true;
-		bHasBeenShoved[client] = false;
+		new botHunter = client;
+		bHasQueuedLunge[botHunter] = false;
+		bCanLunge[botHunter] = true;
+		bHasBeenShoved[botHunter] = false;
 	}
 }
 
@@ -77,6 +80,17 @@ public OnConVarChange(Handle:convar, const String:oldValue[], const String:newVa
 }
 
 public OnPluginEnd() {
+	ResetHunterCvars();
+}
+
+SetAggressiveHunterCvars() {
+	SetCheatConVarInt(hCvarHunterCommittedAttackRange, 10000);
+	SetCheatConVarInt(hCvarHunterPounceReadyRange, 500);
+	SetCheatConVarInt(hCvarHunterLeapAwayGiveUpRange, 0); 
+	SetCheatConVarInt(hCvarHunterPounceMaxLoftAngle, 0);
+}
+
+ResetHunterCvars() {
 	ResetConVar(hCvarHunterCommittedAttackRange);
 	ResetConVar(hCvarHunterPounceReadyRange);
 	ResetConVar(hCvarHunterLeapAwayGiveUpRange);
@@ -89,12 +103,11 @@ public OnPluginEnd() {
 
 ***********************************************************************************************************************************************************************************/
 
+// Detect and alter bot hunter pounces
 public Action:OnAbilityUse(Handle:event, String:name[], bool:dontBroadcast) {
 	new String:abilityName[32];
 	GetEventString(event, "ability", abilityName, sizeof(abilityName));
-	// if a hunter is about to pounce
 	if (StrEqual(abilityName, "ability_lunge")) { 
-		// is it a bot
 		new hunter = GetClientOfUserId(GetEventInt(event, "userid"));
 		if (IsBotHunter(hunter)) {		
 			bHasBeenShoved[hunter] = false;
@@ -107,19 +120,9 @@ public Action:OnAbilityUse(Handle:event, String:name[], bool:dontBroadcast) {
 			GetEntPropVector(entLunge, Prop_Send, "m_queuedLunge", lungeVector);
 			
 			// if survivor is not too close, set a new vector that's angled slightly to the original
-			if (GetSurvivorProximity(hunter) > STRAIGHT_POUNCE_PROXIMITY) {
-				// Generate a random angle within the configured range
-				new Float:randomAngle = GetRandomFloat(MIN_LUNGE_ANGLE, MAX_LUNGE_ANGLE); // angle in degrees
-				
-				// positive or negative direction (angle lunge leftwards/rightwards)
-				new Float:angleSign;
-				if (GetRandomInt(0, 1) == 0) {
-					angleSign = 1.0;
-				} else {
-					angleSign = -1.0;
-				}				
-				AngleLunge(entLunge, FloatMul(randomAngle, angleSign));	
-				
+			if (GetSurvivorProximity(hunter) > STRAIGHT_POUNCE_PROXIMITY) {						
+				AngleLunge( entLunge, GaussianRNG() );
+				LimitLungeVerticality( entLunge, 7.5 );
 				return Plugin_Changed;
 			}			
 		}		
@@ -128,22 +131,98 @@ public Action:OnAbilityUse(Handle:event, String:name[], bool:dontBroadcast) {
 }
 
 // Lunge modification
-AngleLunge(lungeEntity, Float:turnAngle) {
+AngleLunge( lungeEntity, Float:turnAngle ) {	
 	// Get the original lunge's vector
 	new Float:lungeVector[3];
 	GetEntPropVector(lungeEntity, Prop_Send, "m_queuedLunge", lungeVector);
-	new Float:x = lungeVector[0];
-	new Float:y = lungeVector[1];
-	new Float:z = lungeVector[2];
+	new Float:x = lungeVector[X];
+	new Float:y = lungeVector[Y];
+	new Float:z = lungeVector[Z];
     
     // Create a new vector of the desired angle from the original
 	turnAngle = DegToRad(turnAngle); // convert angle to radian form
-	decl Float:forcedLunge[3];
-	forcedLunge[0] = x * Cosine(turnAngle) - y * Sine(turnAngle);
-	forcedLunge[1] = x * Sine(turnAngle)   + y * Cosine(turnAngle);
-	forcedLunge[2] = z;
+	new Float:forcedLunge[3];
+	forcedLunge[X] = x * Cosine(turnAngle) - y * Sine(turnAngle); 
+	forcedLunge[Y] = x * Sine(turnAngle)   + y * Cosine(turnAngle);
+	forcedLunge[Z] = z;
 	
 	SetEntPropVector(lungeEntity, Prop_Send, "m_queuedLunge", forcedLunge);
+}
+
+// Stop pounces being too high
+LimitLungeVerticality( lungeEntity, Float:vertAngle ) {
+	// Get the original lunge's vector
+	new Float:lungeVector[3];
+	GetEntPropVector(lungeEntity, Prop_Send, "m_queuedLunge", lungeVector);
+	new Float:x = lungeVector[X];
+	new Float:y = lungeVector[Y];
+	new Float:z = lungeVector[Z];
+	
+	vertAngle = DegToRad(vertAngle);	
+	new Float:flatLunge[3];
+	// First rotation
+	flatLunge[Y] = y * Cosine(vertAngle) - z * Sine(vertAngle);
+	flatLunge[Z] = y * Sine(vertAngle) + z * Cosine(vertAngle);
+	// Second rotation
+	flatLunge[X] = x * Cosine(vertAngle) + z * Sine(vertAngle);
+	flatLunge[Z] = x * -Sine(vertAngle) + z * Cosine(vertAngle);
+	
+	SetEntPropVector(lungeEntity, Prop_Send, "m_queuedLunge", flatLunge);
+}
+
+
+/* 
+	Thanks to Newteee:
+	Function to generate Gaussian Random Number with a specified mean and std
+	Uses Polar Form of the Box-Muller transformation
+*/
+stock Float:GaussianRNG() {	 
+	// mean and std (set here)
+	new Float:mean = float( GetConVarInt(hCvarPounceAngleMean) );
+	new Float:std = float( GetConVarInt(hCvarPounceAngleStd) );
+	
+	// Randomising positive/negative
+	new Float:chanceToken = GetRandomFloat( 0.0, 1.0 );
+	new signBit;	
+	if( chanceToken >= 0.5 ) {
+		signBit = POSITIVE;
+	} else {
+		signBit = NEGATIVE;
+	}	   
+	
+	new Float:x1;
+	new Float:x2;
+	new Float:w;
+	// Box-Muller algorithm
+	do {
+	    // Generate random number
+	    new Float:random1 = GetRandomFloat( 0.0, 1.0 );	// Random number between 0 and 1
+	    new Float:random2 = GetRandomFloat( 0.0, 1.0 );	// Random number between 0 and 1
+	 
+	    x1 = FloatMul(2.0, random1) - 1.0;
+	    x2 = FloatMul(2.0, random2) - 1.0;
+	    w = FloatMul(x1, x1) + FloatMul(x2, x2);
+	 
+	} while( w >= 1.0 );	 
+	static Float:e = 2.71828;
+	w = SquareRoot( FloatMul( -2.0, FloatDiv( Logarithm(w, e), w ) )  ); 
+
+	// Random normal variable
+	new Float:y1 = FloatMul(x1, w);
+	new Float:y2 = FloatMul(x2, w);
+	 
+	// Random gaussian variable with std and mean
+	new Float:z1 = FloatMul(y1, std) + mean;
+	new Float:z2 = FloatMul(y2, std) - mean;
+	
+	#if DEBUG	
+		if( signBit == NEGATIVE )PrintToChatAll("Angle: %f", z1);
+		else PrintToChatAll("Angle: %f", z2);
+	#endif
+	
+	// Output z1 or z2 depending on sign
+	if( signBit == NEGATIVE )return z1;
+	else return z2;
 }
 
 /***********************************************************************************************************************************************************************************
@@ -203,10 +282,8 @@ public Action:OnPlayerShoved(Handle:event, String:name[], bool:dontBroadcast) {
 ***********************************************************************************************************************************************************************************/
 
 bool:IsBotHunter(client) {
-	// Check the input is valid
-	if (!IsValidClient(client)) return false;
-	// Check if player is on the infected team, a hunter, and a bot
-	if (GetClientTeam(client) == INFECTED_TEAM) {
+	if (!IsValidClient(client)) return false; 	// Check the input is valid
+	if (GetClientTeam(client) == INFECTED_TEAM) { 	// Check if player is on the infected team, a hunter, and a bot
 		new zombieClass = GetEntProp(client, Prop_Send, "m_zombieClass");
 		if (zombieClass == ZC_HUNTER) {
 			if(IsFakeClient(client)) {
@@ -259,13 +336,3 @@ bool:IsValidClient(client) {
 bool:IsSurvivor(client) {
 	return (IsValidClient(client) && GetClientTeam(client) == 2);
 }
-
-/*
-	Angle
-	= 0.5 * Exp[ - (x - MEAN) ^ 2 / (2 * DEVIATION ^ 2) ] 
-	+ 0.5 * Exp[ - (x + MEAN) ^ 2 / (2 * DEVIATION ^ 2) ]) / sqrt[ 2 * pi ] *15
-	
-	Suggested 
-	- MEAN = 30
-	- DEVIATION = 15
-*/

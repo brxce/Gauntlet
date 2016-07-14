@@ -64,26 +64,28 @@ public OnJockeyRide(Handle:event, const String:name[], bool:dontBroadcast) {
 		new attacker = GetClientOfUserId(GetEventInt(event, "userid"));  
 		new victim = GetClientOfUserId(GetEventInt(event, "victim"));  
 		if(attacker > 0 && victim > 0) {
-			StumbleBystanders(attacker, victim);
+			StumbleBystanders(victim, attacker);
 		} 
 	}	
 }
 
-StumbleBystanders(attacker, victim) {
-	decl Float:attackerPos[3];
+StumbleBystanders( pinnedSurvivor, pinner ) {
+	decl Float:pinnedSurvivorPos[3];
 	decl Float:pos[3];
 	decl Float:dir[3];
-	GetClientAbsOrigin(attacker, attackerPos);
+	GetClientAbsOrigin(pinnedSurvivor, pinnedSurvivorPos);
 	new radius = GetConVarInt(hCvarJockeyStumbleRadius);
-	for(new i = 1; i <= MaxClients; i++) {
-		if(IsClientInGame(i) && IsPlayerAlive(i) && i!=victim && i!=attacker) {
-			GetClientAbsOrigin(i, pos);
-			SubtractVectors(pos, attackerPos, dir);
-			if(GetVectorLength(dir) <= float(radius)) {
-				NormalizeVector(dir, dir); 
-				L4D_StaggerPlayer(i, attacker, dir);
+	for( new i = 1; i <= MaxClients; i++ ) {
+		if( IsClientInGame(i) && IsPlayerAlive(i) && IsSurvivor(i) ) {
+			if( i != pinnedSurvivor && i != pinner && !IsPinned(i) ) {
+				GetClientAbsOrigin(i, pos);
+				SubtractVectors(pos, pinnedSurvivorPos, dir);
+				if( GetVectorLength(dir) <= float(radius) ) {
+					NormalizeVector( dir, dir ); 
+					L4D_StaggerPlayer( i, pinnedSurvivor, dir );
+				}
 			}
-		}
+		} 
 	}
 }
 
@@ -217,4 +219,16 @@ bool:IsCoop() {
 	decl String:GameName[16];
 	GetConVarString(FindConVar("mp_gamemode"), GameName, sizeof(GameName));
 	return (!StrEqual(GameName, "versus", false) && !StrEqual(GameName, "scavenge", false));
+}
+
+bool:IsPinned(client) {
+	new bool:bIsPinned = false;
+	if (IsSurvivor(client)) {
+		// check if held by:
+		if (GetEntPropEnt(client, Prop_Send, "m_tongueOwner") > 0) bIsPinned = true; // smoker
+		if (GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") > 0) bIsPinned = true; // hunter
+		if (GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0) bIsPinned = true; // charger
+		if (GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0) bIsPinned = true; // jockey
+	}		
+	return bIsPinned;
 }

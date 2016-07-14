@@ -6,6 +6,7 @@
 #define PLUGIN_VERSION "1.0"
 
 #include <sourcemod>
+#include <left4downtown>
 
 new Handle:hCvarTongueDelay;
 new Handle:hCvarTongueRange;
@@ -23,20 +24,23 @@ public Plugin:myinfo =
 };
 
 public OnPluginStart() {
-	// Smoker health
-	hCvarSmokerHealth = FindConVar("z_gas_health");
-	HookConVarChange(hCvarSmokerHealth, ConVarChanged:OnSmokerHealthChanged); 
-	// Damage required to kill a smoker using its tongue
-	hCvarChokeDamageInterrupt = FindConVar("tongue_break_from_damage_amount"); // default 50
-	SetCheatConVarInt(hCvarChokeDamageInterrupt, GetConVarInt(hCvarSmokerHealth));
-	// Delay before smoker shoots its tongue
-	hCvarTongueDelay = FindConVar("smoker_tongue_delay"); // default 1.5
-	SetCheatConVarFloat(hCvarTongueDelay, 1.0);
-	// Range of smoker tongue
-	hCvarTongueRange = FindConVar("tongue_range"); // default 750
-	SetCheatConVarInt(hCvarTongueRange, 500);
-	// Damage done by choke
-	hCvarChokeDamage = FindConVar("tongue_choke_damage_amount"); // default 10
+    // Smoker health
+    hCvarSmokerHealth = FindConVar("z_gas_health");
+    HookConVarChange(hCvarSmokerHealth, ConVarChanged:OnSmokerHealthChanged); 
+    // Damage required to kill a smoker using its tongue
+    hCvarChokeDamageInterrupt = FindConVar("tongue_break_from_damage_amount"); // default 50
+    // Delay before smoker shoots its tongue
+    hCvarTongueDelay = FindConVar("smoker_tongue_delay"); // default 1.5
+    // Range of smoker tongue
+    hCvarTongueRange = FindConVar("tongue_range"); // default 750
+    // Damage done by choke
+    hCvarChokeDamage = FindConVar("tongue_choke_damage_amount"); // default 10
+}
+
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {  
+	SetCheatConVarInt(hCvarChokeDamageInterrupt, GetConVarInt(hCvarSmokerHealth));	
+	SetCheatConVarFloat(hCvarTongueDelay, 0.5);	
+	SetCheatConVarInt(hCvarTongueRange, 500);	
 	SetCheatConVarInt(hCvarChokeDamage, 4);
 }
 

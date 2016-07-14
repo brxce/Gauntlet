@@ -825,7 +825,7 @@ public OnMapEnd()
 public Event_MissionLostCampaign (Handle:hEvent, const String:name[], bool:dontBroadcast)
 {
     AutomaticRoundEndPrint (false);
-	ResetStats(false, -1, true);
+    ResetStats(false, -1, true);
 	//PrintDebug( 2, "Event: MissionLost (times %i)", g_strGameData[gmFailed] + 1);
     g_strGameData[gmFailed]++;
     g_strRoundData[g_iRound][g_iCurTeam][rndRestarts]++;

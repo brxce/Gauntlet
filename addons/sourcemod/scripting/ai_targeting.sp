@@ -107,15 +107,17 @@ GetTargetSurvivor() {
 			}
 		}
 		
-		// Pick a random target, only choose mobile perm health survivor if possible
-		new randomIndex;
-		new randomSurvivor;
-		do {
-			randomIndex = GetRandomInt(0, lastIndex);		
-			randomSurvivor = GetArrayCell(arraySurvivors, randomIndex);		 
-		} while (bDoesPermHealthRemain && GetEntProp(randomSurvivor, Prop_Send, "m_currentReviveCount") > 0);
-		target = randomSurvivor;
-	}
+		// Pick a random target, only choose mobile perm health survivor 
+		if( bDoesPermHealthRemain ) {
+			new randomIndex;
+			new randomSurvivor;
+			do {
+				randomIndex = GetRandomInt(0, lastIndex);		
+				randomSurvivor = GetArrayCell(arraySurvivors, randomIndex);		 
+			} while (GetEntProp(randomSurvivor, Prop_Send, "m_currentReviveCount") > 0);
+			target = randomSurvivor;
+		}		
+	}	
 	
 	return target;
 }
@@ -147,7 +149,10 @@ public Action:OnPlayerSpawnPre(Handle:event, String:name[], bool:dontBroadcast) 
 // N.B. requires disabling of SMAC_Commands to prevent kicks for command spamming
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
 	if (IsBotCapper(client)) {
-		AttackTarget(client);
+	   new token = GetRandomInt(0, 100);
+	   if( token < 50 ) {
+	       AttackTarget(client);
+	   }		
 	}	
 }
 

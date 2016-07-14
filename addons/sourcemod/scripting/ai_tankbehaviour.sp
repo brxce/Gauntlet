@@ -7,6 +7,7 @@
 #define PLUGIN_VERSION "1.0"
 
 #include <sourcemod>
+#include <sdktools>
 
 public Plugin:myinfo = 
 {
@@ -17,7 +18,13 @@ public Plugin:myinfo =
 	url = ""
 };
 
+/***********************************************************************************************************************************************************************************
 
+																				BLOCK ROCK THROWS
+																	
+***********************************************************************************************************************************************************************************/
+
+// because AI tanks are dumb
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
 	if (IsBotTank(client)) {	
 		buttons &= ~IN_ATTACK2;
@@ -25,6 +32,14 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	} 
 	return Plugin_Continue;
 }
+
+/***********************************************************************************************************************************************************************************
+
+																				BUNNY HOPS
+																	
+***********************************************************************************************************************************************************************************/
+
+
 
 /* bhops
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
@@ -49,6 +64,12 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 }
 */
 
+/***********************************************************************************************************************************************************************************
+
+																				UTILITY
+																	
+***********************************************************************************************************************************************************************************/
+
 bool:IsBotTank(client) {
 	// Check the input is valid
 	if (!IsValidClient(client)) return false;
@@ -69,6 +90,10 @@ bool:IsValidClient(client) {
     return true; 
 }
 
+bool:IsSurvivor(client) {
+	return (IsValidClient(client) && GetClientTeam(client) == 2);
+}
+
 GetSurvivorProximity(referenceClient) {
 	// Get the reference's position
 	new Float:referencePosition[3];
@@ -84,8 +109,8 @@ GetSurvivorProximity(referenceClient) {
 			// Start with the absolute displacement to the first survivor found:
 			if (iClosestAbsDisplacement == -1) {
 				iClosestAbsDisplacement = iAbsDisplacement;
-			} else if (iAbsDisplacement < iClosestAbsDisplacement) { // closest survivor so far
-				iClosestAbsDisplacement = iAbsDisplacement;
+			} else if (iAbsDisplacement < iClosestAbsDisplacement) { 
+				iClosestAbsDisplacement = iAbsDisplacement; // closest survivor so far
 			}			
 		}
 	}

@@ -2,6 +2,7 @@
 #include <sourcemod>
 #define ZC_CHARGER 6 //zombie class
 #define INFECTED_TEAM 3
+#define MAX_CHARGE_PROXIMITY 400
 
 public Plugin:myinfo = {
 	name = "AI: Charge From Close",
@@ -48,12 +49,10 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	// Proceed for charger bots
 	if(IsBotCharger(client)) {
 		new charger = client;	
-		// if survivors are too far
 		new iProximity = GetSurvivorProximity(charger);
-		if (iProximity > g_iChargeProximity) {
-			// if charger has not yet approached within range
-			if (!bShouldCharge[charger]) {
-				// prevent charge until survivors are within the defined proximity
+		new chargeDistance = GetRandomInt(g_iChargeProximity, MAX_CHARGE_PROXIMITY);
+		if (iProximity > chargeDistance) { // if charger has not yet approached within range
+			if (!bShouldCharge[charger]) { // prevent charge until survivors are within the defined proximity				
 				new chargeEntity = GetEntPropEnt(charger, Prop_Send, "m_customAbility");
 				if (chargeEntity > 0) {  // charger entity persists for a short while after death; check ability entity is valid
 					SetEntPropFloat(chargeEntity, Prop_Send, "m_timestamp", GetGameTime() + 0.1); // keep extending cooldown period
@@ -84,7 +83,7 @@ bool:IsBotCharger(client) {
 			}
 		}
 	}
-	return false; // otherwise
+	return false; 
 }
   
 GetSurvivorProximity(referenceClient) {

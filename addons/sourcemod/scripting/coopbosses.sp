@@ -3,6 +3,8 @@
 #define DEBUG 0
 #define INFECTED_TEAM 3
 #define ZC_TANK 8
+#define SPAWN_ATTEMPT_INTERVAL 0.5
+#define MAX_SPAWN_ATTEMPTS 60
 
 #define PLUGIN_AUTHOR "Breezy"
 #define PLUGIN_VERSION "1.0"
@@ -28,7 +30,10 @@ public Plugin:myinfo =
 
 new Handle:hCvarDirectorNoBosses; // blocks witches unfortunately, needs testing for reliability with tanks
 
+new g_iMaxFlow;
 new g_iTankPercent;
+new g_iMapTankSpawnAttemptCount;
+new g_bIsTankTryingToSpawn;
 new g_bHasEncounteredTank;
 new g_bIsRoundActive;
 new g_bIsFinale;
@@ -45,6 +50,7 @@ public OnPluginStart() {
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("finale_win", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("finale_start", EventHook:OnFinaleStart, EventHookMode_PostNoCopy);
+	HookEvent("tank_spawn", Event_TankSpawn, EventHookMode_PostNoCopy);
 	
 	// Console Variables
 	hCvarDirectorNoBosses = FindConVar("director_no_bosses");
@@ -73,14 +79,18 @@ public Action:Cmd_BossPercent(client, args) {
 
 // Announce boss percent
 public Action:L4D_OnFirstSurvivorLeftSafeArea() {
+	g_iMaxFlow = 0;
 	g_bIsRoundActive = true;
+	g_bHasEncounteredTank = false;
+	g_iMapTankSpawnAttemptCount = 0;
+	g_bIsTankTryingToSpawn = false;
+	g_bIsFinale = false;
 	// Tank percent
 	g_iTankPercent = GetRandomInt(20, 80);
-	PrintToChatAll("\x01Tank: [\x04%i%%\x01]", g_iTankPercent);
+	PrintToChatAll("\x01Tank: [\x04%i%%\x01]", g_iTankPercent); // Printout disabled because of unreliability due to occasional delayed tank spawns 
 	// Limit tanks
 	SetConVarBool(hCvarDirectorNoBosses, true); 
 }
-
 
 public OnRoundOver() {
 	g_bIsFinale = false;
@@ -103,23 +113,30 @@ public OnGameFrame() {
 		if (iMaxSurvivorCompletion > g_iTankPercent) {
 			// If they have not already fought the tank
 			if (!g_bHasEncounteredTank && !g_bIsFinale) {			
-				SpawnTank();
+				if (!g_bIsTankTryingToSpawn) {
+#if DEBUG
+	PrintToChatAll("[CB] Attempting to spawn tank at %d%% map distance...", g_iTankPercent); 
+#endif
+					g_bIsTankTryingToSpawn = true;
+					CreateTimer( SPAWN_ATTEMPT_INTERVAL, Timer_SpawnTank, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
+				} 
 			} 
-		}
-	} 
+		} 
+	}  
 }
 
-SpawnTank() {	
+public Action:Timer_SpawnTank( Handle:timer ) {		
+	PrintToChatAll("Spawn attempts: %d", g_iMapTankSpawnAttemptCount);
 	// spawn a tank with z_spawn_old (cmd uses director to find a suitable location)			
-		#if DEBUG
-			PrintToChatAll("[CB] Spawning intended percent tank..."); 
-		#endif
-		
-	while (!IsTankInPlay()) {
+	if( IsTankInPlay() || g_iMapTankSpawnAttemptCount >= MAX_SPAWN_ATTEMPTS ) {
+		g_bHasEncounteredTank = true;
+		PrintToChatAll("[CB] Percentage Tank spawned or max spawn attempts reached..."); 
+		return Plugin_Stop; 
+	} else {
 		CheatCommand("z_spawn_old", "tank", "auto");
+		++g_iMapTankSpawnAttemptCount;
+		return Plugin_Continue;
 	}
-	
-	g_bHasEncounteredTank = true;
 }
 
 // Slay extra tanks
@@ -132,23 +149,34 @@ public Action:LimitTankSpawns(Handle:event, String:name[], bool:dontBroadcast) {
 	if (IsBotTank(tank)) {
 		// If this tank is too early or late, kill it
 		if (GetMaxSurvivorCompletion() < g_iTankPercent || g_bHasEncounteredTank)  {
-					#if DEBUG
-						decl String:mapName[32];
-						GetCurrentMap(mapName, sizeof(mapName));
-						LogError("Map %s:", mapName);
-						if (GetMaxSurvivorCompletion() < g_iTankPercent) {
-							LogError("Premature tank spawned. Slaying...");
-						} else if (g_bHasEncounteredTank) {
-							LogError("Surplus tank spawned. Slaying...");
-						}
-						LogError("- Tank Percent: %i", g_iTankPercent);
-						LogError("- MaxSurvivorCompletion: %i", GetMaxSurvivorCompletion()); 
-					#endif
-			ForcePlayerSuicide(tank);			
+			ForcePlayerSuicide(tank);		
+#if DEBUG
+	decl String:mapName[32];
+	GetCurrentMap(mapName, sizeof(mapName));
+	LogError("Map %s:", mapName);
+	if (GetMaxSurvivorCompletion() < g_iTankPercent) {
+		LogError("Premature tank spawned. Slaying...");
+	} else if (g_bHasEncounteredTank) {
+		LogError("Surplus tank spawned. Slaying...");
+	}
+	LogError("- Tank Percent: %i", g_iTankPercent);
+	LogError("- MaxSurvivorCompletion: %i", GetMaxSurvivorCompletion()); 
+#endif			
 		} 		
 	}
 	
 	return Plugin_Continue;
+}
+
+public Event_TankSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
+    new tank = GetClientOfUserId(GetEventInt(event, "userid"));
+    CreateTimer( 3.0, Timer_AggravateTank, any:tank, TIMER_FLAG_NO_MAPCHANGE );
+    // Aggravate the tank upon spawn in case he spawns out of survivor's line of sight
+}
+
+public Action:Timer_AggravateTank( Handle:timer, any:tank ) {
+    // How to aggravate a tank that has spawned out of sight? Remote damage does not appear to aggravate them.
+    return Plugin_Stop;
 }
 
 public OnFinaleStart() {
@@ -182,11 +210,10 @@ stock GetMaxSurvivorCompletion() {
 		}
 	}
 	#if DEBUG
-		static max = 0;
 		new current = RoundToNearest(flow * 100 / L4D2Direct_GetMapMaxFlowDistance());
-		if (max != current) {
-			max = current;
-			PrintToChatAll("%d%%", max);
+		if (g_iMaxFlow < current) {
+			g_iMaxFlow  = current;
+			PrintToChatAll("%d%%", g_iMaxFlow );
 		} 	
 	#endif
 	return RoundToNearest(flow * 100 / L4D2Direct_GetMapMaxFlowDistance());

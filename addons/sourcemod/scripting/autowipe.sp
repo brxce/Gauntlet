@@ -14,7 +14,7 @@ public Plugin:myinfo = {
 	version = "1.0"
 };
 
-new bool:g_bIsAutoWipeActive = true; // start true to prevent autowipe being activated at round start
+new bool:g_bCanAllowNewAutowipe = false; // start true to prevent autowipe being activated at round start
 
 public OnPluginStart() {
 	// Disabling autowipe
@@ -22,21 +22,21 @@ public OnPluginStart() {
 	HookEvent("mission_lost", EventHook:DisableAutoWipe, EventHookMode_PostNoCopy);
 }
 
-public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
-	g_bIsAutoWipeActive = false;
+public DisableAutoWipe() {
+	g_bCanAllowNewAutowipe = false; // prevents autowipe from being called until next map
 }
 
-public DisableAutoWipe() {
-	g_bIsAutoWipeActive = true; // prevents autowipe from being called until next map
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
+	g_bCanAllowNewAutowipe = true;
 }
 
 public OnGameFrame() {
 	// activate AutoWipe if necessary
-	if (!g_bIsAutoWipeActive) {
+	if (g_bCanAllowNewAutowipe) {
 		if (IsTeamImmobilised()) {
 			PrintToChatAll("[AW] Initiating an AutoWipe...");
 			CreateTimer(GRACETIME, Timer_AutoWipe, _, TIMER_FLAG_NO_MAPCHANGE);
-			g_bIsAutoWipeActive = true;
+			g_bCanAllowNewAutowipe = false;
 		}
 	} 
 }
@@ -45,9 +45,11 @@ public Action:Timer_AutoWipe(Handle:timer) {
 	if (IsTeamImmobilised()) {
 		WipeSurvivors();
 		PrintToChatAll("[AW] AutoWiped survivors!");	
+		return Plugin_Stop;
 	} else {
 		PrintToChatAll("[AW] ...AutoWipe cancelled!");
-		g_bIsAutoWipeActive = false;	
+		g_bCanAllowNewAutowipe = true;	
+		return Plugin_Stop;
 	}
 }
 
@@ -58,6 +60,12 @@ WipeSurvivors() { //incap everyone
 		}
 	}
 }
+
+/***********************************************************************************************************************************************************************************
+
+																				UTILITY
+
+***********************************************************************************************************************************************************************************/
 
 bool:IsTeamImmobilised() {
 	//Check if there is still an upright survivor

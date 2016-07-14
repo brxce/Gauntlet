@@ -2,7 +2,7 @@
 
 #define DEBUG 0
 #define UNINITIALISED -1
-// misc constants
+// misc constants 
 /*
 Spawning above this number of SI requires the creation of temporary 'dummy' clients i.e. through usage of CreateFakeClient()
 However these fake clients must be kicked straight afterwards, otherwise the extra SI spawned this way does not move or attack
@@ -93,6 +93,10 @@ new g_ClassSpawnVolume[9];
 // Tank support
 new Handle:hCvarTankSupportHealthPercent; // at what percent of tank health will his support wave spawn
 
+// server_namer.smx compatability;
+new Handle:hCvarReadyUpEnabled;
+new Handle:hCvarConfigName;
+
 public Plugin:myinfo = 
 {
 	name = "Special Infected Wave Spawner", 
@@ -114,8 +118,12 @@ public OnPluginStart() {
 	// hCvarSpawnDirection = FindConVar("z_debug_spawn_set"); // 0=Anywhere, 1=Behind, 2=IT, 3=Specials in front, 4=Specials anywhere, 5=Far Away, 6=Above
 	// SetConVarInt(hCvarSpawnDirection, SPECIALS_ANYWHERE); // Does not appear to have an effect on the "z_spawn_old" command used in this plugin
 	
+	// Compatibility with server_namer.smx
+	hCvarReadyUpEnabled = CreateConVar("l4d_ready_enabled", "1", "This cvar from readyup.smx is required by server_namer.smx, but is duplicated here to avoid use of readyup.smx");
+	hCvarConfigName = CreateConVar("l4d_ready_cfg_name", "Hard Coop", "This cvar from readyup.smx is required by server_namer.smx, but is duplicated here to avoid use of readyup.smx");
+	
 	// Wave interval
-	hCvarWaveInterval = CreateConVar("siws_wave_interval", "40", "Interval in seconds between special infected waves");
+	hCvarWaveInterval = CreateConVar("siws_wave_interval", "25", "Interval in seconds between special infected waves");
 	
 	// Custom class limits
 	hCvarMaxSpecials 	= CreateConVar("siws_max_specials", 	"6", "Maximum Specials alive at any time");
@@ -208,7 +216,7 @@ public OnPlayerDisconnect(Handle:event, const String:name[], bool:dontBroadcast)
 																	
 ***********************************************************************************************************************************************************************************/
 
-public Action:Cmd_SetLimit(client, args) {
+public Action:Cmd_SetLimit(client, args) {	
 	// Check a valid number of arguments was entered
 	if (args == 2) {
 		
@@ -234,8 +242,9 @@ public Action:Cmd_SetLimit(client, args) {
 				PrintToCmdUser(client, sMsgNotifyLimit);
 				return Plugin_Handled;
 			} else {
-				SetConVarInt(hCvarMaxSpecials, iLimitValue);		
-				PrintToChatAll("Max specials set to %i", iLimitValue);	
+				SetConVarInt(hCvarMaxSpecials, iLimitValue);	
+				g_LimitCache[_:ZC_NONE] = iLimitValue;
+				PrintToChatAll("-> Max specials set to %i", iLimitValue);	
 				return Plugin_Changed;		
 			}				
 		} 
@@ -243,42 +252,42 @@ public Action:Cmd_SetLimit(client, args) {
 		else if (StrEqual(sTargetClass, "smoker", false)) {
 			SetConVarInt(hCvarSmokerLimit, iLimitValue);
 			g_LimitCache[_:ZC_SMOKER] = iLimitValue;
-			PrintToChatAll("Smoker limit set to %i", iLimitValue);
+			PrintToChatAll("-> Smoker limit set to %i", iLimitValue);
 			return Plugin_Changed;			
 		} 
 		// Boomer limit
 		else if (StrEqual(sTargetClass, "boomer", false)) {
 			SetConVarInt(hCvarBoomerLimit, iLimitValue);
 			g_LimitCache[_:ZC_BOOMER] = iLimitValue;
-			PrintToChatAll("Boomer limit set to %i", iLimitValue);
+			PrintToChatAll("-> Boomer limit set to %i", iLimitValue);
 			return Plugin_Changed;			
 		} 
 		// Hunter limit
 		else if (StrEqual(sTargetClass, "hunter", false)) {
 			SetConVarInt(hCvarHunterLimit, iLimitValue);
 			g_LimitCache[_:ZC_HUNTER] = iLimitValue;
-			PrintToChatAll("Hunter limit set to %i", iLimitValue);
+			PrintToChatAll("-> Hunter limit set to %i", iLimitValue);
 			return Plugin_Changed;			
 		} 
 		// Spitter limit
 		else if (StrEqual(sTargetClass, "spitter", false)) {
 			SetConVarInt(hCvarSpitterLimit, iLimitValue);
 			g_LimitCache[_:ZC_SPITTER] = iLimitValue;
-			PrintToChatAll("Spitter limit set to %i", iLimitValue);
+			PrintToChatAll("-> Spitter limit set to %i", iLimitValue);
 			return Plugin_Changed;			
 		} 
 		// Jockey limit
 		else if (StrEqual(sTargetClass, "jockey", false)) {
 			SetConVarInt(hCvarJockeyLimit, iLimitValue);
 			g_LimitCache[_:ZC_JOCKEY] = iLimitValue;
-			PrintToChatAll("Jockey limit set to %i", iLimitValue);
+			PrintToChatAll("-> Jockey limit set to %i", iLimitValue);
 			return Plugin_Changed;			
 		} 
 		// Charger limit
 		else if (StrEqual(sTargetClass, "charger", false)) {
 			SetConVarInt(hCvarChargerLimit, iLimitValue);
 			g_LimitCache[_:ZC_CHARGER] = iLimitValue;
-			PrintToChatAll("Charger limit set to %i", iLimitValue);
+			PrintToChatAll("-> Charger limit set to %i", iLimitValue);
 			return Plugin_Changed;			
 		} 
 		
@@ -287,16 +296,16 @@ public Action:Cmd_SetLimit(client, args) {
 			PrintToCmdUser(client, "<class> = max | smoker | boomer | hunter | spitter | jockey | charger");
 			return Plugin_Handled;
 		}
-		
 	} 
 	
 	// Invalid command syntax
-	else {
-		PrintToCmdUser(client, "Usage: !limit/sm_limit <class> <limit>");
-		PrintToCmdUser(client, "<class> = max | smoker | boomer | hunter | spitter | jockey | charger");
-		PrintToCmdUser(client, "<limit> >= 0");
+	else {			
+		PrintToCmdUser(client, "Usage : !limit/sm_limit <class> <limit>");
+		PrintToCmdUser(client, "<class> :  max | smoker | boomer | hunter | spitter | jockey | charger");
+		PrintToCmdUser(client, "<limit> : greater than zero");
 		return Plugin_Handled;	
 	}
+	
 }
 
 public Action:Cmd_SetWaveInterval(client, args) {
@@ -309,7 +318,7 @@ public Action:Cmd_SetWaveInterval(client, args) {
 		// Valid interval length entered; apply setting
 		if (iIntervalValue > 0) {
 			SetConVarInt(hCvarWaveInterval, iIntervalValue);
-			PrintToChatAll("Interval between special infected waves set to %i", iIntervalValue);
+			PrintToChatAll("-> Interval between special infected waves set to %i", iIntervalValue);
 		} 
 		
 		// Invalid value entered
@@ -349,11 +358,11 @@ public Action:Cmd_SetTankSupportHealthPercent(client, args) {
 	}
 }
 
-PrintToCmdUser(client, const String:message[]) {
+PrintToCmdUser(client, const String:msg[]) {
 	if (client > 0) {
-		PrintToChat(client, message);
+		PrintToChat(client, msg);
 	} else {
-		PrintToServer(message); 
+		PrintToServer(msg); 
 	}
 }
 
@@ -367,7 +376,14 @@ PrintToCmdUser(client, const String:message[]) {
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	SetSpawnDirection(SPECIALS_ANYWHERE);
 	SetLimits();
+	PrintSettings();
+	
+	//Initialise
 	g_bIsRoundActive = true;
+	g_bHasPassedBaitThreshold = false;
+	g_bIsSpawnerActive = false;
+	g_bIsTankInPlay = false;
+	g_fTankRushThreshold = 0.0;
 	
 	// Get the flow of the saferoom exit held by the farthest survivor 
 	new Float:flow = 0.0;
@@ -386,6 +402,8 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	g_fBaitThresholdFlow = g_fSaferoomExitFlow + g_fBaitTolerance;
 }
 
+// Used to carry over bewteen maps custom special infected class limits that override those set by the .cfg
+// Sets the cvars to the values currently stored in the limit cache
 SetLimits() {
 	for( new i = 0; i < _:ZC_WITCH; ++i ) {
 		if( g_LimitCache[i] != UNINITIALISED ) {
@@ -401,6 +419,23 @@ SetLimits() {
 			}
 		}
 	}	
+}
+
+// Prints the limit for total special infected and each individual class
+PrintSettings() {
+	new String:limits[256];
+	PrintToChatAll( "Max Hunters Smokers Jockeys Chargers Boomers Spitters:" );
+	Format(limits, sizeof(limits), " %d        %d            %d            %d             %d              %d             %d", 
+		GetConVarInt(hCvarMaxSpecials), 
+		GetConVarInt(hCvarHunterLimit),
+		GetConVarInt(hCvarSmokerLimit),
+		GetConVarInt(hCvarJockeyLimit),
+		GetConVarInt(hCvarChargerLimit),
+		GetConVarInt(hCvarBoomerLimit),
+		GetConVarInt(hCvarSpitterLimit) 
+	);
+	PrintToChatAll(limits);
+	PrintToChatAll("Wave Interval: %ds", RoundFloat(GetConVarFloat(hCvarWaveInterval)) );
 }
 
 // Reset flags when survivors wipe or make it to the next map
@@ -481,12 +516,21 @@ public Action:Timer_SpawnSpecialInfected(Handle:timer, any:targetClass) {
 	new bool:hasSpawnedClassPopulation = (iClassSpawnVolume >= iClassLimit ? true:false);
 	
 	// Attempt spawn if needed
-	if (!IsClassLimitReached(targetClass) && !hasSpawnedClassPopulation) {
-		AttemptSpawn(targetClass);
-		return Plugin_Continue;
-	} else {
+	if( IsClassLimitReached(targetClass) || hasSpawnedClassPopulation ) {
+	   #if DEBUG			
+			PrintToChatAll("\x04%s limit reached", TEAM_CLASS(targetClass));	
+		#endif
 		return Plugin_Stop;
+	} else if( IsMaxSpecialInfectedLimitReached() ) {
+	   #if DEBUG			
+			PrintToChatAll("\x04Max specials limit reached", TEAM_CLASS(targetClass));	
+		#endif
+		return Plugin_Stop;
+	} else {
+        AttemptSpawn(targetClass);
+        return Plugin_Continue;
 	}
+
 }
 
 // Attempt to spawn a special infected of a particular class
@@ -528,7 +572,8 @@ public OnTankDeath(tank) {
 		g_bIsTankInPlay = false;
 	}
 	g_bIsSpawnerActive = false;
-	CreateTimer(GetConVarFloat(hCvarWaveInterval), Timer_ActivateSpawner, _, TIMER_FLAG_NO_MAPCHANGE); 
+	new Float:recoveryTime = GetConVarFloat(hCvarWaveInterval) / 2.0;
+	CreateTimer(recoveryTime, Timer_ActivateSpawner, _, TIMER_FLAG_NO_MAPCHANGE); 
 }
 
 public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damagetype) {
@@ -646,22 +691,20 @@ CheatCommand(String:command[], String:argument1[] = "", String:argument2[] = "")
 	}
 }
 
-//@return: true if neither the target SI class population limit nor the number of spawned specials  have reached their limit
-bool:IsClassLimitReached(ZombieClass:targetClass) {
-	
-	// Checking class limit
-	new iClassLimit = GetClassLimit(targetClass);
-	new iClassCount = CountSpecialInfectedClass(targetClass);
+//@return: true if the max number of special infected have spawned
+bool:IsMaxSpecialInfectedLimitReached() {
 	// Checking max specials limit
 	new iMaxSpecials = GetConVarInt(hCvarMaxSpecials);
 	new iSpawnedSpecialsCount = CountSpecialInfectedBots();
-	
-	// If neither limit has been reached
-	if (iClassCount < iClassLimit || iSpawnedSpecialsCount < iMaxSpecials) {
-		return false;
-	} else {
-		return true;
-	}
+	return iSpawnedSpecialsCount < iMaxSpecials ? false : true;
+}
+
+//@return: true if the target SI class population limit has reached its limit
+bool:IsClassLimitReached(ZombieClass:targetClass) {
+	// Checking class limit
+	new iClassLimit = GetClassLimit(targetClass);
+	new iClassCount = CountSpecialInfectedClass(targetClass);
+	return iClassCount < iClassLimit ? false : true;
 }
 
 // @return: true if either the class limit or total specials limit has been reached
