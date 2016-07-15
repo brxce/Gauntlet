@@ -2,7 +2,6 @@
  * weapon(s) not spawning in saferoom  
  * on rare occassions, restarting map dead after a wipe
  * 'human player limit reached'   
-
 ##Major Bugs  
 There are a few difficult to replicate, unsolved bugs to which workarounds have been applied 
  * sometimes SI do not deal damage: 
