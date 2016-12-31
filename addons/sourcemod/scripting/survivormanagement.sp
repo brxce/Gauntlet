@@ -29,18 +29,19 @@ public OnPluginStart()
 }
 
 public Action:Cmd_Join(client, args) {
-	if (!IsValidClient(client)) return Plugin_Handled;
+	if (!IsValidClient(client)) {
+		return Plugin_Handled;
+	}
 	
 	// Check if they are using the command from spectator
 	if (L4D2_Team:GetClientTeam(client) == L4D2_Team:L4D2Team_Spectator) {
-		if (IsSurvivorBotAvailable()) { // Check if survivor team is full
-			TakeControlOfASurvivorBot(client);	
-		} else {
-			PrintToChat(client, "Survivor team is full");
-		}
-	} 
+		TakeControlOfASurvivorBot(client);	
+	} else {
+		PrintToChat(client, "Survivor team is full");
+	}
 	return Plugin_Handled;
-}
+} 
+	
 
 /***********************************************************************************************************************************************************************************
 
@@ -118,13 +119,11 @@ public bool:IsSurvivorBotAvailable() {
 	new survivorCount = 0;
 	new playerSurvivorCount = 0;	
 	for (new i = 1; i <= MaxClients; i++) {
-		if (IsClientInGame(i)) {
-			if ( IsSurvivor(i) ) {
-				if( !IsFakeClient(i) ) {
-					 playerSurvivorCount++;
-				} 
-				survivorCount++;
-			}
+		if( IsSurvivor(i) ) {
+			if( !IsFakeClient(i) ) {
+				 playerSurvivorCount++;
+			} 
+			survivorCount++;
 		}
 	}
 	
@@ -133,7 +132,7 @@ public bool:IsSurvivorBotAvailable() {
 			PrintToChatAll("Total survivors: %d", survivorCount);
 		#endif
 		
-	// Determine whether the team is full
+	// Determine whether survivor bot is available
 	if (playerSurvivorCount < survivorCount) {
 		return true;
 	} else {
@@ -142,13 +141,8 @@ public bool:IsSurvivorBotAvailable() {
 }
 
 public TakeControlOfASurvivorBot( client ) {
-	if( IsSurvivorBotAvailable() ) {
-		ChangeClientTeam(client, _:L4D2Team_Survivor);
-		new commandFlags;
-		commandFlags = GetCommandFlags("sb_takecontrol");		
-		SetCommandFlags("sb_takecontrol", commandFlags & ~FCVAR_CHEAT);	
-		FakeClientCommand(client, "sb_takecontrol");	
-		SetCommandFlags("sb_takecontrol", commandFlags);
+	if( IsSurvivorBotAvailable() && L4D2_Team:GetClientTeam(client) == L4D2Team_Spectator ) {
+		FakeClientCommand(client, "jointeam 2");
 	} else {
 		PrintToChat( client, "No survivor available to give to player" );
 	}
