@@ -1,23 +1,20 @@
 #pragma semicolon 1
 
 #define DEBUG 0
-#define TEAM_SPECTATORS 1
-#define TEAM_SURVIVORS 2
-#define PLUGIN_AUTHOR "Breezy"
-#define PLUGIN_VERSION "1.0"
 
 #include <sourcemod>
 #include <sdktools>
 #include <left4downtown>
+#include "includes/hardcoop_util.sp"
 
 // Bibliography: "sb_takecontrol" by "pan xiaohai"
 
 public Plugin:myinfo = 
 {
-	name = "Join Survivors",
-	author = PLUGIN_AUTHOR,
-	description = "Join a coop game from spectator mode",
-	version = PLUGIN_VERSION,
+name = "Survivor Management",
+	author = "Breezy",
+	description = "Survivor manager for Hard Coop that provides !join, !return and !respawn commands",
+	version = "1.0",
 	url = ""
 };
 
@@ -35,10 +32,9 @@ public Action:Cmd_Join(client, args) {
 	if (!IsValidClient(client)) return Plugin_Handled;
 	
 	// Check if they are using the command from spectator
-	if (GetClientTeam(client) == TEAM_SPECTATORS) {
+	if (L4D2_Team:GetClientTeam(client) == L4D2_Team:L4D2Team_Spectator) {
 		if (IsSurvivorBotAvailable()) { // Check if survivor team is full
-			// Take control of a survivor
-			CheatCommand(client, "sb_takecontrol");
+			TakeControlOfASurvivorBot(client);	
 		} else {
 			PrintToChat(client, "Survivor team is full");
 		}
@@ -73,7 +69,13 @@ public Action:Cmd_Return(client, args) {
 }
 
 ReturnPlayerToSaferoom(client) {
-	CheatCommand(client, "warp_to_start_area");
+	new commandFlags;
+	commandFlags = GetCommandFlags("warp_to_start_area");
+	
+	//Execute command
+	SetCommandFlags("warp_to_start_area", commandFlags & ~FCVAR_CHEAT);	
+	FakeClientCommand(client, "warp_to_start_area");	
+	SetCommandFlags("warp_to_start_area", commandFlags);
 }
 
 /***********************************************************************************************************************************************************************************
@@ -83,77 +85,71 @@ ReturnPlayerToSaferoom(client) {
 ***********************************************************************************************************************************************************************************/
 
 public Action:Cmd_Respawn(client, args) {
-	if (IsSurvivor(client) && !IsPlayerAlive(client) && !g_bHasLeftStartArea) {
-		// Move player to spectators
-		ChangeClientTeam(client, TEAM_SPECTATORS);
-		
-		// Create a fake client
-		new bot = CreateFakeClient("Dummy");
-		if(bot != 0) {
-			ChangeClientTeam(bot, 2);			
-			// Error checking
-			if(DispatchKeyValue(bot, "classname", "SurvivorBot") == false) {
-				PrintToChatAll("\x01Create bot failed");
-				return Plugin_Handled;
-			}			
-			if(DispatchSpawn(bot) == false) {
-				PrintToChatAll("\x01Create bot failed");
-				return Plugin_Handled;
-			}
+	if( IsSurvivor(client) && !IsPlayerAlive(client) ) {
+		if( g_bHasLeftStartArea ) {
+			PrintToChat(client, "Cannot respawn player after a survivor has left saferoom");
+		} else {
+			// Move player to spectators
+			ChangeClientTeam(client, _:L4D2Team_Spectator);
 			
-			// Kick bot
-			SetEntityRenderColor(bot, 128, 0, 0, 255);	 			
-			CreateTimer(1.0, Timer_Kick, bot, TIMER_FLAG_NO_MAPCHANGE);  
+			// Create a fake client
+			new bot = CreateFakeClient("Dummy Survivor");
+			if(bot != 0) {		
+				ChangeClientTeam(bot, _:L4D2Team_Survivor);
+				// Error checking
+				if(!DispatchKeyValue(bot, "classname", "SurvivorBot") == false) {
+					// Kick bot
+					SetEntityRenderColor(bot, 128, 0, 0, 255);				
+					CreateTimer(1.0, Timer_KickBot, bot, TIMER_FLAG_NO_MAPCHANGE);  
+					TakeControlOfASurvivorBot(client);	
+					return Plugin_Handled;
+				}				
+			}
+			PrintToChatAll("\x01Failed to create a new survivor");					
 		}
-		
-		// Take control of new survivor
-		CheatCommand(client, "sb_takecontrol");
+	} else {
+		PrintToChat( client, "You are not dead." );
 	}
 	return Plugin_Handled;
 }
 
-public Action:Timer_Kick(Handle:timer, any:bot) {
-	KickClient(bot, "fake player");
-	return Plugin_Stop;
-}
-/***********************************************************************************************************************************************************************************
-
-																				UTILITY
-
-***********************************************************************************************************************************************************************************/
-
-CheatCommand(client, const String:command[]) {
-	new flags = GetCommandFlags(command);
-	SetCommandFlags(command, flags ^ FCVAR_CHEAT);
-	FakeClientCommand(client, command);
-	SetCommandFlags(command, flags);
-}
-
 public bool:IsSurvivorBotAvailable() {
 	// Count the number of survivors controlled by players
+	new survivorCount = 0;
 	new playerSurvivorCount = 0;	
 	for (new i = 1; i <= MaxClients; i++) {
 		if (IsClientInGame(i)) {
-			if ( GetClientTeam(i) == TEAM_SURVIVORS && !IsFakeClient(i) ) {
-				 playerSurvivorCount++;
+			if ( IsSurvivor(i) ) {
+				if( !IsFakeClient(i) ) {
+					 playerSurvivorCount++;
+				} 
+				survivorCount++;
 			}
 		}
 	}
-	// Find the size of the survivor team
-	new maxSurvivors =  GetConVarInt(FindConVar("survivor_limit"));
+	
+		#if DEBUG
+			PrintToChatAll("Player controlled survivors: %d", playerSurvivorCount);
+			PrintToChatAll("Total survivors: %d", survivorCount);
+		#endif
+		
 	// Determine whether the team is full
-	if (playerSurvivorCount < maxSurvivors) {
+	if (playerSurvivorCount < survivorCount) {
 		return true;
 	} else {
 		return false; // all survivors are controlled by players
 	}
 }
 
-bool:IsSurvivor(client) {
-	return (IsValidClient(client) && GetClientTeam(client) == 2);
-}
-
-bool:IsValidClient(client) {
-    if ( !( 1 <= client <= MaxClients ) || !IsClientInGame(client) ) return false;      
-    return true; 
+public TakeControlOfASurvivorBot( client ) {
+	if( IsSurvivorBotAvailable() ) {
+		ChangeClientTeam(client, _:L4D2Team_Survivor);
+		new commandFlags;
+		commandFlags = GetCommandFlags("sb_takecontrol");		
+		SetCommandFlags("sb_takecontrol", commandFlags & ~FCVAR_CHEAT);	
+		FakeClientCommand(client, "sb_takecontrol");	
+		SetCommandFlags("sb_takecontrol", commandFlags);
+	} else {
+		PrintToChat( client, "No survivor available to give to player" );
+	}
 }

@@ -1,11 +1,6 @@
 #pragma semicolon 1
 
 #define DEBUG 0
-#define KICKDELAY 0.1
-#define INFECTED_TEAM 3
-#define ZC_BOOMER 2
-#define ZC_SPITTER 4
-#define ZC_TANK 8
 #define CMD_ATTACK 0
 
 #define PLUGIN_AUTHOR "Breezy"
@@ -15,17 +10,16 @@
 #include <sdktools>
 #include <adt_array>
 #include <left4downtown>
-#define L4D2UTIL_STOCKS_ONLY
-#include <l4d2util>
+#include "includes/hardcoop_util.sp"
 
 // Bibliography: "[L4D2] Defib using bots" by "DeathChaos25"
 
 public Plugin:myinfo = 
 {
 	name = "AI: Targeting",
-	author = PLUGIN_AUTHOR,
+	author = "Breezy",
 	description = "Controls the survivor targeting behaviour of special infected",
-	version = PLUGIN_VERSION,
+	version = "1.0",
 	url = ""
 };
 
@@ -187,29 +181,6 @@ ScriptCommand(const String:arguments[], any:...) {
 	CheatCommand("script", vscript);
 }
 
-// Executes through a dummy client, without setting sv_cheats to 1, a console command marked as a cheat
-CheatCommand(String:command[], String:argument1[] = "", String:argument2[] = "") {
-	static commandDummy;
-	new flags = GetCommandFlags(command);		
-	if ( flags != INVALID_FCVAR_FLAGS ) {
-		if ( !IsValidClient(commandDummy) || IsClientInKickQueue(commandDummy) ) { // Dummy may get kicked by SMAC_Antispam.smx
-			commandDummy = CreateFakeClient("[AI_T] Command Dummy");
-			ChangeClientTeam(commandDummy, _:L4D2Team_Spectator);
-		}
-		if ( IsValidClient(commandDummy) ) {
-			new originalUserFlags = GetUserFlagBits(commandDummy);
-			new originalCommandFlags = GetCommandFlags(command);			
-			SetUserFlagBits(commandDummy, ADMFLAG_ROOT); 
-			SetCommandFlags(command, originalCommandFlags ^ FCVAR_CHEAT);				
-			FakeClientCommand(commandDummy, "%s %s %s", command, argument1, argument2);
-			SetCommandFlags(command, originalCommandFlags);
-			SetUserFlagBits(commandDummy, originalUserFlags);
-		} else {
-			LogError("Could not create a dummy client to execute cheat command");
-		}	
-	}
-}
-
 // @return: true if client is a survivor that is not dead/incapacitated nor pinned by an SI
 bool:IsMobile(client) {
 	new bool:bIsMobile = true;
@@ -219,19 +190,6 @@ bool:IsMobile(client) {
 		}
 	} 
 	return bIsMobile;
-}
-
-// @return: true if client is a survivor that is either smoked, hunted, charged or jockeyed
-bool:IsPinned(client) {
-	new bool:bIsPinned = false;
-	if (IsSurvivor(client)) {
-		// check if held by:
-		if (GetEntPropEnt(client, Prop_Send, "m_tongueOwner") > 0) bIsPinned = true; // smoker
-		if (GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") > 0) bIsPinned = true; // hunter
-		if (GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0) bIsPinned = true; // charger
-		if (GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0) bIsPinned = true; // jockey
-	}		
-	return bIsPinned;
 }
 
 // @return: true if player is a dead/incapacitated survivor
@@ -247,36 +205,10 @@ bool:IsIncap(client) {
 bool:IsBotCapper(client) {
 	if (IsBotInfected(client)) {
 		new zombieClass = GetEntProp(client, Prop_Send, "m_zombieClass");
-		if ( zombieClass != ZC_BOOMER && zombieClass != ZC_SPITTER && zombieClass != ZC_TANK ) {
+		if ( L4D2_Infected:zombieClass != L4D2Infected_Boomer && L4D2_Infected:zombieClass != L4D2Infected_Spitter && L4D2_Infected:zombieClass != L4D2Infected_Tank ) {
 			return true;
 		}
 	}
 	return false;
-}
-
-bool:IsBotInfected(client) {
-	return (IsValidClient(client) && GetClientTeam(client) == INFECTED_TEAM && IsFakeClient(client) && IsPlayerAlive(client));
-}
-
-// Creating a fake client to run the fake command works (kicking newly created client after command execution)
-/* @return: entity index of any ingame client, -1 if none could be found
-GetAnyClientInGame() {
-	for (new target = 1; target <= MaxClients; target++) {
-		if (IsClientInGame(target))return target;
-	}
-	return -1; // no valid client found
-}
-*/
-
-bool:IsValidClient(client) {
-    if ( !( 1 <= client <= MaxClients ) || !IsClientInGame(client) ) return false;      
-    return true; 
-}
-
-// Kick dummy bot 
-public Action:Timer_KickBot(Handle:timer, any:client) {
-	if (IsClientInGame(client) && (!IsClientInKickQueue(client))) {
-		if (IsFakeClient(client))KickClient(client);
-	}
 }
 

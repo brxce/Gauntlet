@@ -14,6 +14,7 @@ Prefix commands with '!' when entering into chat, prefix with "sm_" when enterin
 * !limit <class> <value> to set the limit for an SI class 
 * !waveinterval <value> to set the time in seconds between SI waves (default 30)
 * !supportpercent <value> to set the percentage of tank's health at which his support wave will spawn (default 50)
+* !pillpercent <value> to set the percentage of map completion upon which supplementary pills are granted to survivors
 
 ##Full plugin details list
 Cvars may be entered into the 'halfbaked' or 'bakersdozen' .cfg files to auto load the configured setting
@@ -50,6 +51,7 @@ Cvars may be entered into the 'halfbaked' or 'bakersdozen' .cfg files to auto lo
    * full health, single pistol at the start of every round
  * **pillsonly.smx**
    * only pills spawn on the map; each survivor is given a pill upon leaving saferoom
+   * (cmd) !pillpercent <value>
  * **mapskipper.smx**  
    * Skips to next map when survivors wipe 
    * (cmd) !toggleretry cmd
@@ -61,6 +63,7 @@ Cvars may be entered into the 'halfbaked' or 'bakersdozen' .cfg files to auto lo
    * spawns infected in waves; creates custom cvars not related to versus 'limit' cvars
    * (cmd) !waveinterval <value>
    * (cmd) !limit <class> <value> 
+   * (cmd) !limit reset (all limits to 0)
    * (cmd) !supportpercent <value>
    * (cvar) siws_wave_interval "Interval in seconds between special infected waves"; default 30
    * (cvar) siws_max_specials; default 6
@@ -71,6 +74,7 @@ Cvars may be entered into the 'halfbaked' or 'bakersdozen' .cfg files to auto lo
    * (cvar) siws_jockey_limit; default 1
    * (cvar) siws_charger_limit; default 1
    * (cvar) siws_tank_support_health_percent "SI support wave spawns upon tank health falling below this percent"; default 50
+   * (cvar) incap_allowance "Extra grace period extension(sec) to wave interval per incapped survivor"; default 5
 
 >###Misc.
 >>
