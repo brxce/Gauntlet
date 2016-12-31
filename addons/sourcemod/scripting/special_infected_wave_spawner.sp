@@ -280,7 +280,7 @@ public Action:Cmd_SetWaveInterval(client, args) {
             Client_PrintToChatAll(true, "Wave interval must be between {G}%ds {N}and {G}%ds", minWaveInterval, maxWaveInterval);
         }        
     } else { // Incorrect number of arguments
-    	CPrintToChat(client, "Usage: {red}!waveinterval {blue}<time(seconds)>");
+    	Client_PrintToChat(client, true, "Usage: {O}!waveinterval {G}<time(seconds)>");
     }
 }
 
@@ -293,12 +293,12 @@ public Action:Cmd_SetTankSupportHealthPercent(client, args) {
         // Valid percent value entered; apply setting
         if (iPercentValue < 100 && iPercentValue > 0) {
             SetConVarInt(hCvarTankSupportHealthPercent, iPercentValue);
-            CPrintToChatAll("Support wave for tank will now spawn at %i%% health", iPercentValue);
+            Client_PrintToChatAll(true, "Support wave for tank will now spawn at %{G}i%% {N}health", iPercentValue);
         } else {    // Invalid value entered
-            CPrintToChatAll("Percent value must be between 0 and 100, exclusive");
+        Client_PrintToChatAll(true, "Percent value must be between {G}0 {N}and {G}100{N}, exclusive");
         }        
     } else {  // Incorrect number of arguments
-        CPrintToChat(client, "Usage: !setsupportpercent <percent>");
+        Client_PrintToChat(client, true, "Usage: !setsupportpercent <percent>");
     }
 }
 
