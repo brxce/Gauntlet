@@ -95,18 +95,22 @@ public Action:Hunter_OnPlayerRunCmd(hunter, &buttons, &impulse, Float:vel[3], Fl
 		new iSurvivorsProximity = GetSurvivorProximity(hunter);
 		new bool:bHasLOS = bool:GetEntProp(hunter, Prop_Send, "m_hasVisibleThreats"); // Line of sight to survivors		
 		// Start fast pouncing if close enough to survivors
-		if (bHasLOS && (iSurvivorsProximity < GetConVarInt(hCvarFastPounceProximity)) ) {
-			buttons &= ~IN_ATTACK; // release attack button; precautionary					
-			// Queue a pounce/lunge
-			if (!bHasQueuedLunge[hunter]) { // check lunge interval timer has not already been initiated
-				bCanLunge[hunter] = false;
-				bHasQueuedLunge[hunter] = true; // block duplicate lunge interval timers
-				CreateTimer(GetConVarFloat(hCvarLungeInterval), Timer_LungeInterval, any:hunter, TIMER_FLAG_NO_MAPCHANGE);
-			} else if (bCanLunge[hunter]) { // end of lunge interval; lunge!
-				buttons |= IN_ATTACK;
-				bHasQueuedLunge[hunter] = false; // unblock lunge interval timer
-			} // else lunge queue is being processed
-		}				
+		if( bHasLOS ) {
+			if( iSurvivorsProximity < GetConVarInt(hCvarFastPounceProximity) ) {
+				buttons &= ~IN_ATTACK; // release attack button; precautionary					
+				// Queue a pounce/lunge
+				if (!bHasQueuedLunge[hunter]) { // check lunge interval timer has not already been initiated
+					bCanLunge[hunter] = false;
+					bHasQueuedLunge[hunter] = true; // block duplicate lunge interval timers
+					CreateTimer(GetConVarFloat(hCvarLungeInterval), Timer_LungeInterval, any:hunter, TIMER_FLAG_NO_MAPCHANGE);
+				} else if (bCanLunge[hunter]) { // end of lunge interval; lunge!
+					buttons |= IN_ATTACK;
+					bHasQueuedLunge[hunter] = false; // unblock lunge interval timer
+				} // else lunge queue is being processed
+			}
+		} else {
+			buttons &= ~IN_DUCK; // do not crouch before seeing survivors
+		}		
 	} 	
 	return Plugin_Changed;
 }

@@ -344,7 +344,7 @@ stock CheatCommand( String:commandName[], String:argument1[] = "", String:argume
 				if( IsValidClient(i) && IsClientInGame(i) && IsFakeClient(i) ) {
 					new String:clientName[32];
 					GetClientName( i, clientName, sizeof(clientName) );
-					if( StrEqual( clientName, "[CommandBot]", false ) ) {
+					if( StrContains( clientName, "[CommandBot]", true ) != -1 ) {
 						commandDummy = i;
 					}
 				}  		
@@ -352,7 +352,11 @@ stock CheatCommand( String:commandName[], String:argument1[] = "", String:argume
 			// Create a command bot if necessary
 			if ( !IsValidClient(commandDummy) || IsClientInKickQueue(commandDummy) ) { // Command bot may have been kicked by SMAC_Antispam.smx
 			    commandDummy = CreateFakeClient("[CommandBot]");
-			    ChangeClientTeam(commandDummy, _:L4D2Team_Spectator);				
+			    if( IsValidClient(commandDummy) ) {
+			    	ChangeClientTeam(commandDummy, _:L4D2Team_Spectator);	
+			    } else {
+			    	commandDummy = GetRandomSurvivor(); // wanted to use a bot, but failed; last resort
+			    }			
 			}
 		} else {
 			commandDummy = GetRandomSurvivor();

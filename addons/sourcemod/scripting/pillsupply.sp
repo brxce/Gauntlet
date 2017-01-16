@@ -76,17 +76,25 @@ public OnGameFrame() {
 public Action:Cmd_PillPercent(client, args) {	
 	if( args < 1 ) {
 		new iSuppPillPercent = RoundToNearest(GetConVarFloat(hCvarSuppPillPercent));
-		Client_PrintToChat(client, true, "Supplementary pill percent is currently set to {G}%d%%", iSuppPillPercent);
+		if( iSuppPillPercent > 0 ) {
+			Client_PrintToChat(client, true, "Supplementary pill percent is currently set to {G}%d%%", iSuppPillPercent);
+		} else {
+			Client_PrintToChat(client, true, "Supplementary pills are currently disabled");
+		}		
 	} else {
 		if( L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor || IsGenericAdmin(client) ) {
 			new String:sPercentValue[32];		
 			GetCmdArg(1, sPercentValue, sizeof(sPercentValue));
 			new iPercentValue = StringToInt(sPercentValue);
-			if (iPercentValue > 0 && iPercentValue < 100) {
+			if( iPercentValue < 100 ) {
 				SetConVarInt(hCvarSuppPillPercent, iPercentValue);
-				Client_PrintToChatAll(true, "Supplementary pill percent set to {G}%d%% {N}map flow", iPercentValue);
+				if( iPercentValue > 0 ) {
+					Client_PrintToChatAll(true, "Supplementary pill percent set to {G}%d%% {N}map flow", iPercentValue);
+				} else {
+					Client_PrintToChatAll(true, "Supplementary pills have been disabled");
+				}
 			} else {
-				Client_PrintToChatAll(true, "Supplementary pill percent must be between {G}0-100");
+				Client_PrintToChatAll(true, "Usage: 1-99 to enable supplementary pills, <= 0 to disable supplementary pills");
 			}
 		} else {
 			PrintToChat(client, "Command only available to survivor team");
