@@ -41,7 +41,9 @@ public Action:Tank_OnPlayerRunCmd( tank, &buttons, &impulse, Float:vel[3], Float
 		GetClientEyeAngles(tank,clientEyeAngles);
 		
 		// LOS and survivor proximity
-		new iSurvivorsProximity = GetSurvivorProximity(tank);
+		new Float:tankPos[3];
+		GetClientAbsOrigin(tank, tankPos);
+		new iSurvivorsProximity = GetSurvivorProximity(tankPos);
 		new bool:bHasSight = bool:GetEntProp(tank, Prop_Send, "m_hasVisibleThreats"); //Line of sight to survivors
 		
 		// Near survivors

@@ -146,7 +146,7 @@ public Action:InitialiseSpecialInfected(Handle:event, String:name[], bool:dontBr
 	return Plugin_Handled;
 }
 
-// Modify hunter lunges; block smokers and spitters from fleeing after using their ability
+// Modify hunter lunges and block smokers/spitters from fleeing after using their ability
 public Action:OnAbilityUse(Handle:event, String:name[], bool:dontBroadcast) {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	if( IsBotInfected(client) ) {
@@ -188,78 +188,15 @@ public Action:OnPlayerJump(Handle:event, String:name[], bool:dontBroadcast) {
 
 /***********************************************************************************************************************************************************************************
 
-																		SURVIVOR TRACKING
+																	TRACKING SURVIVORS' AIM
 
 ***********************************************************************************************************************************************************************************/
-
-/**
- * Finds the closest survivor excluding a given survivor 
- * @param referenceClient: compares survivor distances to this client
- * @param excludeSurvivor: ignores this survivor
- * @return: the entity index of the closest survivor
-**/
-GetClosestSurvivor( referenceClient, excludeSurvivor = -1 ) {
-	new Float:referencePos[3];
-	GetEntPropVector(referenceClient, Prop_Send, "m_vecOrigin", referencePos);
-	new Float:survivorPos[3];
-	new iClosestAbsDisplacement = -1; 
-	new closestSurvivor = -1;		
-	for (new client = 1; client < MaxClients; client++) {
-		if( IsSurvivor(client) && client != excludeSurvivor ) {
-			GetEntPropVector(client, Prop_Send, "m_vecOrigin", survivorPos);
-			new iAbsDisplacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );			
-			if(iClosestAbsDisplacement == -1) {  	// Start with the absolute displacement to the first survivor found:
-				iClosestAbsDisplacement = iAbsDisplacement;
-				closestSurvivor = client;
-			} else if (iAbsDisplacement < iClosestAbsDisplacement) { // closest survivor so far
-				iClosestAbsDisplacement = iAbsDisplacement;
-				closestSurvivor = client;
-			}			
-		}
-	}
-	return closestSurvivor;
-}
-
-/**
- * Returns the distance of the closest survivor or a specified survivor
- * @param referenceClient: the client from which to measure distance to survivor
- * @param specificSurvivor: the index of the survivor to be measured, -1 to search for distance to closest survivor
- * @return: the distance
- */
-GetSurvivorProximity( referenceClient, specificSurvivor = -1 ) {
-	new Float:referencePos[3];
-	GetEntPropVector(referenceClient, Prop_Send, "m_vecOrigin", referencePos);
-	new Float:survivorPos[3];
-	new iClosestAbsDisplacement = -1; 
-	// Find distance of closest or specified survivor
-	if( specificSurvivor > 0 && IsSurvivor(specificSurvivor) ) { // specified survivor
-		GetEntPropVector(specificSurvivor, Prop_Send, "m_vecOrigin", survivorPos);
-		iClosestAbsDisplacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );
-	} else { // closest survivor
-		for (new client = 1; client < MaxClients; client++) {
-			if( IsSurvivor(client) ) {
-				// Get displacement between this survivor and the reference
-				GetEntPropVector(client, Prop_Send, "m_vecOrigin", survivorPos);
-				new iAbsDisplacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );
-				// Start with the absolute displacement to the first survivor found:
-				if (iClosestAbsDisplacement == -1) { 
-					iClosestAbsDisplacement = iAbsDisplacement;
-				} else if (iAbsDisplacement < iClosestAbsDisplacement) { // closest survivor so far
-					iClosestAbsDisplacement = iAbsDisplacement;
-				}			
-			}
-		}
-	}
-	
-	// return the closest survivor's proximity
-	return iClosestAbsDisplacement;
-}
 
 /**
 	Determines whether an attacking SI is being watched by the survivor
 	@return: true if the survivor's crosshair is within the specified radius
 	@param attacker: the client number of the attacking SI
-	@param offsetThreshold: the radius of the cone of detection around the straight line from the attacked survivor to the SI
+	@param offsetThreshold: the radius(degrees) of the cone of detection around the straight line from the attacked survivor to the SI
 **/
 bool:IsTargetWatchingAttacker( attacker, offsetThreshold ) {
 	new bool:isWatching = true;

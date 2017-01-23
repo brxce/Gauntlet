@@ -38,8 +38,10 @@ public Action:Charger_OnSpawn(botCharger) {
 
 public Action:Charger_OnPlayerRunCmd(charger, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
 	// prevent charge until survivors are within the defined proximity
-	new target = GetClientAimTarget(charger);
-	new iSurvivorProximity = GetSurvivorProximity(charger, target); // -1 target will cause GetSurvivorProximity() to return distance to closest survivor
+	new Float:chargerPos[3];
+	GetClientAbsOrigin(charger, chargerPos);
+	new target = GetClientAimTarget(charger);	
+	new iSurvivorProximity = GetSurvivorProximity(chargerPos, target); // -1 target will cause GetSurvivorProximity() to return distance to closest survivor
 	new chargerHealth = GetEntProp(charger, Prop_Send, "m_iHealth");
 	if( chargerHealth > GetConVarInt(hCvarHealthThresholdCharger) ) {
 		if( iSurvivorProximity > GetConVarInt(hCvarChargeProximity) ) { 		
@@ -67,9 +69,11 @@ Charger_OnCharge(charger) {
 	// Assign charger a new survivor target if they are not specifically targetting anybody with their charge or their target is watching
 	new aimTarget = GetClientAimTarget(charger);
 	if( !IsSurvivor(aimTarget) || IsTargetWatchingAttacker(charger, GetConVarInt(hCvarAimOffsetSensitivityCharger)) ) {	
-		new newTarget = GetClosestSurvivor(charger, aimTarget);	// try and find another closeby survivor
-		if( newTarget != -1 && GetSurvivorProximity(charger, newTarget) <= GetConVarInt(hCvarChargeProximity) ) {
-			aimTarget = newTarget; 
+		new Float:chargerPos[3];
+		GetClientAbsOrigin(charger, chargerPos);
+		new newTarget = GetClosestSurvivor(chargerPos, aimTarget);	// try and find another closeby survivor
+		if( newTarget != -1 && GetSurvivorProximity(chargerPos, newTarget) <= GetConVarInt(hCvarChargeProximity) ) {
+			aimTarget = newTarget; // might be the same survivor if there were no other survivors within configured charge proximity
 			
 			#if DEBUG_CHARGER_TARGET	
 				new String:targetName[32];

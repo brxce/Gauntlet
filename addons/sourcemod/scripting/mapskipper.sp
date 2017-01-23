@@ -42,7 +42,7 @@ public OnPluginStart() {
 }
 
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
-   PrintRetryOption();
+   // PrintRetryOption();
 }
 
 public Action:Cmd_ToggleRetry(client, args) {
@@ -125,15 +125,14 @@ bool:GetNextMapName() { // returns true if the next map was found
 					
 					// If there is a map listed next, a finale is not being played
 					if (KvGotoNextKey(missions_kv)) { 
-						LogMessage("Found next map: %s", NextMap); 
 						g_bIsFinale = false;
 						// Get the next map's name
-						KvGetString(missions_kv, "map", NextMap, sizeof(NextMap));						
+						KvGetString(missions_kv, "map", NextMap, sizeof(NextMap));	
+						LogMessage("Found next map: %s", NextMap); 						
 						// Close handles
 						CloseHandle(missions_kv); 
 						CloseHandle(missions_dir); 
 						return true;
-						
 					} 
 					
 					// else a finale is being played

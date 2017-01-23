@@ -1,73 +1,28 @@
-Updated folder structure to remove the need to replicate updates across multiple configs
-- config specific settings should now to be placed in the relevant confogl.cfg and gauntlet/gauntlette(num) .cfgs
-- moved repeated cvars and plugin loads into shared_cvars.cfg, shared_settings.cfg and shared_plugins.cfg
-- config is now AceMod based, inc. strippers
-- removed "in the hood" config as since SI limit settings now carry across maps, hunters only configs can be manually set for the campaign
+With 'special' ;) thanks to the authors of the l4d2_autoIS plugin, all credits to them for their code:
+- New plugin [specialspawner.smx] to replace [special_infected_wave_spawner.smx]
+	- SI spawn in groups of configurable size, up to an 'SI limit'
+	- 'SI limit' cvar that can be overriden with Admin only 'SI limit Server cap' cvar 
+	- SI class limits and spawn weights that affect spawn probability; spawns will vary a lot more 
+	- !limit, !weight, !timer cmds for all users
+	- hold your "USE" and "RELOAD" keys to read limits and other customisation settings off the Spawner HUD; fades after 1s
+- Added witch spawning functionality to coopbosses
+	- see sourcecode for cvars
 
-Confoglcompmod
-- removed extra spaces from .cfg that were preventing many confoglcompmod features from working
+Added new vanilla cvar settings to improve AI thanks to this addon: http://steamcommunity.com/sharedfiles/filedetails/?id=732341797
+Not sure what they all do, but I have selected these as they sound like they have potential
+JOCKEY
+- z_jockey_ride_hazard_scan_distance 1900
+- z_jockey_ride_scan_distance 3000
+- z_jockey_ride_scan_interval 1.50
+- z_jockey_lookahead 1600
+TANK
+- tank_stuck_visibility_tolerance_choose_new_target 1.5
+- tank_stuck_time_choose_new_target 0.5
+NEXTBOT (general survivor/infected AI)
+- nb_path_segment_influence_radius 2147483647
+- nb_path_draw_inc 2147483647
+- nb_saccade_speed 4150
+- nb_saccade_time 0
+- nb_speed_look_ahead_range 338
 
-Added 1p and 3p configs
-- 1p config uses hunter 1v1 plugin to auto clear players when capped by hunter/jockey
-- lower dmg per successful SI pounce on a player
-- 10dmg/pounce
-hardcoop_reminder.smx
-- added this plugin to print command names to survivors periodically
-
-Balancing: increased the frequency of spawns, but granted survivors more tools to survive
-- confoglcompmod pills limit now works and has been increased to 2 * num survivors
-- alternatively survivors can be granted a second set of pills at a map percentage customisable with sm_pillpercent/!pillpercent [pillsonly.smx]
-	- default 50%
-- decreased common limits in all configs inc horde limits for finite events
-
-QoL
-- compromised the moving and static spreads of SMGs between vanilla and AceMod 4.0 values
-- removed spitters from default configs due to the high potential of SI stacking on one player
-- finale starting kits are now converted into pills
-- extra time(default 5s/player) extension is now applied to wave interval per incapped player at end of interval
-
-l4d2_meleeinthesaferoom.smx
-- added 2 melee in the saferoom for all configs
-
-[AI_HardSI.smx]
-- collapsed all the AI plugins (except ai_targeting.smx) into a single modular plugin similar to confoglcompmod.smx
-- streamlines expensive OnPlayerRunCmd() callbacks into one plugin rather than four
-- Tanks
-	- added tank bhop option (disabled by default); cvar: 'ai_tank_bhop'
-- Hunters
-	- hunter pounce angle mean from 20 to 10
-	- hunter pounce angle std deviation from 20
-	- if locked on a target, will straight pounce if survivor is not looking near them (default 30 degrees)
-	- blocked hunter scratches as they dealt 10 damage and were not cvar'able
-- Chargers
-	- will take into account its own health, distance to survivor and whether they their target is looking near them on the horizontal plane
-- Jockeys
-	- pounce ability will now be put on cooldown when used as was intended
-
-Optimisation cvars:
-- [special_infected_wave_spawner]
-	- siws_spawn_attempt_interval
-		- Interval between SI spawn attempts. Increase interval to reduce server load
-		- default 0.5
-- [AI_HardSI.smx]		
-	-ai_assault_reminder_interval
-		- "Frequency(sec) at which the 'nb_assault' command is fired to make SI attack
-		- default 2
-
-[special_infected_wave_spawner.smx]
-- !limit max now controls a server SI limit('siws_maxlimit') available only admins (default 15)
-- 'siws_max_specials' removed
-- limits printout formatting has been adjusted for readability
-
-[coopbosses.smx]
-- created !toggletank command to toggle spawning of a flow tank
-
-added [pause.smx]
-- fixed infinite bleeping loop ocurring upon unpause 
-- recompiled to account for bot spectators
-- added IsFakeClient() check for line 356: 'SendConVarValue(client, sv_noclipduringpause, "1");'
-
-Renamed plugins to better reflect their purpose
-- pillsonly to pillsupply
-- survivor_reset to resetsurvivorkits
-- replaced autowipe with AutoSlayer
+Autoslayer now has a new(default) mode that slays after a configured amount time all SI if all survivors are immobilised

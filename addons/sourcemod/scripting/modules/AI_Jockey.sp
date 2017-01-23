@@ -44,7 +44,9 @@ public Jockey_OnModuleEnd() {
 ***********************************************************************************************************************************************************************************/
 
 public Action:Jockey_OnPlayerRunCmd(jockey, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon, bool:hasBeenShoved) {
-	new iSurvivorsProximity = GetSurvivorProximity(jockey);
+	new Float:jockeyPos[3];
+	GetClientAbsOrigin(jockey, jockeyPos);
+	new iSurvivorsProximity = GetSurvivorProximity(jockeyPos);
 	new bool:bHasLOS = bool:GetEntProp(jockey, Prop_Send, "m_hasVisibleThreats"); // line of sight to any survivor
 	
 	// Start hopping if within range	

@@ -54,7 +54,7 @@ public Action:Timer_Welcome(Handle:timer, any:client)
 	Format(message2, sizeof(message2), "Skip to next map upon team death: !toggleretry");
 	DrawPanelText(WelcomePanel, message2);
 	
-	Format( message7, sizeof(message7), "Server SI limit: %d", GetConVarInt(FindConVar("siws_maxlimit")) );
+	Format( message7, sizeof(message7), "Server SI limit: %d", GetConVarInt(FindConVar("ss_server_si_limit")) );
 	DrawPanelText(WelcomePanel, message7);
 	
 	Format(closepanel, sizeof(closepanel), "Press '5' to close");

@@ -12,23 +12,39 @@
 #include "includes/hardcoop_util.sp"
 
 // Bibliography: "current" by "CanadaRox"
+// All credits to the l4d2_autoIS.smx authors for the witch spawning code
 
 public Plugin:myinfo = 
 {
 	name = "Coop Bosses",
-	author = "Breezy",
-	description = "Ensures there is exactly one tank on every non finale map in coop",
-	version = "1.0",
+	author = "Breezy, Tordecybombo",
+	description = "Customisable tank and witch spawning in coop",
+	version = "2.0",
 	url = ""
 };
 
 new Handle:hCvarFlowTankEnable;
 new Handle:hCvarDirectorNoBosses; // blocks witches unfortunately, needs testing for reliability with tanks
 
+// Tanks
 new g_iTankPercent;
 new g_iMapTankSpawnAttemptCount;
 new g_bIsTankTryingToSpawn;
 new g_bHasEncounteredTank;
+
+// Witches
+new Handle:hWitchTimer;
+new Handle:hWitchPeriod;
+new Handle:hWitchPeriodMode;
+new Handle:hWitchWaitTimer;
+
+new bool:g_bIsWitchCountFull;
+new bool:g_bHasWitchTimerStarted;
+new bool:g_bHasWitchWaitTimerStarted;
+
+new g_WitchCount;
+new Handle:hWitchLimit;
+
 new g_bIsRoundActive;
 new g_bIsFinale;
 
@@ -36,18 +52,37 @@ public OnPluginStart() {
 	// Command
 	RegConsoleCmd("sm_boss", Cmd_BossPercent, "Spawn percent for boss");
 	RegConsoleCmd("sm_tank", Cmd_BossPercent, "Spawn percent for boss");
-	RegConsoleCmd("sm_witch", Cmd_BossPercent, "Spawn percent for boss");
 	RegConsoleCmd("sm_toggletank", Cmd_ToggleTank, "Toggle flow tank spawn");
+	RegConsoleCmd("sm_witch", Cmd_WitchSettings, "Adjust witch settings");
 	
-	// Event hooks
+	// Map events
 	HookEvent("mission_lost", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("finale_win", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("finale_start", EventHook:OnFinaleStart, EventHookMode_PostNoCopy);
+	// Witch tracking
+	HookEvent("witch_spawn", Event_WitchSpawn, EventHookMode_PostNoCopy);
+	HookEvent("witch_killed", Event_WitchKilled, EventHookMode_PostNoCopy);
 	
-	// Console Variables
+	// Tank cvars
 	hCvarFlowTankEnable = CreateConVar("flow_tank_enable", "1", "Enable percentage tank spawns");
 	hCvarDirectorNoBosses = FindConVar("director_no_bosses");
+	// Witch cvars
+	hWitchLimit = CreateConVar("cb_witch_limit", "2", "[-1 = Director spawns witches] The max amount of witches present at once (independant of plugin limit).", FCVAR_PLUGIN, true, -1.0, true, 100.0);
+	hWitchPeriod = CreateConVar("cb_witch_period", "12.0", "The time (seconds) interval in which exactly one witch will spawn", FCVAR_PLUGIN, true, 1.0);
+	hWitchPeriodMode = CreateConVar("cb_witch_period_mode", "1", "The witch spawn rate consistency [0=CONSTANT|1=VARIABLE]", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+}
+
+public Action:Event_WitchSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
+	g_WitchCount++;
+}
+
+public Action:Event_WitchKilled(Handle:event, const String:name[], bool:dontBroadcast) {
+	g_WitchCount--;
+	if( g_bIsWitchCountFull ) {
+	 	g_bIsWitchCountFull = false;
+		StartWitchWaitTimer(0.0);
+	}
 }
 
 public OnPluginEnd() {
@@ -68,7 +103,7 @@ public Action:Cmd_ToggleTank(client, args) {
 	if( L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor || IsGenericAdmin(client) ) {
 		new bool:flowTankFlag = GetConVarBool(hCvarFlowTankEnable);
 		SetConVarBool( hCvarFlowTankEnable, !flowTankFlag );
-		if( flowTankFlag ) {
+		if( GetConVarBool(hCvarFlowTankEnable) ) {
 			Client_PrintToChatAll( true, "Flow tank has been {G}enabled" );
 		} else {
 			Client_PrintToChatAll(true, "Flow tank has been {O}disabled");
@@ -79,6 +114,41 @@ public Action:Cmd_ToggleTank(client, args) {
 	return Plugin_Handled;
 }
 
+public Action:Cmd_WitchSettings(client, args) {
+	if(L4D2_Team:GetClientTeam(client) != L4D2_Team: L4D2Team_Survivor && !IsGenericAdmin(client) ) {
+		PrintToChat(client, "Command only available to survivor team");
+		return Plugin_Handled;
+	} 
+	
+	if (args == 2) {
+		// Which setting are we adjusting
+		new String:witchSetting[32];
+		GetCmdArg(1, witchSetting, sizeof(witchSetting));
+		new String:sValue[32];     
+		GetCmdArg(2, sValue, sizeof(sValue));
+		new iValue = StringToInt(sValue);    
+		// Must be valid limit value	
+		if( StrEqual(witchSetting, "limit", false) ) {
+			SetConVarInt( hWitchLimit, iValue );
+			Client_PrintToChat( client, true, "Witch limit set to {G}%d", iValue );
+		} else if( StrEqual(witchSetting, "period", false) ) {
+			SetConVarFloat( hWitchPeriod, float(iValue) );
+			Client_PrintToChat( client, true, "Witch spawn period set to {G}%d", iValue );
+		} else if( StrEqual(witchSetting, "mode", false) ) {
+			SetConVarInt( hWitchPeriodMode, iValue );
+			Client_PrintToChat( client, true, "Witch spawn mode set to {G}%d", iValue );
+		} else {
+			ReplyToCommand(client, "witch < limit | period | mode > < value >");
+			ReplyToCommand(client, "<period> The time (seconds) interval in which exactly one witch will spawn [ >= 1 ]");
+			ReplyToCommand(client, "<mode> The witch spawn rate consistency [ 0 = CONSTANT | 1 = VARIABLE ]");
+		}
+	} else {
+		ReplyToCommand(client, "witch < limit | period | mode > < value >");
+		ReplyToCommand(client, "<period> The time (seconds) interval in which exactly one witch will spawn [ >= 1 ]");
+		ReplyToCommand(client, "<mode> The witch spawn rate consistency [ 0 = CONSTANT | 1 = VARIABLE ]");
+	}
+	return Plugin_Handled;
+}
 
 /***********************************************************************************************************************************************************************************
 
@@ -89,23 +159,40 @@ public Action:Cmd_ToggleTank(client, args) {
 // Announce boss percent
 public Action:L4D_OnFirstSurvivorLeftSafeArea() {
 	g_bIsRoundActive = true;
+	g_bIsFinale = false;
+	
+	// Tank component initialisation
 	g_bHasEncounteredTank = false;
 	g_iMapTankSpawnAttemptCount = 0;
 	g_bIsTankTryingToSpawn = false;
-	g_bIsFinale = false;
 	if( GetConVarBool(hCvarFlowTankEnable) ) {
 		// Tank percent
 		g_iTankPercent = GetRandomInt(20, 80);
 		PrintToChatAll("\x01Tank: [\x04%i%%\x01]", g_iTankPercent);
 		// Limit tanks
 		SetConVarBool(hCvarDirectorNoBosses, true); 
-	}	
+	}
+	
+	// Witch timer
+	RestartWitchTimer(0.0);
+	g_WitchCount = 0;
+	g_bHasWitchTimerStarted = false;
+	g_bHasWitchWaitTimerStarted = false;
+	g_bIsWitchCountFull = false;
 }
 
 public OnRoundOver() {
 	g_bIsFinale = false;
 	g_bIsRoundActive = false;
 	g_bHasEncounteredTank = false;
+	
+	g_WitchCount = 0;
+	g_bHasWitchTimerStarted = false;
+	g_bHasWitchWaitTimerStarted = false;
+	g_bIsWitchCountFull = false;
+	
+	EndWitchWaitTimer();
+	EndWitchTimer();
 }
 
 /***********************************************************************************************************************************************************************************
@@ -190,4 +277,89 @@ public Action:LimitTankSpawns(Handle:event, String:name[], bool:dontBroadcast) {
 public OnFinaleStart() {
 	g_bIsFinale = true;
 	SetConVarBool(hCvarDirectorNoBosses, false); 
+}
+
+/***********************************************************************************************************************************************************************************
+
+                                                                WITCH START TIMERS
+                                                                    
+***********************************************************************************************************************************************************************************/
+
+//take account of both witch timers when restarting overall witch timer
+RestartWitchTimer(Float:time) {
+	EndWitchTimer();
+	StartWitchWaitTimer(time);
+}
+
+StartWitchWaitTimer(Float:time) {
+	EndWitchWaitTimer();
+	if( GetConVarInt(hWitchLimit) > 0 ) {
+		if( g_WitchCount < GetConVarInt(hWitchLimit) ) {
+			g_bHasWitchWaitTimerStarted = true;
+			hWitchWaitTimer = CreateTimer( time, StartWitchTimer );
+			
+				#if DEBUG
+					PrintToChatAll("Mode: %b | Witches: %d | Next(WitchWait): %.3f s", GetConVarInt(hWitchPeriodMode), g_WitchCount, time);
+				#endif
+				
+		} else {//if witch count reached limit, wait until a witch killed event to start witch timer
+			g_bIsWitchCountFull = true;
+			
+				#if DEBUG
+					PrintToChatAll(" Witch Limit reached. Waiting for witch death.");
+				#endif		
+				
+		}
+	}
+}
+
+public Action:StartWitchTimer( Handle:timer ) {
+	g_bHasWitchWaitTimerStarted = false;
+	new Float:fWitchPeriod = GetConVarFloat(hWitchPeriod);
+	EndWitchTimer();
+	if( GetConVarInt(hWitchLimit) > 0 ) {
+		new Float:time;
+		if( GetConVarBool(hWitchPeriodMode) ) {
+			time = GetRandomFloat(0.0, fWitchPeriod);
+		} else {
+			time = fWitchPeriod;
+		}
+		g_bHasWitchTimerStarted = true;
+		hWitchTimer = CreateTimer( time, SpawnWitchAuto, fWitchPeriod - time );
+		
+			#if DEBUG
+				PrintToChatAll("Mode: %b | Witches: %d | Next(Witch): %.3f s", GetConVarInt(hWitchPeriodMode), g_WitchCount, time);
+			#endif
+			
+	}
+	return Plugin_Handled;
+}
+
+public Action:SpawnWitchAuto(Handle:timer, any:waitTime) {
+	g_bHasWitchTimerStarted = false;
+	if( g_WitchCount < GetConVarInt(hWitchLimit) ) {
+		CheatCommand("z_spawn_old", "witch", "auto", true);
+	}
+	StartWitchWaitTimer(waitTime);
+	return Plugin_Handled;
+}
+
+/***********************************************************************************************************************************************************************************
+
+                                                                  WITCH END TIMERS
+                                                                    
+***********************************************************************************************************************************************************************************/
+
+EndWitchWaitTimer() {
+	if( g_bHasWitchWaitTimerStarted ) {
+		CloseHandle(hWitchWaitTimer);
+		g_bHasWitchWaitTimerStarted = false;
+	}
+}
+
+EndWitchTimer() {
+	if( g_bHasWitchTimerStarted ) {
+		CloseHandle(hWitchTimer);
+		g_bHasWitchTimerStarted = false;
+	}
 }

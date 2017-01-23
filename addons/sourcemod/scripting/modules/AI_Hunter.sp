@@ -91,8 +91,10 @@ public Action:Hunter_OnPlayerRunCmd(hunter, &buttons, &impulse, Float:vel[3], Fl
 	buttons &= ~IN_ATTACK2; // block scratches
 	new flags = GetEntityFlags(hunter);
 	//Proceed if the hunter is in a position to pounce
-	if( (flags & FL_DUCKING) && (flags & FL_ONGROUND) ) {				
-		new iSurvivorsProximity = GetSurvivorProximity(hunter);
+	if( (flags & FL_DUCKING) && (flags & FL_ONGROUND) ) {		
+		new Float:hunterPos[3];
+		GetClientAbsOrigin(hunter, hunterPos);		
+		new iSurvivorsProximity = GetSurvivorProximity(hunterPos);
 		new bool:bHasLOS = bool:GetEntProp(hunter, Prop_Send, "m_hasVisibleThreats"); // Line of sight to survivors		
 		// Start fast pouncing if close enough to survivors
 		if( bHasLOS ) {
@@ -149,7 +151,8 @@ public Action:Hunter_OnPounce(botHunter) {
 		
 	} else {
 		// Angle pounce if survivor is watching the hunter approach
-		if( IsTargetWatchingAttacker(botHunter, GetConVarInt(hCvarAimOffsetSensitivityHunter)) && GetSurvivorProximity(botHunter) > GetConVarInt(hCvarStraightPounceProximity) ) {			
+		GetClientAbsOrigin(botHunter, hunterPos);		
+		if( IsTargetWatchingAttacker(botHunter, GetConVarInt(hCvarAimOffsetSensitivityHunter)) && GetSurvivorProximity(hunterPos) > GetConVarInt(hCvarStraightPounceProximity) ) {			
 			new Float:pounceAngle = GaussianRNG( float(GetConVarInt(hCvarPounceAngleMean)), float(GetConVarInt(hCvarPounceAngleStd)) );
 			AngleLunge( entLunge, pounceAngle );
 			LimitLungeVerticality( entLunge );

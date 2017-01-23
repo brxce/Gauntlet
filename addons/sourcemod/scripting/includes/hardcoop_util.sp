@@ -180,6 +180,53 @@ stock bool:IsIncapacitated(client) {
     return bool:GetEntProp(client, Prop_Send, "m_isIncapacitated");
 }
 
+/**
+ * Finds the closest survivor excluding a given survivor 
+ * @param referenceClient: compares survivor distances to this client
+ * @param excludeSurvivor: ignores this survivor
+ * @return: the entity index of the closest survivor
+**/
+stock GetClosestSurvivor( Float:referencePos[3], excludeSurvivor = -1 ) {
+	new Float:survivorPos[3];
+	new iClosestAbsDisplacement = -1; 
+	new closestSurvivor = -1;		
+	for (new client = 1; client < MaxClients; client++) {
+		if( IsSurvivor(client) && client != excludeSurvivor ) {
+			GetClientAbsOrigin( client, survivorPos );
+			new iAbsDisplacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );			
+			if( iClosestAbsDisplacement < 0 ) { // Start with the absolute displacement to the first survivor found:
+				iClosestAbsDisplacement = iAbsDisplacement;
+				closestSurvivor = client;
+			} else if( iAbsDisplacement < iClosestAbsDisplacement ) { // closest survivor so far
+				iClosestAbsDisplacement = iAbsDisplacement;
+				closestSurvivor = client;
+			}			
+		}
+	}
+	return closestSurvivor;
+}
+
+/**
+ * Returns the distance of the closest survivor or a specified survivor
+ * @param referenceClient: the client from which to measure distance to survivor
+ * @param specificSurvivor: the index of the survivor to be measured, -1 to search for distance to closest survivor
+ * @return: the distance
+ */
+stock GetSurvivorProximity( Float:referencePos[3], specificSurvivor = -1 ) {
+	
+	new targetSurvivor;
+	new Float:targetSurvivorPos[3];
+
+	if( specificSurvivor > 0 && IsSurvivor(specificSurvivor) ) { // specified survivor
+		targetSurvivor = specificSurvivor;		
+	} else { // closest survivor
+		targetSurvivor = GetClosestSurvivor( referencePos );
+	}
+	
+	GetEntPropVector( targetSurvivor, Prop_Send, "m_vecOrigin", targetSurvivorPos );
+	return RoundToNearest( GetVectorDistance(referencePos, targetSurvivorPos) );
+}
+
 /** @return: the index to a random survivor */
 stock GetRandomSurvivor() {
 	new survivors[MAXPLAYERS];

@@ -7,20 +7,26 @@
 #include "includes/hardcoop_util.sp"
 
 new bool:g_bIsAutoSlayerActive = true; // start true to prevent AutoSlayer being activated after round end or before round start
-new handle:hCvarGracePeriod;
+new Handle:hCvarGracePeriod;
+new Handle:hCvarTeamClearDelay;
+new Handle:hCvarAutoSlayerMode;
+new Handle:hAutoSlayerTimer;
 
 // This plugin was created because of a Hard12 bug where a survivor fails to take damage while pinned
 // by special infected. If the whole team is immobilised, they get a grace period before they are AutoSlayerd.
 public Plugin:myinfo = {
 	name = "AutoSlayer",
 	author = "Breezy",
-	description = "Slays the team if they are simultaneously incapped/pinned for a period of time",
-	version = "1.0"
+	description = "Slays configured team if survivors are simultaneously incapped/pinned",
+	version = "2.0"
 };
 
 public OnPluginStart() {
 	// Cvar
-	hCvarGracePeriod = CreateConVar("autoslayer_graceperiod", "7", "Time(sec) pinned/incapacitated survivor team is allowed to pistol clear before an AutoSlayer is executed");
+	hCvarAutoSlayerMode = CreateConVar("autoslayer_mode", "1", "On all survivors incapacitated/pinned : -1 = Slay survivors, 0 = OFF, 1 = Slay infected");
+	hCvarGracePeriod = CreateConVar("autoslayer_graceperiod", "7.0", "Time(sec) before pinned/incapacitated survivor team is slayed by 'slay survivors' AutoSlayer mode", FCVAR_PLUGIN, true, 0.0 );
+	hCvarTeamClearDelay = CreateConVar( "autoslayer_teamclear_delay", "3.0", "Time(sec) before survivor team is cleared by 'slay infected' AutoSlayer mode", FCVAR_PLUGIN, true, 0.0 );
+	HookConVarChange(hCvarAutoSlayerMode, ConVarChanged:OnAutoSlayerModeChange);
 	// Event hooks
 	HookEvent("player_incapacitated", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy);
 	HookEvent("choke_start", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy);
@@ -31,6 +37,10 @@ public OnPluginStart() {
 	// Prevent AutoSlayer activating between maps
 	HookEvent("map_transition", EventHook:PreventAutoSlayer, EventHookMode_PostNoCopy);
 	HookEvent("mission_lost", EventHook:PreventAutoSlayer, EventHookMode_PostNoCopy);
+}
+
+public OnAutoSlayerModeChange() {
+	CloseHandle(hAutoSlayerTimer);
 }
 
 public PreventAutoSlayer() {
@@ -53,17 +63,22 @@ public OnPlayerDeath(Handle:event, String:name[], bool:dontBroadcast) {
 }
 
 AutoSlayer() {
-	if( !g_bIsAutoSlayerActive && IsTeamImmobilised() && !IsTeamWiped() ) {
-		Client_PrintToChatAll(true, "{O}[AS] {N}Initiating AutoSlayer...");
-		new gracePeriod = GetConVarInt(hCvarGracePeriod);
-		CreateTimer( 1.0, Timer_AutoSlayer, gracePeriod, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
+	if( GetConVarInt(hCvarAutoSlayerMode) != 0 && !g_bIsAutoSlayerActive && IsTeamImmobilised() && !IsTeamWiped() ) { 
 		g_bIsAutoSlayerActive = true;
-	} 
+		Client_PrintToChatAll(true, "{O}[AS] {N}Initiating AutoSlayer...");
+		if( GetConVarInt(hCvarAutoSlayerMode) < 0 ) { // Slay survivors
+			hAutoSlayerTimer = CreateTimer( 1.0, Timer_SlaySurvivors, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
+		} else { // Slay infected
+			CreateTimer( GetConVarFloat(hCvarTeamClearDelay), Timer_SlaySpecialInfected, _, TIMER_FLAG_NO_MAPCHANGE );
+		}
+	} else { // AutoSlayer mode 0
+		return; // AutoSlayer is switched off
+	}
 }
 
-public Action:Timer_AutoSlayer(Handle:timer, any:iGracePeriod) {
+public Action:Timer_SlaySurvivors(Handle:timer) {
 	static secondsPassed = 0;
-	new countdown = iGracePeriod - secondsPassed;
+	new countdown = RoundToNearest(GetConVarFloat(hCvarGracePeriod)) - secondsPassed;
 	// Check for survivors being cleared during the countdown
 	if( !IsTeamImmobilised() ) {
 		Client_PrintToChatAll(true, "{O}[AS] {N}...AutoSlayer cancelled!");	
@@ -86,6 +101,16 @@ public Action:Timer_AutoSlayer(Handle:timer, any:iGracePeriod) {
 	Client_PrintToChatAll(true, "{O}[AS] {N}%d...", countdown);	
 	secondsPassed++;
 	return Plugin_Continue;
+}
+
+public Action:Timer_SlaySpecialInfected(Handle:timer) {
+	Client_PrintToChatAll( true, "{O}[AS] {N}AutoSlayed special infected");
+	for( new i = 0; i < MAXPLAYERS; i++ ) {
+		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
+			ForcePlayerSuicide(i);
+		}
+	}
+	g_bIsAutoSlayerActive = false;
 }
 
 SlaySurvivors() { //incap everyone
