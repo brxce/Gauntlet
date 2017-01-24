@@ -74,9 +74,3 @@ ResetWeights() {
 		ResetConVar(hSpawnWeights[i]);
 	}
 }
-
-ZeroWeights() {
-	for (new i = 0; i < NUM_TYPES_INFECTED; i++) {
-		SpawnWeightsCache[i] =  0;
-	}
-}

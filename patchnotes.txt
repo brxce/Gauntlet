@@ -5,8 +5,12 @@ With 'special' ;) thanks to the authors of the l4d2_autoIS plugin, all credits t
 	- SI class limits and spawn weights that affect spawn probability; spawns will vary a lot more 
 	- !limit, !weight, !timer cmds for all users
 	- hold your "USE" and "RELOAD" keys to read limits and other customisation settings off the Spawner HUD; fades after 1s
+- SI can now spawn within LOS of survivors
 - Added witch spawning functionality to coopbosses
 	- see sourcecode for cvars
+
+AI_HardSI
+- fixed smoker death while smoking dmg threshold dropping to 50
 
 Added new vanilla cvar settings to improve AI thanks to this addon: http://steamcommunity.com/sharedfiles/filedetails/?id=732341797
 Not sure what they all do, but I have selected these as they sound like they have potential

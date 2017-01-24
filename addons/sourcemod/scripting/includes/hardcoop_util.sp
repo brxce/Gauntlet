@@ -103,9 +103,8 @@ stock GetMaxSurvivorCompletion() {
 	decl Float:tmp_flow;
 	decl Float:origin[3];
 	decl Address:pNavArea;
-	for (new client = 1; client <= MaxClients; client++) {
-		if(IsClientInGame(client) &&
-			L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor)
+	for( new client = 1; client <= MaxClients; client++ ) {
+		if( IsSurvivor(client) )
 		{
 			GetClientAbsOrigin(client, origin);
 			pNavArea = L4D2Direct_GetTerrorNavArea(origin);

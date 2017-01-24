@@ -5,6 +5,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <smlib>
+#include "includes/hardcoop_util.sp"
 
 public Plugin:myinfo = 
 {
@@ -16,7 +17,8 @@ public Plugin:myinfo =
 };
 
 public OnPluginStart() {
-	CreateTimer(300.0, Timer_Hint, _, TIMER_REPEAT);
+	CreateTimer(150.0, Timer_Hint, _, TIMER_REPEAT);
+	RegConsoleCmd("sm_gauntlethelp", Cmd_ShowHelp, "Display the help menu");
 }
 
 public OnClientPostAdminCheck(client) {
@@ -29,55 +31,73 @@ public OnClientPostAdminCheck(client) {
                                                                     
 ***********************************************************************************************************************************************************************************/
 
-public Action:Timer_Welcome(Handle:timer, any:client)
-{
-	decl String:message1[255], String:message2[255], String:message3[255], String:message4[255], String:message5[255], String:message6[255], String:message7[255];
+public Action:Cmd_ShowHelp( client, args ) {
+	if( IsValidClient(client) && !IsFakeClient(client) ) {
+		ShowHelpMenu(client);
+	}
+}
+
+public Action:Timer_Welcome(Handle:timer, any:client) {
+	ShowHelpMenu(client);	
+	return Plugin_Handled;
+}
+
+public ShowHelpMenu(client) {
+	decl String:heading[255];
+	decl String:spawnerhud[255];
+	decl String:limitcmd[255], String:weightcmd[255], String:timercmd[255];
+	decl String:bosscmds[255];
+	decl String:joinSurvivors[255], String:spawnedDead[255], String:spawnedOutOfSaferoom[255];
+	decl String:misc[255];
 	decl String:closepanel[255];
 	
 	new Handle:WelcomePanel = CreatePanel(INVALID_HANDLE);
 	
-	Format(message1, sizeof(message1), "=====+ Before You Start +=====");
-	SetPanelTitle(WelcomePanel, message1);
+	// Heading
+	Format(heading, sizeof(heading), "=====+ GAUNTLET HELP +=====");
+	SetPanelTitle(WelcomePanel, heading);
+	DrawPanelText(WelcomePanel, " \n");
 	
-	Format(message3, sizeof(message3), "Print Limits: !printlimits");
-	DrawPanelText(WelcomePanel, message3);
+	// HUD controls
+	Format(spawnerhud, sizeof(spawnerhud), "Press USE and RELOAD to show Spawner HUD for 3s");
+	DrawPanelText(WelcomePanel, spawnerhud);
+	DrawPanelText(WelcomePanel, " \n"); // empty line to separate sections
+
+	// SI commands
+	Format(limitcmd, sizeof(limitcmd), "!limit < all | max | group | class > - SI limits");
+	DrawPanelText(WelcomePanel, limitcmd);
+	Format(weightcmd, sizeof(weightcmd), "!weight < all | class | reset > - SI weights");
+	DrawPanelText(WelcomePanel, weightcmd);
+	Format(timercmd, sizeof(timercmd), "!timer <constant> || !timer <min> <max>" );
+	DrawPanelText(WelcomePanel, timercmd);
+	// Boss commands
+	Format(bosscmds, sizeof(bosscmds), "!toggletank, !witch < limit | period | mode >");
+	DrawPanelText(WelcomePanel, bosscmds);
+	DrawPanelText(WelcomePanel, " \n"); // empty line to separate sections
 	
-	Format(message6, sizeof(message6), "All SI limits to 0: !resetlimits");
-	DrawPanelText(WelcomePanel, message6);
+	// Survivor commands
+	Format(joinSurvivors, sizeof(joinSurvivors), "!join (join survivor team), !spectate (spectate survivor team)");
+	DrawPanelText(WelcomePanel, joinSurvivors);
+	Format(spawnedDead, sizeof(spawnedDead), "!respawn - respawn (spawned dead)");
+	DrawPanelText(WelcomePanel, spawnedDead);	
+	Format(spawnedOutOfSaferoom, sizeof(spawnedOutOfSaferoom), "!return - teleport to saferoom (spawned out of the world)");
+	DrawPanelText(WelcomePanel, spawnedOutOfSaferoom);
+	DrawPanelText(WelcomePanel, " \n"); // empty line to separate sections
 	
-	Format(message4, sizeof(message4), "SI limits: !limit <class> <limit>");
-	DrawPanelText(WelcomePanel, message4);
-	
-	Format(message5, sizeof(message5), "Spawn frequency: !waveinterval <time(seconds)>");
-	DrawPanelText(WelcomePanel, message5);
-	
-	Format(message2, sizeof(message2), "Skip to next map upon team death: !toggleretry");
-	DrawPanelText(WelcomePanel, message2);
-	
-	Format( message7, sizeof(message7), "Server SI limit: %d", GetConVarInt(FindConVar("ss_server_si_limit")) );
-	DrawPanelText(WelcomePanel, message7);
+	// Miscellaneous commands
+	Format(misc, sizeof(misc), "!pillpercent, !toggleretry");
+	DrawPanelText(WelcomePanel, misc);
+	DrawPanelText(WelcomePanel, " \n"); // empty line to separate sections
 	
 	Format(closepanel, sizeof(closepanel), "Press '5' to close");
 	DrawPanelText(WelcomePanel, closepanel);
 	
 	SendPanelToClient(WelcomePanel, client, NullMenuHandler, 60);
 	CloseHandle(WelcomePanel);
-	
-	return Plugin_Handled;
 }
 
 public Action:Timer_Hint(Handle:timer) {
-	Client_PrintToChatAll(true, "Join survivors: {O}!join");
-	Client_PrintToChatAll(true, "Spawned dead: {O}!respawn");
-	Client_PrintToChatAll(true, "Spawned out of saferoom: {O}!return");
-	Client_PrintToChatAll(true, "Secondary pills: {O}!pillpercent {B}<%%map>");
-	Client_PrintToChatAll(true, "Toggle mapskipper: {O}!toggleretry");
-	Client_PrintToChatAll(true, "Print limits: {O}!printlimits");
-	Client_PrintToChatAll(true, "All SI limits to {G}0: {O}!resetlimits");
-	Client_PrintToChatAll(true, "Set limits: {O}!limit {B}<class> <limit>");
-	Client_PrintToChatAll(true, "Wave Interval: {O}!waveinterval {B}<time(seconds)>");
+Client_PrintToChatAll(true, "Type {O}!gauntlethelp {N}to display the welcome menu");
 }
 
-public NullMenuHandler(Handle:menu, MenuAction:action, param1, param2) 
-{
-}
+public NullMenuHandler(Handle:menu, MenuAction:action, param1, param2) {}

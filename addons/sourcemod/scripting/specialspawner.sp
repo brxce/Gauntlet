@@ -71,7 +71,7 @@ public OnPluginStart() {
 	SetConVarInt( FindConVar("z_safe_spawn_range"), 0 );
 	SetConVarInt( FindConVar("z_spawn_safety_range"), 0 );
 	//SetConVarInt( FindConVar("z_spawn_range"), 750 ); // default 1500 (potentially very far from survivors) is remedied if SpawnRelocator module is active 
-	SetConVarInt( FindConVar("z_discard_range"), 1000 ); // Discard Zombies farther away than this	
+	SetConVarInt( FindConVar("z_discard_range"), 1250 ); // Discard Zombies farther away than this	
 	// Resetting at the end of rounds
 	HookEvent("mission_lost", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
@@ -149,19 +149,8 @@ public Action:Cmd_SetLimit(client, args) {
 		PrintToChat(client, "Command only available to survivor team");
 		return Plugin_Handled;
 	} 
-	// limit clearall
-	if( args == 1 ) {
-		decl String:arg[16];
-		GetCmdArg(1, arg, sizeof(arg));	
-		if( StrEqual(arg, "zeroall", false) ) {
-			for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
-				SpawnLimitsCache[i] = 0;
-			}
-		}
-		PrintToChatAll("All SI limits have been zeroed");
-	} 
-	// limit < max | simultaneous | smoker | boomer | hunter | spitter | jockey | charger >
-	else if (args == 2) {
+	
+	if (args == 2) {
 		// Read in the SI class
 		new String:sTargetClass[32];
 		GetCmdArg(1, sTargetClass, sizeof(sTargetClass));
@@ -174,7 +163,12 @@ public Action:Cmd_SetLimit(client, args) {
 			PrintToChat(client, "Limit value must be >= 0");
 		} else {
 			// Apply limit value to appropriate class
-			if( StrEqual(sTargetClass, "max", false) ) {  // Max specials
+			if( StrEqual(sTargetClass, "all", false) ) {
+				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
+					SpawnLimitsCache[i] = iLimitValue;
+				}
+				PrintToChatAll("All SI limits have been set to %d", iLimitValue);
+			} else if( StrEqual(sTargetClass, "max", false) ) {  // Max specials
 				SILimitCache = iLimitValue;
 				Client_PrintToChatAll(true, "-> {O}Max SI {N}limit set to {G}%i", iLimitValue);		           
 			} else if( StrEqual(sTargetClass, "group", false) ) {
@@ -190,9 +184,9 @@ public Action:Cmd_SetLimit(client, args) {
 			}
 		}	 
 	} else {  // Invalid command syntax
-		Client_PrintToChat(client, true, "Set limit : {O}limit {B}<class> <limit>");
-		Client_PrintToChat(client, true, "{B}<class> {N}= zeroall | max | group | smoker | boomer | hunter | spitter | jockey | charger");
-		Client_PrintToChat(client, true, "{B}<limit>: {N}Greater than 0");
+		Client_PrintToChat(client, true, "{O}!limit/sm_limit {B}<class> <limit>");
+		Client_PrintToChat(client, true, "{B}<class> {N}[ all | max | group | smoker | boomer | hunter | spitter | jockey | charger ]");
+		Client_PrintToChat(client, true, "{B}<limit> {N}[ >= 0 ]");
 	}
 	// Load cache into appropriate cvars
 	LoadCacheSpawnLimits(); 
@@ -211,9 +205,6 @@ public Action:Cmd_SetWeight(client, args) {
 		if( StrEqual(arg, "reset", false) ) {
 			ResetWeights();
 			ReplyToCommand(client, "Spawn weights reset to default values");
-		} else if( StrEqual(arg, "zeroall", false) ) {
-			ZeroWeights();
-			ReplyToCommand(client, "All spawn weights set to zero");
 		} 
 	} else if( args == 2 ) {
 		// Read in the SI class
@@ -228,15 +219,25 @@ public Action:Cmd_SetWeight(client, args) {
 			PrintToChat( client, "0 <= weight value <= 100") ;
 			return Plugin_Handled;
 		} else { //presets for spawning special infected i only
-			for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
-				if( StrEqual(sTargetClass, Spawns[i], false) ) {
-					SpawnWeightsCache[i] =  iWeightPercent;
-					Client_PrintToChat(client, true, "-> {O}%s {N}weight set to {G}%d", Spawns[i], iWeightPercent );				
-				}
-			}	
+			if( StrEqual(sTargetClass, "all", false) ) {
+				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
+					SpawnWeightsCache[i] = iWeightPercent;			
+				}	
+				Client_PrintToChat(client, true, "-> {O}All spawn weights {N}set to {G}%d", iWeightPercent );	
+			} else {
+				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
+					if( StrEqual(sTargetClass, Spawns[i], false) ) {
+						SpawnWeightsCache[i] =  iWeightPercent;
+						Client_PrintToChat(client, true, "-> {O}%s {N}weight set to {G}%d", Spawns[i], iWeightPercent );				
+					}
+				}	
+			}
+			
 		}
 	} else {
-		ReplyToCommand(client, "[SS] weight <reset | zeroall | smoker | boomer | hunter | spitter | jockey | charger> <value>");
+		Client_PrintToChat( client, true, "{O}!weight/sm_weight {B}<class> <value>" );
+		Client_PrintToChat( client, true, "{B}<class> {N}[ reset | all | smoker | boomer | hunter | spitter | jockey | charger ] " );	
+		Client_PrintToChat( client, true, "{B}value {N}[ >= 0 ] " );	
 	}
 	LoadCacheSpawnWeights();
 	return Plugin_Handled;

@@ -11,6 +11,7 @@
 
 #include <l4d2_direct>
 
+
 new Handle:hCvarEnableSpawnPositioner;
 new Handle:hCvarSpawnSearchAttemptLimit;
 new Handle:hCvarSpawnSearchHeight;
@@ -46,7 +47,7 @@ public SpawnPositionerMode() {
 public OnPlayerSpawnPost(Handle:event, const String:name[], bool:dontBroadcast) {
     new client = GetClientOfUserId(GetEventInt(event, "userid"));
     if( GetConVarBool(hCvarEnableSpawnPositioner) && IsBotInfected(client) ) {
-    	CreateTimer(0.3, Timer_PositionSI, client, TIMER_FLAG_NO_MAPCHANGE);
+    	CreateTimer(0.2, Timer_PositionSI, client, TIMER_FLAG_NO_MAPCHANGE);
     }
 }
 
@@ -54,21 +55,19 @@ public Action:Timer_PositionSI(Handle:timer, any:client) {
 	new Float:survivorPos[3];
 	new Float:rayEnd[3];
 	new Float:spawnPos[3] = {-1.0, -1.0, -1.0};
-	for( new i = 0; i < GetConVarInt(hCvarSpawnSearchAttemptLimit); i++ ) {
-		// Generate a random position around a random survivor
+	new survivorTarget = GetSurvivorTarget();
+	for( new i = 0; i < GetConVarInt(hCvarSpawnSearchAttemptLimit); i++ ) {		
+		// Fire a ray at a random angle around the survivor to a configured height and distance	
+		GetClientAbsOrigin(survivorTarget, survivorPos); 
 		new Float:spawnSearchAngle = GetRandomFloat(0.0, 2.0 * PI);
-		new lastSurvivorIndex = CacheSurvivors(); 
-		new randomSurvivorIndex = GetRandomInt(0, lastSurvivorIndex);	
-		new survivor = g_AllSurvivors[randomSurvivorIndex];	
-		// Fire a ray at a random angle around a random survivor to a configured height and distance	
-		GetClientAbsOrigin(survivor, survivorPos); 
 		rayEnd[0] = survivorPos[0] + Sine(spawnSearchAngle) * GetConVarInt(hCvarSpawnProximity);
 		rayEnd[1] = survivorPos[1] + Cosine(spawnSearchAngle) * GetConVarInt(hCvarSpawnProximity);
 		rayEnd[2] = survivorPos[2] + GetConVarInt(hCvarSpawnSearchHeight);
 		spawnPos = rayEnd;
+		// Look straight down from end of ray to find an acceptable spawn position
 		for( new j = 0; j < 2 * GetConVarInt(hCvarSpawnSearchHeight); j += 10 ) { // TraceRay probably a better idea here
 			spawnPos[2] -= 10;
-			if( IsOnValidMesh(spawnPos) && !IsPlayerStuck(spawnPos, client) && GetSurvivorProximity(spawnPos) < GetConVarInt(hCvarSpawnProximity) ) {
+			if( IsOnValidMesh(spawnPos) && !IsPlayerStuck(spawnPos, client) && GetSurvivorProximity(spawnPos) > GetConVarInt(hCvarSpawnProximity) ) {
 				TeleportEntity( client, spawnPos, NULL_VECTOR, NULL_VECTOR ); 
 	
 					#if DEBUG_POSITIONER
@@ -82,6 +81,7 @@ public Action:Timer_PositionSI(Handle:timer, any:client) {
 		}
 	}
 	
+	// Could not find an acceptable spawn position
 	new String:clientName[32];
 	GetClientName(client, clientName, sizeof(clientName));
 	LogMessage("[SS] Failed to find a valid position for %s after %d attempts", clientName, GetConVarInt(hCvarSpawnSearchAttemptLimit) );  
@@ -89,21 +89,74 @@ public Action:Timer_PositionSI(Handle:timer, any:client) {
 	return Plugin_Handled;
 }
 
-stock bool:IsPlayerStuck(Float:pos[3], client) {
-	new Float:mins[3];
-	new Float:maxs[3];
-	
-	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
-	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
-	
-	// inflate the sizes just a little bit
-	for( new i = 0; i < sizeof(mins); i++ ) {
-	    mins[i] -= BOUNDINGBOX_INFLATION_OFFSET;
-	    maxs[i] += BOUNDINGBOX_INFLATION_OFFSET;
+/* Determine which survivor to relocate an SI spawn to. 
+ * @return: a random survivor or a survivor that is rushing too far ahead in front
+ */
+stock GetSurvivorTarget() {
+	new lastSurvivorIndex = CacheSurvivors(); 
+	decl Float:tmp_flow;
+	decl Float:origin[3];
+	decl Address:pNavArea;
+	// Find the farthest flow held by a survivor
+	new Float:farthestFlow = -1.0;
+	new farthestSurvivor = -1;
+	for( new i = 0; i < lastSurvivorIndex; i++ ) {
+		new survivor = g_AllSurvivors[i];
+		if( IsSurvivor(survivor) && IsPlayerAlive(survivor) ) {
+			GetClientAbsOrigin(survivor, origin);
+			pNavArea = L4D2Direct_GetTerrorNavArea(origin);
+			if( pNavArea != Address_Null ) {
+				tmp_flow = L4D2Direct_GetTerrorNavAreaFlow(pNavArea);
+				if( tmp_flow > farthestFlow ) {
+					farthestFlow = tmp_flow;
+					farthestSurvivor = survivor;
+				}
+			}
+		}
+	}
+	// Find the second farthest
+	new Float:secondFarthestFlow = -1.0;
+	for( new i = 0; i < lastSurvivorIndex; i++ ) {
+		new survivor = g_AllSurvivors[i];
+		if( IsSurvivor(survivor) && IsPlayerAlive(survivor) && survivor != farthestSurvivor ) {
+			GetClientAbsOrigin(survivor, origin);
+			pNavArea = L4D2Direct_GetTerrorNavArea(origin);
+			if( pNavArea != Address_Null ) {
+				tmp_flow = L4D2Direct_GetTerrorNavAreaFlow(pNavArea);
+				if( tmp_flow > secondFarthestFlow ) {
+					secondFarthestFlow = tmp_flow;
+				}
+			}
+		}
+	}
+	// Is the leading player too far ahead?
+	if( (farthestFlow - secondFarthestFlow) > 1500.0 ) {
+		return farthestSurvivor;
+	} else {
+		new randomSurvivorIndex = GetRandomInt(0, lastSurvivorIndex);		
+		return g_AllSurvivors[randomSurvivorIndex];
 	}
 	
-	TR_TraceHullFilter(pos, pos, mins, maxs, MASK_ALL, TraceEntityFilterPlayer, client);
-	return TR_DidHit();
+}
+
+stock bool:IsPlayerStuck(Float:pos[3], client) {
+	if( IsValidClient(client) ) {
+		new Float:mins[3];
+		new Float:maxs[3];		
+		GetClientMins(client, mins);
+		GetClientMaxs(client, maxs);
+		
+		// inflate the sizes just a little bit
+		for( new i = 0; i < sizeof(mins); i++ ) {
+		    mins[i] -= BOUNDINGBOX_INFLATION_OFFSET;
+		    maxs[i] += BOUNDINGBOX_INFLATION_OFFSET;
+		}
+		
+		TR_TraceHullFilter(pos, pos, mins, maxs, MASK_ALL, TraceEntityFilterPlayer, client);
+		return TR_DidHit();
+	} else {
+		return true;
+	}
 }  
 
 // filter out players, since we can't get stuck on them
