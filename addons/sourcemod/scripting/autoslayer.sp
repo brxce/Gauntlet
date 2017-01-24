@@ -10,6 +10,7 @@ new bool:g_bIsAutoSlayerActive = true; // start true to prevent AutoSlayer being
 new Handle:hCvarGracePeriod;
 new Handle:hCvarTeamClearDelay;
 new Handle:hCvarAutoSlayerMode;
+new Handle:hCvarSlayAllInfected;
 new Handle:hAutoSlayerTimer;
 
 // This plugin was created because of a Hard12 bug where a survivor fails to take damage while pinned
@@ -26,6 +27,7 @@ public OnPluginStart() {
 	hCvarAutoSlayerMode = CreateConVar("autoslayer_mode", "1", "On all survivors incapacitated/pinned : -1 = Slay survivors, 0 = OFF, 1 = Slay infected");
 	hCvarGracePeriod = CreateConVar("autoslayer_graceperiod", "7.0", "Time(sec) before pinned/incapacitated survivor team is slayed by 'slay survivors' AutoSlayer mode", FCVAR_PLUGIN, true, 0.0 );
 	hCvarTeamClearDelay = CreateConVar( "autoslayer_teamclear_delay", "3.0", "Time(sec) before survivor team is cleared by 'slay infected' AutoSlayer mode", FCVAR_PLUGIN, true, 0.0 );
+	hCvarSlayAllInfected = CreateConVar( "autoslayer_slay_all_infected", "1", "0 = only infected pinning survivors are slayed, 1 = all infected are slayed" );
 	HookConVarChange(hCvarAutoSlayerMode, ConVarChanged:OnAutoSlayerModeChange);
 	// Event hooks
 	HookEvent("player_incapacitated", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy);
@@ -103,22 +105,40 @@ public Action:Timer_SlaySurvivors(Handle:timer) {
 	return Plugin_Continue;
 }
 
-public Action:Timer_SlaySpecialInfected(Handle:timer) {
-	Client_PrintToChatAll( true, "{O}[AS] {N}AutoSlayed special infected");
-	for( new i = 0; i < MAXPLAYERS; i++ ) {
-		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
-			ForcePlayerSuicide(i);
-		}
-	}
-	g_bIsAutoSlayerActive = false;
-}
-
 SlaySurvivors() { //incap everyone
 	for (new client = 1; client < MaxClients; client++) {
 		if (IsSurvivor(client) && IsPlayerAlive(client)) {
 			ForcePlayerSuicide(client);
 		}
 	}
+}
+
+public Action:Timer_SlaySpecialInfected(Handle:timer) {
+	Client_PrintToChatAll( true, "{O}[AS] {N}AutoSlayed special infected");
+	for( new i = 0; i < MAXPLAYERS; i++ ) {
+		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
+			if( IsPinningASurvivor(i) ) {
+				ForcePlayerSuicide(i);
+			} else {
+				if( GetConVarBool(hCvarSlayAllInfected) ) {
+					ForcePlayerSuicide(i);
+				} 
+			}
+		}
+	}
+	g_bIsAutoSlayerActive = false;
+}
+
+bool:IsPinningASurvivor(client) {
+	new bool:isPinning = false;
+	if( IsBotInfected(client) && IsPlayerAlive(client) ) {
+		if( GetEntPropEnt(client, Prop_Send, "m_tongueVictim") > 0 ) isPinning = true; // smoker
+		if( GetEntPropEnt(client, Prop_Send, "m_pounceVictim") > 0 ) isPinning = true; // hunter
+		if( GetEntPropEnt(client, Prop_Send, "m_carryVictim") > 0 ) isPinning = true; // charger carrying
+		if( GetEntPropEnt(client, Prop_Send, "m_pummelVictim") > 0 ) isPinning = true; // charger pounding
+		if( GetEntPropEnt(client, Prop_Send, "m_jockeyVictim") > 0 ) isPinning = true; // jockey
+	}
+	return isPinning;
 }
 
 /**

@@ -18,8 +18,6 @@ new Handle:hCvarConfigName;
 new bool:bShowSpawnerHUD[MAXPLAYERS];
 
 // Modules
-new String:Spawns[NUM_TYPES_INFECTED][16] = {"smoker", "boomer", "hunter", "spitter", "jockey", "charger"};
-new SpawnCounts[NUM_TYPES_INFECTED];
 #include "includes/hardcoop_util.sp"
 #include "modules/SS_SpawnCustomisation.sp"
 #include "modules/SS_SpawnTimers.sp"
@@ -160,25 +158,25 @@ public Action:Cmd_SetLimit(client, args) {
 		new iLimitValue = StringToInt(sLimitValue);    
 		// Must be valid limit value		
 		if( iLimitValue < 0 ) {
-			PrintToChat(client, "Limit value must be >= 0");
+			PrintToChat(client, "[SS] Limit value must be >= 0");
 		} else {
 			// Apply limit value to appropriate class
 			if( StrEqual(sTargetClass, "all", false) ) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnLimitsCache[i] = iLimitValue;
 				}
-				PrintToChatAll("All SI limits have been set to %d", iLimitValue);
+				PrintToChatAll("[SS] All SI limits have been set to %d", iLimitValue);
 			} else if( StrEqual(sTargetClass, "max", false) ) {  // Max specials
 				SILimitCache = iLimitValue;
-				Client_PrintToChatAll(true, "-> {O}Max SI {N}limit set to {G}%i", iLimitValue);		           
+				Client_PrintToChatAll(true, "[SS] -> {O}Max {N}SI limit set to {G}%i", iLimitValue);		           
 			} else if( StrEqual(sTargetClass, "group", false) ) {
 				SpawnSizeCache = iLimitValue;
-				Client_PrintToChatAll(true, "-> SI {O}group spawn {B}size set to {G}%i", iLimitValue);
+				Client_PrintToChatAll(true, "[SS] -> SI {O}group {N}spawn size set to {G}%i", iLimitValue);
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(Spawns[i], sTargetClass, false) ) {
 						SpawnLimitsCache[i] = iLimitValue;
-						Client_PrintToChatAll(true, "-> {O}%s {N}limit set to {G}%i", sTargetClass, iLimitValue);
+						Client_PrintToChatAll(true, "[SS] {O}%s {N}limit set to {G}%i", sTargetClass, iLimitValue);
 					}
 				}
 			}
@@ -204,7 +202,7 @@ public Action:Cmd_SetWeight(client, args) {
 		GetCmdArg(1, arg, sizeof(arg));	
 		if( StrEqual(arg, "reset", false) ) {
 			ResetWeights();
-			ReplyToCommand(client, "Spawn weights reset to default values");
+			ReplyToCommand(client, "[SS] Spawn weights reset to default values");
 		} 
 	} else if( args == 2 ) {
 		// Read in the SI class
@@ -223,12 +221,12 @@ public Action:Cmd_SetWeight(client, args) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnWeightsCache[i] = iWeightPercent;			
 				}	
-				Client_PrintToChat(client, true, "-> {O}All spawn weights {N}set to {G}%d", iWeightPercent );	
+				Client_PrintToChat(client, true, "[SS] -> {O}All spawn weights {N}set to {G}%d", iWeightPercent );	
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(sTargetClass, Spawns[i], false) ) {
 						SpawnWeightsCache[i] =  iWeightPercent;
-						Client_PrintToChat(client, true, "-> {O}%s {N}weight set to {G}%d", Spawns[i], iWeightPercent );				
+						Client_PrintToChat(client, true, "[SS] {O}%s {N}weight set to {G}%d", Spawns[i], iWeightPercent );				
 					}
 				}	
 			}

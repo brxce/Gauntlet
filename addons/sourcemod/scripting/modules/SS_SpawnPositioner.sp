@@ -25,6 +25,7 @@ new laserCache;
  * Bibliography
  * - Epilimic's witch spawner code
  * - "Player-Teleport by Dr. HyperKiLLeR" (sm_gotoRevA.smx)
+ * Thanks to Newteee for his repositioning algorithm
  */
  
 SpawnPositioner_OnModuleStart() {
@@ -82,10 +83,7 @@ public Action:Timer_PositionSI(Handle:timer, any:client) {
 	}
 	
 	// Could not find an acceptable spawn position
-	new String:clientName[32];
-	GetClientName(client, clientName, sizeof(clientName));
-	LogMessage("[SS] Failed to find a valid position for %s after %d attempts", clientName, GetConVarInt(hCvarSpawnSearchAttemptLimit) );  
-		
+	LogMessage("[SS] Failed to find a valid position for %d after %d attempts", client, GetConVarInt(hCvarSpawnSearchAttemptLimit) );  
 	return Plugin_Handled;
 }
 

@@ -3,22 +3,28 @@ new Handle:hSpawnTimeMode;
 new Handle:hSpawnTimeMin;
 new Handle:hSpawnTimeMax;
 
+new Handle:hCvarIncapAllowance;
+
 new Float:SpawnTimes[SI_HARDLIMIT];
 new Float:IntervalEnds[NUM_TYPES_INFECTED];
 
 new g_bHasSpawnTimerStarted;
 
 SpawnTimers_OnModuleStart() {
-	hSpawnTimeMin = CreateConVar("ss_time_min", "10.0", "The minimum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 0.0);
-	hSpawnTimeMax = CreateConVar("ss_time_max", "20.0", "The maximum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 1.0);
+	// Timer
+	hSpawnTimeMin = CreateConVar("ss_time_min", "15.0", "The minimum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 0.0);
+	hSpawnTimeMax = CreateConVar("ss_time_max", "25.0", "The maximum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 1.0);
 	hSpawnTimeMode = CreateConVar("ss_time_mode", "1", "The spawn time mode [ 0 = RANDOMIZED | 1 = INCREMENTAL | 2 = DECREMENTAL ]", FCVAR_PLUGIN, true, 0.0, true, 2.0);
 	HookConVarChange(hSpawnTimeMode, ConVarChanged:CalculateSpawnTimes);
-	SetSpawnTimes(); //sets SpawnTimeMin, SpawnTimeMax, and SpawnTimes[]
+	// Grace period
+	hCvarIncapAllowance = CreateConVar( "ss_incap_allowance", "5", "Grace period(sec) per incapped survivor" );
+	// sets SpawnTimeMin, SpawnTimeMax, and SpawnTimes[]
+	SetSpawnTimes(); 
 }
 
 /***********************************************************************************************************************************************************************************
 
-                                                                            SI TIMERS
+                                                                           START TIMERS
                                                                     
 ***********************************************************************************************************************************************************************************/
 
@@ -30,19 +36,6 @@ StartCustomSpawnTimer(Float:time) {
 	g_bHasSpawnTimerStarted = true;
 	hSpawnTimer = CreateTimer(time, SpawnInfectedAuto);
 }
-
-public Action:SpawnInfectedAuto(Handle:timer) {
-	g_bHasSpawnTimerStarted = false; //spawn timer always stops here (the non-repeated spawn timer calls this function)
-	GenerateSpawns();
-	StartSpawnTimer();
-	return Plugin_Handled;
-}
-
-/***********************************************************************************************************************************************************************************
-
-                                                                               START TIMERS
-                                                                    
-***********************************************************************************************************************************************************************************/
 
 //special infected spawn timer based on time modes
 StartSpawnTimer() {
@@ -61,14 +54,45 @@ StartSpawnTimer() {
 	hSpawnTimer = CreateTimer(time, SpawnInfectedAuto);
 	
 		#if DEBUG_TIMERS
-			LogMessage("New spawn timer | Mode: %d | SI: %d | Next: %.3f s", GetConVarInt(hSpawnTimeMode), CountSpecialInfectedBots(), time);
+			PrintToChatAll("[SS] New spawn timer | Mode: %d | SI: %d | Next: %.3f s", GetConVarInt(hSpawnTimeMode), CountSpecialInfectedBots(), time);
 		#endif
 		
 }
 
 /***********************************************************************************************************************************************************************************
 
-                                                                            END TIMERS
+                                                                       SPAWN TIMER
+                                                                    
+***********************************************************************************************************************************************************************************/
+
+public Action:SpawnInfectedAuto(Handle:timer) {
+	g_bHasSpawnTimerStarted = false; //spawn timer always stops here (the non-repeated spawn timer calls this function)
+	// Grant grace period before allowing a wave to spawn if there are incapacitated survivors
+	new numIncappedSurvivors = 0;
+	for (new i = 1; i <= MaxClients; i++ ) {
+		if( IsSurvivor(i) && IsIncapacitated(i) && !IsPinned(i) ) {
+			numIncappedSurvivors++;			
+		}
+	}
+	new gracePeriod = numIncappedSurvivors * GetConVarInt(hCvarIncapAllowance);
+	if( numIncappedSurvivors > 0 && numIncappedSurvivors < GetConVarInt(FindConVar("survivor_limit")) ) {
+		Client_PrintToChatAll(true, "{G}%ds {O}grace period {N}was granted because of {G}%d {N}incapped survivor(s)", gracePeriod, numIncappedSurvivors);
+		CreateTimer( float(gracePeriod), Timer_GracePeriod, _, TIMER_FLAG_NO_MAPCHANGE );
+	} else {
+		GenerateAndExecuteSpawnQueue();
+	}
+	StartSpawnTimer();
+	return Plugin_Handled;
+}
+
+public Action:Timer_GracePeriod(Handle:timer) {
+	GenerateAndExecuteSpawnQueue();
+	return Plugin_Handled;
+}
+
+/***********************************************************************************************************************************************************************************
+
+                                                                        END TIMERS
                                                                     
 ***********************************************************************************************************************************************************************************/
 
@@ -76,12 +100,17 @@ EndSpawnTimer() {
 	if( g_bHasSpawnTimerStarted ) {
 		CloseHandle(hSpawnTimer);
 		g_bHasSpawnTimerStarted = false;
+		
+			#if DEBUG_TIMERS
+				PrintToChatAll("[SS] Ending spawn timer.");
+			#endif
+		
 	}
 }
 
 /***********************************************************************************************************************************************************************************
 
-                                                                    UTILITY
+                                                                    	UTILITY
                                                                     
 ***********************************************************************************************************************************************************************************/
 

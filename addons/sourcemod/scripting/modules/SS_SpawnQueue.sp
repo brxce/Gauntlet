@@ -1,10 +1,13 @@
 // new Handle:hCvarSpawnAttemptInterval;
 
+new String:Spawns[NUM_TYPES_INFECTED][16] = {"smoker", "boomer", "hunter", "spitter", "jockey", "charger"};
+new SpawnCounts[NUM_TYPES_INFECTED];
+
 SpawnQueue_OnModuleStart() {
 	// hCvarSpawnAttemptInterval = CreateConVar( "ss_spawn_attempt_interval", "0.3", "Time between spawn attempts for a particular SI", FCVAR_PLUGIN, true, 0.1 );
 }
 
-GenerateSpawns() {
+GenerateAndExecuteSpawnQueue() {
 	if( CountSpecialInfectedBots() < GetConVarInt(hSILimit) ) { // spawn when infected count hasn't reached limit
 		new size;
 		new numAllowedSI = GetConVarInt(hSILimit) - CountSpecialInfectedBots();
@@ -14,21 +17,25 @@ GenerateSpawns() {
 			size = GetConVarInt(hSpawnSize);
 		}
 		
+		// refresh current SI counts
+		SITypeCount();
+	
+		// Initialise spawn queue
 		new index;
 		new SpawnQueue[SI_HARDLIMIT];
 		for( new i = 0; i < SI_HARDLIMIT; i++ ) {
 			SpawnQueue[i] = -1;
-		}
-		
-		// generate the spawn queue
+		}		
+		// Generate the spawn queue
 		for( new i = 0; i < size; i++ ) {
 			index = GenerateIndex();
 			if (index == -1) {
 				break;
 			}
 			SpawnQueue[i] = index;
-		}
-		
+			SpawnCounts[index] += 1;
+		}	
+		// Execute the spawn queue
 		for( new i = 0; i < SI_HARDLIMIT; i++ ) {
 			if( SpawnQueue[i] < 0 ) { // end of spawn queue (does not always fill the whole array)
 				break;
@@ -38,10 +45,7 @@ GenerateSpawns() {
 	}
 }
 
-GenerateIndex() {
-	// refresh current SI counts
-	SITypeCount();
-	
+GenerateIndex() {	
 	new TotalSpawnWeight, StandardizedSpawnWeight;
 	
 	// temporary spawn weights factoring in SI spawn limits
@@ -94,8 +98,8 @@ SITypeCount() { //Count the number of each SI ingame
 					SpawnCounts[_:L4D2Infected_Boomer - 1]++;
 				
 				case L4D2Infected_Hunter:
-					SpawnCounts[_:L4D2Infected_Hunter - 1]++;
-				
+					SpawnCounts[2]++;
+					
 				case L4D2Infected_Spitter:
 					SpawnCounts[_:L4D2Infected_Spitter - 1]++;
 				

@@ -68,7 +68,7 @@ public OnPluginStart() {
 	hCvarFlowTankEnable = CreateConVar("flow_tank_enable", "1", "Enable percentage tank spawns");
 	hCvarDirectorNoBosses = FindConVar("director_no_bosses");
 	// Witch cvars
-	hWitchLimit = CreateConVar("cb_witch_limit", "2", "[-1 = Director spawns witches] The max amount of witches present at once (independant of plugin limit).", FCVAR_PLUGIN, true, -1.0, true, 100.0);
+	hWitchLimit = CreateConVar("cb_witch_limit", "-1", "[-1 = Director spawns witches] The max amount of witches present at once (independant of plugin limit).", FCVAR_PLUGIN, true, -1.0, true, 100.0);
 	hWitchPeriod = CreateConVar("cb_witch_period", "12.0", "The time (seconds) interval in which exactly one witch will spawn", FCVAR_PLUGIN, true, 1.0);
 	hWitchPeriodMode = CreateConVar("cb_witch_period_mode", "1", "The witch spawn rate consistency [0=CONSTANT|1=VARIABLE]", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 }
