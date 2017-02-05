@@ -41,17 +41,13 @@ public Action:Charger_OnPlayerRunCmd(charger, &buttons, &impulse, Float:vel[3], 
 	new Float:chargerPos[3];
 	GetClientAbsOrigin(charger, chargerPos);
 	new target = GetClientAimTarget(charger);	
-	new iSurvivorProximity = GetSurvivorProximity(chargerPos, target); // -1 target will cause GetSurvivorProximity() to return distance to closest survivor
+	new iSurvivorProximity = GetSurvivorProximity(chargerPos, target); // invalid(=-1) target will cause GetSurvivorProximity() to return distance to closest survivor
 	new chargerHealth = GetEntProp(charger, Prop_Send, "m_iHealth");
-	if( chargerHealth > GetConVarInt(hCvarHealthThresholdCharger) ) {
-		if( iSurvivorProximity > GetConVarInt(hCvarChargeProximity) ) { 		
-			if( !bShouldCharge[charger] ) { 				
-				BlockCharge(charger);
-				return Plugin_Changed;
-			} 			
-		} else {
-			bShouldCharge[charger] = true; // ensure that charge is not blocked by the next OnPlayerRunCmd callback		
-		}	
+	if( chargerHealth > GetConVarInt(hCvarHealthThresholdCharger) && iSurvivorProximity > GetConVarInt(hCvarChargeProximity) ) {	
+		if( !bShouldCharge[charger] ) { 				
+			BlockCharge(charger);
+			return Plugin_Changed;
+		} 			
 	} else {
 		bShouldCharge[charger] = true;
 	}

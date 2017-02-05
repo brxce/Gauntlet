@@ -5,19 +5,21 @@ new Handle:hSpawnTimeMax;
 
 new Handle:hCvarIncapAllowance;
 
-new Float:SpawnTimes[SI_HARDLIMIT];
+new Float:SpawnTimes[MAXPLAYERS];
 new Float:IntervalEnds[NUM_TYPES_INFECTED];
 
-new g_bHasSpawnTimerStarted;
+new g_bHasSpawnTimerStarted = true;
 
 SpawnTimers_OnModuleStart() {
 	// Timer
 	hSpawnTimeMin = CreateConVar("ss_time_min", "15.0", "The minimum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 0.0);
 	hSpawnTimeMax = CreateConVar("ss_time_max", "25.0", "The maximum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 1.0);
 	hSpawnTimeMode = CreateConVar("ss_time_mode", "1", "The spawn time mode [ 0 = RANDOMIZED | 1 = INCREMENTAL | 2 = DECREMENTAL ]", FCVAR_PLUGIN, true, 0.0, true, 2.0);
+	HookConVarChange(hSpawnTimeMin, ConVarChanged:CalculateSpawnTimes);
+	HookConVarChange(hSpawnTimeMax, ConVarChanged:CalculateSpawnTimes);
 	HookConVarChange(hSpawnTimeMode, ConVarChanged:CalculateSpawnTimes);
 	// Grace period
-	hCvarIncapAllowance = CreateConVar( "ss_incap_allowance", "5", "Grace period(sec) per incapped survivor" );
+	hCvarIncapAllowance = CreateConVar( "ss_incap_allowance", "7", "Grace period(sec) per incapped survivor" );
 	// sets SpawnTimeMin, SpawnTimeMax, and SpawnTimes[]
 	SetSpawnTimes(); 
 }
@@ -66,7 +68,7 @@ StartSpawnTimer() {
 ***********************************************************************************************************************************************************************************/
 
 public Action:SpawnInfectedAuto(Handle:timer) {
-	g_bHasSpawnTimerStarted = false; //spawn timer always stops here (the non-repeated spawn timer calls this function)
+	g_bHasSpawnTimerStarted = false; 
 	// Grant grace period before allowing a wave to spawn if there are incapacitated survivors
 	new numIncappedSurvivors = 0;
 	for (new i = 1; i <= MaxClients; i++ ) {
@@ -74,13 +76,14 @@ public Action:SpawnInfectedAuto(Handle:timer) {
 			numIncappedSurvivors++;			
 		}
 	}
-	new gracePeriod = numIncappedSurvivors * GetConVarInt(hCvarIncapAllowance);
-	if( numIncappedSurvivors > 0 && numIncappedSurvivors < GetConVarInt(FindConVar("survivor_limit")) ) {
-		Client_PrintToChatAll(true, "{G}%ds {O}grace period {N}was granted because of {G}%d {N}incapped survivor(s)", gracePeriod, numIncappedSurvivors);
+	if( numIncappedSurvivors > 0 && numIncappedSurvivors < GetConVarInt(FindConVar("survivor_limit")) ) { // grant grace period
+		new gracePeriod = numIncappedSurvivors * GetConVarInt(hCvarIncapAllowance);
 		CreateTimer( float(gracePeriod), Timer_GracePeriod, _, TIMER_FLAG_NO_MAPCHANGE );
-	} else {
+		Client_PrintToChatAll(true, "{G}%ds {O}grace period {N}was granted because of {G}%d {N}incapped survivor(s)", gracePeriod, numIncappedSurvivors);
+	} else { // spawn immediately
 		GenerateAndExecuteSpawnQueue();
 	}
+	// Start timer for next spawn group
 	StartSpawnTimer();
 	return Plugin_Handled;
 }
@@ -98,7 +101,9 @@ public Action:Timer_GracePeriod(Handle:timer) {
 
 EndSpawnTimer() {
 	if( g_bHasSpawnTimerStarted ) {
-		CloseHandle(hSpawnTimer);
+		if( hSpawnTimer != INVALID_HANDLE ) {
+			CloseHandle(hSpawnTimer);
+		}
 		g_bHasSpawnTimerStarted = false;
 		
 			#if DEBUG_TIMERS
@@ -123,6 +128,8 @@ SetSpawnTimes() {
 		SetConVarFloat(hSpawnTimeMax, fSpawnTimeMin ); //set back to appropriate limit
 	} else {
 		CalculateSpawnTimes(); //must recalculate spawn time table to compensate for min change
+		EndSpawnTimer();
+		StartSpawnTimer();
 	}
 }
 
@@ -136,7 +143,7 @@ public CalculateSpawnTimes() {
 		switch( GetConVarInt(hSpawnTimeMode) ) {
 			case 1: { // incremental spawn time mode			
 				SpawnTimes[0] = fSpawnTimeMin;
-				for( i = 1; i < SI_HARDLIMIT; i++ ) {
+				for( i = 1; i < MAXPLAYERS; i++ ) {
 					if( i < iSILimit ) {
 						SpawnTimes[i] = SpawnTimes[i-1] + unit;
 					} else {
@@ -146,7 +153,7 @@ public CalculateSpawnTimes() {
 			}
 			case 2: { // decremental spawn time mode			
 				SpawnTimes[0] = fSpawnTimeMax;
-				for( i = 1; i < SI_HARDLIMIT ; i++ ) {
+				for( i = 1; i < MAXPLAYERS; i++ ) {
 					if (i < iSILimit) {
 						SpawnTimes[i] = SpawnTimes[i-1] - unit;
 					} else {

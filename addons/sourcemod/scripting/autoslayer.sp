@@ -67,7 +67,7 @@ public OnPlayerDeath(Handle:event, String:name[], bool:dontBroadcast) {
 AutoSlayer() {
 	if( GetConVarInt(hCvarAutoSlayerMode) != 0 && !g_bIsAutoSlayerActive && IsTeamImmobilised() && !IsTeamWiped() ) { 
 		g_bIsAutoSlayerActive = true;
-		Client_PrintToChatAll(true, "{O}[AS] {N}Initiating AutoSlayer...");
+		Client_PrintToChatAll(true, "[AS] {O}Initiating AutoSlayer...");
 		if( GetConVarInt(hCvarAutoSlayerMode) < 0 ) { // Slay survivors
 			hAutoSlayerTimer = CreateTimer( 1.0, Timer_SlaySurvivors, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
 		} else { // Slay infected
@@ -83,7 +83,7 @@ public Action:Timer_SlaySurvivors(Handle:timer) {
 	new countdown = RoundToNearest(GetConVarFloat(hCvarGracePeriod)) - secondsPassed;
 	// Check for survivors being cleared during the countdown
 	if( !IsTeamImmobilised() ) {
-		Client_PrintToChatAll(true, "{O}[AS] {N}...AutoSlayer cancelled!");	
+		Client_PrintToChatAll(true, "[AS] ...AutoSlayer {G}cancelled!");	
 		g_bIsAutoSlayerActive = false;
 		secondsPassed = 0;
 		return Plugin_Stop;
@@ -93,14 +93,14 @@ public Action:Timer_SlaySurvivors(Handle:timer) {
 		g_bIsAutoSlayerActive = false;
 		if( IsTeamImmobilised() && !IsTeamWiped() ) { // do not slay if already wiped
 			SlaySurvivors();
-			Client_PrintToChatAll(true, "{O}[AS] {N}AutoSlayed survivors!");	
+			Client_PrintToChatAll(true, "[AS] {N}AutoSlayed {O}survivors!");	
 		} else {
-			Client_PrintToChatAll(true, "{O}[AS] {N}...AutoSlayer cancelled!");
+		Client_PrintToChatAll(true, "[AS] ...AutoSlayer {G}cancelled!");
 		}
 		secondsPassed = 0;
 		return Plugin_Stop;
 	} 
-	Client_PrintToChatAll(true, "{O}[AS] {N}%d...", countdown);	
+	Client_PrintToChatAll(true, "[AS] %d...", countdown);	
 	secondsPassed++;
 	return Plugin_Continue;
 }
@@ -114,7 +114,7 @@ SlaySurvivors() { //incap everyone
 }
 
 public Action:Timer_SlaySpecialInfected(Handle:timer) {
-	Client_PrintToChatAll( true, "{O}[AS] {N}AutoSlayed special infected");
+	Client_PrintToChatAll( true, "[AS] AutoSlayed {G}special infected");
 	for( new i = 0; i < MAXPLAYERS; i++ ) {
 		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
 			if( IsPinningASurvivor(i) ) {

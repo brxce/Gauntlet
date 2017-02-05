@@ -230,7 +230,6 @@ public Action:Timer_SpawnTank( Handle:timer ) {
 	// spawn a tank with z_spawn_old (cmd uses director to find a suitable location)			
 	if( IsTankInPlay() ) {
 		g_bHasEncounteredTank = true;
-		PrintToChatAll("[CB] A tank has spawned");
 		return Plugin_Stop; 
 	} else if( g_iMapTankSpawnAttemptCount >= MAX_SPAWN_ATTEMPTS ) {
 		g_bHasEncounteredTank = true;

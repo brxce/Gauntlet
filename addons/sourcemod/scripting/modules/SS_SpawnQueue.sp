@@ -22,8 +22,8 @@ GenerateAndExecuteSpawnQueue() {
 	
 		// Initialise spawn queue
 		new index;
-		new SpawnQueue[SI_HARDLIMIT];
-		for( new i = 0; i < SI_HARDLIMIT; i++ ) {
+		new SpawnQueue[MAXPLAYERS];
+		for( new i = 0; i < MAXPLAYERS; i++ ) {
 			SpawnQueue[i] = -1;
 		}		
 		// Generate the spawn queue
@@ -36,7 +36,7 @@ GenerateAndExecuteSpawnQueue() {
 			SpawnCounts[index] += 1;
 		}	
 		// Execute the spawn queue
-		for( new i = 0; i < SI_HARDLIMIT; i++ ) {
+		for( new i = 0; i < MAXPLAYERS; i++ ) {
 			if( SpawnQueue[i] < 0 ) { // end of spawn queue (does not always fill the whole array)
 				break;
 			}

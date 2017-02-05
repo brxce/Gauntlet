@@ -21,7 +21,7 @@ new SpawnWeightsCache[NUM_TYPES_INFECTED] = { UNINITIALISED, UNINITIALISED, UNIN
 new SpawnLimitsCache[NUM_TYPES_INFECTED] = { UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED };
 new SpawnSizeCache = UNINITIALISED;
 
-public SpawnCustomisation_OnModuleStart() {
+public SpawnQuantities_OnModuleStart() {
 	// Server SI max (marked FCVAR_CHEAT; admin only)
 	hSILimitServerCap = CreateConVar("ss_server_si_limit", "12", "The max amount of special infected at once", FCVAR_CHEAT, true, 1.0);
 	// Spawn limits

@@ -72,15 +72,11 @@ enum SpawnDirection {
  * @return bool
  */
 stock bool:IsSurvivor(client) {
-	new bool:bIsSurvivor = false;
-	if( IsValidClient(client) ) {
-		if( IsClientInGame(client) ) {
-			if( L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor ) {
-				bIsSurvivor = true;
-			}
-		}
+	if( IsValidClient(client) && L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor ) {
+		return true;
+	} else {
+		return false;
 	}
-	return bIsSurvivor;
 }
 
 stock bool:IsPinned(client) {
@@ -449,8 +445,11 @@ stock SetSpawnDirection(SpawnDirection:direction) {
  * @return bool
  */
 stock bool:IsValidClient(client) {
-    if (!(1 <= client <= MaxClients) || !IsClientInGame(client))return false; 
-    return true;
+    if( client > 0 && client <= MaxClients && IsClientInGame(client) ) {
+    	return true;
+    } else {
+    	return false;
+    }    
 }
 
 stock bool:IsGenericAdmin(client) {

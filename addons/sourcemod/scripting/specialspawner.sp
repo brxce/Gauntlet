@@ -1,12 +1,13 @@
 #pragma semicolon 1
 
+#define SERVER 0
+
 #define DEBUG_WEIGHTS 0
 #define DEBUG_SPAWNQUEUE 0
 #define DEBUG_TIMERS 0
 #define DEBUG_POSITIONER 0
 
 #define VANILLA_COOP_SI_LIMIT 2
-#define SI_HARDLIMIT 16
 #define NUM_TYPES_INFECTED 6
 
 #include <sourcemod>
@@ -19,7 +20,7 @@ new bool:bShowSpawnerHUD[MAXPLAYERS];
 
 // Modules
 #include "includes/hardcoop_util.sp"
-#include "modules/SS_SpawnCustomisation.sp"
+#include "modules/SS_SpawnQuantities.sp"
 #include "modules/SS_SpawnTimers.sp"
 #include "modules/SS_SpawnQueue.sp"
 #include "modules/SS_SpawnPositioner.sp"
@@ -31,7 +32,7 @@ new bool:bShowSpawnerHUD[MAXPLAYERS];
 */
 
 /***********************************************************************************************************************************************************************************
-     					All credit for the spawn timer, customisation and queue modules goes to the developers of the 'l4d2_autoIS'' plugin                            
+     					All credit for the spawn timer, quantities and queue modules goes to the developers of the 'l4d2_autoIS' plugin                            
 ***********************************************************************************************************************************************************************************/
   
 public Plugin:myinfo = 
@@ -55,7 +56,7 @@ public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], errMax) {
 
 public OnPluginStart() {	
 	// Load modules
-	SpawnCustomisation_OnModuleStart();
+	SpawnQuantities_OnModuleStart();
 	SpawnTimers_OnModuleStart();
 	SpawnQueue_OnModuleStart();
 	SpawnPositioner_OnModuleStart();
@@ -65,11 +66,11 @@ public OnPluginStart() {
 	SetConVarFlags( hCvarReadyUpEnabled, FCVAR_CHEAT ); SetConVarFlags( hCvarConfigName, FCVAR_CHEAT ); // get rid of 'symbol is assigned a value that is never used' compiler warnings
 	// 	Cvars
 	SetConVarBool( FindConVar("director_spectate_specials"), true );
-	SetConVarBool( FindConVar("director_no_specials"), true ); // Disable Director spawning specials naturally
+	SetConVarBool( FindConVar("director_no_specials"), true ); // disable Director spawning specials naturally
 	SetConVarInt( FindConVar("z_safe_spawn_range"), 0 );
 	SetConVarInt( FindConVar("z_spawn_safety_range"), 0 );
-	//SetConVarInt( FindConVar("z_spawn_range"), 750 ); // default 1500 (potentially very far from survivors) is remedied if SpawnRelocator module is active 
-	SetConVarInt( FindConVar("z_discard_range"), 1250 ); // Discard Zombies farther away than this	
+	//SetConVarInt( FindConVar("z_spawn_range"), 750 ); // default 1500 (potentially very far from survivors) is remedied if SpawnPositioner module is active 
+	SetConVarInt( FindConVar("z_discard_range"), 1250 ); // discard zombies farther away than this	
 	// Resetting at the end of rounds
 	HookEvent("mission_lost", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
@@ -81,9 +82,10 @@ public OnPluginStart() {
 	RegConsoleCmd("sm_weight", Cmd_SetWeight, "Set spawn weights for SI classes");
 	RegConsoleCmd("sm_limit", Cmd_SetLimit, "Set individual, total and simultaneous SI spawn limits");
 	RegConsoleCmd("sm_timer", Cmd_SetTimer, "Set a variable or constant spawn time (seconds)");
+	RegConsoleCmd("sm_spawnmode", Cmd_SpawnMode, "[ 0 = vanilla spawning, 1 = radial repositioning, 2 = grid repositioning ]");
 	// Admin commands
 	RegAdminCmd("sm_resetspawns", Cmd_ResetSpawns, ADMFLAG_RCON, "Reset by slaying all special infected and restarting the timer");
-	RegAdminCmd("sm_resettimer", Cmd_StartSpawnTimerManually, ADMFLAG_RCON, "Manually start the spawn timer");
+	RegAdminCmd("sm_forcetimer", Cmd_StartSpawnTimerManually, ADMFLAG_RCON, "Manually start the spawn timer");
 }
 
 public OnPluginEnd() {
@@ -128,7 +130,7 @@ public OnRoundOver() {
 	EndSpawnTimer();
 }
 
-// Kick infected bots immediately after they die to allow quicker infected respawn
+// Kick infected bots promptly after death to allow quicker infected respawn
 public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast) {
 	new player = GetClientOfUserId(GetEventInt(event, "userid"));
 	if( IsBotInfected(player) ) {
@@ -143,7 +145,7 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 ***********************************************************************************************************************************************************************************/
 
 public Action:Cmd_SetLimit(client, args) {
-	if(L4D2_Team:GetClientTeam(client) != L4D2_Team: L4D2Team_Survivor && !IsGenericAdmin(client) ) {
+	if( L4D2_Team:GetClientTeam(client) != L4D2_Team:L4D2Team_Survivor && !IsGenericAdmin(client) && client != SERVER ) {
 		PrintToChat(client, "Command only available to survivor team");
 		return Plugin_Handled;
 	} 
@@ -165,7 +167,7 @@ public Action:Cmd_SetLimit(client, args) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnLimitsCache[i] = iLimitValue;
 				}
-				PrintToChatAll("[SS] All SI limits have been set to %d", iLimitValue);
+				Client_PrintToChatAll( true, "[SS] All SI limits have been set to {G}%d", iLimitValue );
 			} else if( StrEqual(sTargetClass, "max", false) ) {  // Max specials
 				SILimitCache = iLimitValue;
 				Client_PrintToChatAll(true, "[SS] -> {O}Max {N}SI limit set to {G}%i", iLimitValue);		           
@@ -278,6 +280,31 @@ public Action:Cmd_SetTimer(client, args) {
 		ReplyToCommand(client, "[SS] timer <constant> || timer <min> <max>");
 	}
 	return Plugin_Handled;
+}
+
+public Action:Cmd_SpawnMode( client, args ) {
+	if( !IsSurvivor(client) ) {
+		ReplyToCommand( client, "Command only available to survivors" );	
+	}
+	// Switch to appropriate mode
+	new bool:isValidParams = false;
+	if( args == 1 ) {
+		new String:arg[8];
+		GetCmdArg( 1, arg, sizeof(arg) );
+		new mode = StringToInt(arg);
+		if( mode >= 0 && mode <= 2 ) {
+			SetConVarInt( hCvarSpawnPositionerMode, mode );
+			new String:spawnModes[3][8] = { "Vanilla", "Radial", "Grid" };
+			Client_PrintToChat( client, true, "[SS] {O}%s {N}spawn mode activated", spawnModes[mode] );
+			isValidParams = true;
+		}
+	} 
+	// Correct command usage
+	if( !isValidParams ) {
+		new String:spawnModes[3][8] = { "Vanilla", "Radial", "Grid" };
+		Client_PrintToChat( client, true, "[SS] Current spawnmode: {O}%s", spawnModes[GetConVarInt(hCvarSpawnPositionerMode)] );
+		ReplyToCommand( client, "Usage: spawnmode <mode> [ 0 = vanilla spawning, 1 = radial repositioning, 2 = grid repositioning ]" );
+	}
 }
 
 /***********************************************************************************************************************************************************************************
