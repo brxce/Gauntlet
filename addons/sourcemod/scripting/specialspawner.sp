@@ -27,7 +27,6 @@ new bool:bShowSpawnerHUD[MAXPLAYERS];
 
 /*
  * TODO:
- * fix mins/maxs error
  * Create command to load, without restarting, another config while one is already loaded
 */
 
@@ -110,7 +109,7 @@ public OnConfigsExecuted() {
 	CreateTimer( 0.1, Timer_DrawSpawnerHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
 }
 
-public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client) { 
 	// Disable for PvP modes
 	decl String:gameMode[16];
 	GetConVarString(FindConVar("mp_gamemode"), gameMode, sizeof(gameMode));

@@ -36,7 +36,7 @@ StartCustomSpawnTimer(Float:time) {
 	EndSpawnTimer();
 	//only start spawn timer if plugin is enabled
 	g_bHasSpawnTimerStarted = true;
-	hSpawnTimer = CreateTimer(time, SpawnInfectedAuto);
+	hSpawnTimer = CreateTimer( time, SpawnInfectedAuto, TIMER_FLAG_NO_MAPCHANGE );
 }
 
 //special infected spawn timer based on time modes
@@ -51,9 +51,8 @@ StartSpawnTimer() {
 	} else { //randomization spawn time mode
 		time = GetRandomFloat( GetConVarFloat(hSpawnTimeMin), GetConVarFloat(hSpawnTimeMax) ); //a random spawn time between min and max inclusive
 	}
-
 	g_bHasSpawnTimerStarted = true;
-	hSpawnTimer = CreateTimer(time, SpawnInfectedAuto);
+	hSpawnTimer = CreateTimer( time, SpawnInfectedAuto, TIMER_FLAG_NO_MAPCHANGE );
 	
 		#if DEBUG_TIMERS
 			PrintToChatAll("[SS] New spawn timer | Mode: %d | SI: %d | Next: %.3f s", GetConVarInt(hSpawnTimeMode), CountSpecialInfectedBots(), time);
@@ -76,7 +75,7 @@ public Action:SpawnInfectedAuto(Handle:timer) {
 			numIncappedSurvivors++;			
 		}
 	}
-	if( numIncappedSurvivors > 0 && numIncappedSurvivors < GetConVarInt(FindConVar("survivor_limit")) ) { // grant grace period
+	if( numIncappedSurvivors > 0 && numIncappedSurvivors != GetConVarInt(FindConVar("survivor_limit")) ) { // grant grace period
 		new gracePeriod = numIncappedSurvivors * GetConVarInt(hCvarIncapAllowance);
 		CreateTimer( float(gracePeriod), Timer_GracePeriod, _, TIMER_FLAG_NO_MAPCHANGE );
 		Client_PrintToChatAll(true, "{G}%ds {O}grace period {N}was granted because of {G}%d {N}incapped survivor(s)", gracePeriod, numIncappedSurvivors);
@@ -128,8 +127,6 @@ SetSpawnTimes() {
 		SetConVarFloat(hSpawnTimeMax, fSpawnTimeMin ); //set back to appropriate limit
 	} else {
 		CalculateSpawnTimes(); //must recalculate spawn time table to compensate for min change
-		EndSpawnTimer();
-		StartSpawnTimer();
 	}
 }
 
