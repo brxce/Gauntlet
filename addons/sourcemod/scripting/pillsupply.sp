@@ -82,7 +82,7 @@ public Action:Cmd_PillPercent(client, args) {
 			Client_PrintToChat(client, true, "Supplementary pills are currently disabled");
 		}		
 	} else {
-		if( L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor || IsGenericAdmin(client) ) {
+		if( IsSurvivor(client) || IsGenericAdmin(client) ) {
 			new String:sPercentValue[32];		
 			GetCmdArg(1, sPercentValue, sizeof(sPercentValue));
 			new iPercentValue = StringToInt(sPercentValue);
@@ -97,7 +97,7 @@ public Action:Cmd_PillPercent(client, args) {
 				Client_PrintToChatAll(true, "Usage: 1-99 to enable supplementary pills, <= 0 to disable supplementary pills");
 			}
 		} else {
-			PrintToChat(client, "Command only available to survivor team");
+			PrintToChat(client, "You do not have access to this command");
 		}	
 	}	
 	return Plugin_Handled;	
