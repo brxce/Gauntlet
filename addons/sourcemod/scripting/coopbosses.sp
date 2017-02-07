@@ -100,7 +100,7 @@ public Action:Cmd_BossPercent(client, args) {
 }
 
 public Action:Cmd_ToggleTank(client, args) {
-	if( L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor || IsGenericAdmin(client) ) {
+	if( IsSurvivor(client) || IsGenericAdmin(client) ) {
 		new bool:flowTankFlag = GetConVarBool(hCvarFlowTankEnable);
 		SetConVarBool( hCvarFlowTankEnable, !flowTankFlag );
 		if( GetConVarBool(hCvarFlowTankEnable) ) {
@@ -109,14 +109,14 @@ public Action:Cmd_ToggleTank(client, args) {
 			Client_PrintToChatAll(true, "Flow tank has been {O}disabled");
 		}		
 	} else {
-		PrintToChat( client, "Command is only available to survivor team" );
+		PrintToChat( client, "You do not have access to this command" );
 	}
 	return Plugin_Handled;
 }
 
 public Action:Cmd_WitchSettings(client, args) {
 	if(L4D2_Team:GetClientTeam(client) != L4D2_Team: L4D2Team_Survivor && !IsGenericAdmin(client) ) {
-		PrintToChat(client, "Command only available to survivor team");
+		PrintToChat(client, "You do not have access to this command");
 		return Plugin_Handled;
 	} 
 	

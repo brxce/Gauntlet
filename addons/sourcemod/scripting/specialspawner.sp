@@ -28,6 +28,7 @@ new bool:bShowSpawnerHUD[MAXPLAYERS];
 /*
  * TODO:
  * Create command to load, without restarting, another config while one is already loaded
+ * LOS starvation kills
 */
 
 /***********************************************************************************************************************************************************************************
@@ -144,8 +145,8 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 ***********************************************************************************************************************************************************************************/
 
 public Action:Cmd_SetLimit(client, args) {
-	if( L4D2_Team:GetClientTeam(client) != L4D2_Team:L4D2Team_Survivor && !IsGenericAdmin(client) && client != SERVER ) {
-		PrintToChat(client, "Command only available to survivor team");
+	if( !IsSurvivor(client) || !IsGenericAdmin(client) ) {
+		PrintToChat(client, "You do not have access to this command");
 		return Plugin_Handled;
 	} 
 	
@@ -193,8 +194,8 @@ public Action:Cmd_SetLimit(client, args) {
 }
 
 public Action:Cmd_SetWeight(client, args) {
-	if(L4D2_Team:GetClientTeam(client) != L4D2_Team: L4D2Team_Survivor && !IsGenericAdmin(client) ) {
-		PrintToChat(client, "Command only available to survivor team");
+	if( !IsSurvivor(client) || !IsGenericAdmin(client) ) {
+		PrintToChat(client, "You do not have access to this command");
 		return Plugin_Handled;
 	} 
 	
@@ -243,8 +244,8 @@ public Action:Cmd_SetWeight(client, args) {
 }
 
 public Action:Cmd_SetTimer(client, args) {
-	if(L4D2_Team:GetClientTeam(client) != L4D2_Team: L4D2Team_Survivor && !IsGenericAdmin(client) ) {
-		PrintToChat(client, "Command only available to survivor team");
+	if( !IsSurvivor(client) || !IsGenericAdmin(client) ) {
+		PrintToChat(client, "You do not have access to this command");
 		return Plugin_Handled;
 	} 
 	
@@ -282,8 +283,8 @@ public Action:Cmd_SetTimer(client, args) {
 }
 
 public Action:Cmd_SpawnMode( client, args ) {
-	if( !IsSurvivor(client) ) {
-		ReplyToCommand( client, "Command only available to survivors" );	
+	if( !IsSurvivor(client) || !IsGenericAdmin(client) ) {
+		ReplyToCommand( client, "You do not have access to this command" );	
 	}
 	// Switch to appropriate mode
 	new bool:isValidParams = false;
