@@ -142,7 +142,7 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 public OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
 	new userid = GetEventInt(event, "userid");
 	new client = GetClientOfUserId(userid);
-	if( IsBotInfected(client) ) {
+	if( IsBotInfected(client) && !IsTank(client) ) {
 		g_fTimeLOS[userid] = 0.0;
 		// Checking LOS
 		CreateTimer( 0.5, Timer_StarvationLOS, userid, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
@@ -202,9 +202,9 @@ public Action:Cmd_SetLimit(client, args) {
 			} else if( StrEqual(sTargetClass, "max", false) ) {  // Max specials
 				SILimitCache = iLimitValue;
 				Client_PrintToChatAll(true, "[SS] -> {O}Max {N}SI limit set to {G}%i", iLimitValue);		           
-			} else if( StrEqual(sTargetClass, "group", false) ) {
+			} else if( StrEqual(sTargetClass, "group", false) || StrEqual(sTargetClass, "wave", false) ) {
 				SpawnSizeCache = iLimitValue;
-				Client_PrintToChatAll(true, "[SS] -> SI {O}group {N}spawn size set to {G}%i", iLimitValue);
+				Client_PrintToChatAll(true, "[SS] -> SI {O}wave {N}spawn size set to {G}%i", iLimitValue);
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(Spawns[i], sTargetClass, false) ) {
@@ -216,7 +216,7 @@ public Action:Cmd_SetLimit(client, args) {
 		}	 
 	} else {  // Invalid command syntax
 		Client_PrintToChat(client, true, "{O}!limit/sm_limit {B}<class> <limit>");
-		Client_PrintToChat(client, true, "{B}<class> {N}[ all | max | group | smoker | boomer | hunter | spitter | jockey | charger ]");
+		Client_PrintToChat(client, true, "{B}<class> {N}[ all | max | group/wave | smoker | boomer | hunter | spitter | jockey | charger ]");
 		Client_PrintToChat(client, true, "{B}<limit> {N}[ >= 0 ]");
 	}
 	// Load cache into appropriate cvars

@@ -16,7 +16,11 @@
 		}
 		"gauntlet"
 		{
-			"name" "Gauntlet (4p)"
+			"name" "Gauntlet (!playermode)"
+		}
+		"gauntlet_survival"
+		{
+			"name" "Gauntlet Survival"
 		}
 	}
 }
