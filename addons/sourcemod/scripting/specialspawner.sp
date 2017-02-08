@@ -17,6 +17,7 @@
 new Handle:hCvarReadyUpEnabled;
 new Handle:hCvarConfigName;
 new bool:bShowSpawnerHUD[MAXPLAYERS];
+new Float:g_fTimeLOS[10000]; // not sure what the largest possible userid is
 
 // Modules
 #include "includes/hardcoop_util.sp"
@@ -27,8 +28,6 @@ new bool:bShowSpawnerHUD[MAXPLAYERS];
 
 /*
  * TODO:
- * Create command to load, without restarting, another config while one is already loaded
- * LOS starvation kills
 */
 
 /***********************************************************************************************************************************************************************************
@@ -78,6 +77,8 @@ public OnPluginStart() {
 	HookEvent("survival_round_start", EventHook:OnSurvivalRoundStart, EventHookMode_PostNoCopy);
 	// Faster spawns
 	HookEvent("player_death", OnPlayerDeath, EventHookMode_PostNoCopy);
+	// LOS tracking
+	HookEvent("player_spawn", OnPlayerSpawn, EventHookMode_PostNoCopy);
 	// Customisation commands
 	RegConsoleCmd("sm_weight", Cmd_SetWeight, "Set spawn weights for SI classes");
 	RegConsoleCmd("sm_limit", Cmd_SetLimit, "Set individual, total and simultaneous SI spawn limits");
@@ -138,6 +139,36 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 	}
 }
 
+public OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
+	new userid = GetEventInt(event, "userid");
+	new client = GetClientOfUserId(userid);
+	if( IsBotInfected(client) ) {
+		g_fTimeLOS[userid] = 0.0;
+		// Checking LOS
+		CreateTimer( 0.5, Timer_StarvationLOS, userid, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
+	}
+}
+
+public Action:Timer_StarvationLOS( Handle:timer, any:userid ) {
+	new client = GetClientOfUserId( userid );
+	// increment tracked LOS time
+	if( bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {
+		g_fTimeLOS[userid] = 0.0;
+	} else {
+		g_fTimeLOS[userid] += 0.5; 
+	}
+	// check if they are starved
+	if( IsPlayerAlive(client) ) {
+		if( IsBotInfected(client) && g_fTimeLOS[userid] > 10.0 ) {
+			ForcePlayerSuicide(client);
+			return Plugin_Stop;
+		}			
+	} else {
+		return Plugin_Stop;
+	}
+	return Plugin_Continue;
+}
+
 /***********************************************************************************************************************************************************************************
 
                                                            SPAWN TIMER AND CUSTOMISATION CMDS
@@ -145,7 +176,7 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 ***********************************************************************************************************************************************************************************/
 
 public Action:Cmd_SetLimit(client, args) {
-	if( !IsSurvivor(client) || !IsGenericAdmin(client) ) {
+	if( !IsSurvivor(client) && !IsGenericAdmin(client) ) {
 		PrintToChat(client, "You do not have access to this command");
 		return Plugin_Handled;
 	} 
@@ -194,7 +225,7 @@ public Action:Cmd_SetLimit(client, args) {
 }
 
 public Action:Cmd_SetWeight(client, args) {
-	if( !IsSurvivor(client) || !IsGenericAdmin(client) ) {
+	if( !IsSurvivor(client) && !IsGenericAdmin(client) ) {
 		PrintToChat(client, "You do not have access to this command");
 		return Plugin_Handled;
 	} 
@@ -244,7 +275,7 @@ public Action:Cmd_SetWeight(client, args) {
 }
 
 public Action:Cmd_SetTimer(client, args) {
-	if( !IsSurvivor(client) || !IsGenericAdmin(client) ) {
+	if( !IsSurvivor(client) && !IsGenericAdmin(client) ) {
 		PrintToChat(client, "You do not have access to this command");
 		return Plugin_Handled;
 	} 
@@ -283,7 +314,7 @@ public Action:Cmd_SetTimer(client, args) {
 }
 
 public Action:Cmd_SpawnMode( client, args ) {
-	if( !IsSurvivor(client) || !IsGenericAdmin(client) ) {
+	if( !IsSurvivor(client) && !IsGenericAdmin(client) ) {
 		ReplyToCommand( client, "You do not have access to this command" );	
 	}
 	// Switch to appropriate mode
@@ -351,7 +382,7 @@ public Action:Cmd_StartSpawnTimerManually(client, args) {
 ***********************************************************************************************************************************************************************************/
 
 public Action:OnPlayerRunCmd( client, &buttons ) {
-	if( IsSurvivor(client) && buttons & IN_USE && buttons & IN_RELOAD ) {
+	if( !IsFakeClient(client) && buttons & IN_USE && buttons & IN_RELOAD ) {
 		bShowSpawnerHUD[client] = true;
 	} else {
 		bShowSpawnerHUD[client] = false;

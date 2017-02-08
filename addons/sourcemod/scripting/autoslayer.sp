@@ -120,7 +120,7 @@ public Action:Timer_SlaySpecialInfected(Handle:timer) {
 			if( IsPinningASurvivor(i) ) {
 				ForcePlayerSuicide(i);
 			} else {
-				if( GetConVarBool(hCvarSlayAllInfected) ) {
+				if( GetConVarBool(hCvarSlayAllInfected) && !IsTank(i) ) {
 					ForcePlayerSuicide(i);
 				} 
 			}

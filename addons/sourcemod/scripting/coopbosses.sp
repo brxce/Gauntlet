@@ -100,7 +100,7 @@ public Action:Cmd_BossPercent(client, args) {
 }
 
 public Action:Cmd_ToggleTank(client, args) {
-	if( IsSurvivor(client) || IsGenericAdmin(client) ) {
+	if( IsSurvivor(client) && IsGenericAdmin(client) ) {
 		new bool:flowTankFlag = GetConVarBool(hCvarFlowTankEnable);
 		SetConVarBool( hCvarFlowTankEnable, !flowTankFlag );
 		if( GetConVarBool(hCvarFlowTankEnable) ) {
@@ -115,7 +115,7 @@ public Action:Cmd_ToggleTank(client, args) {
 }
 
 public Action:Cmd_WitchSettings(client, args) {
-	if(L4D2_Team:GetClientTeam(client) != L4D2_Team: L4D2Team_Survivor && !IsGenericAdmin(client) ) {
+	if( !IsSurvivor(client) && !IsGenericAdmin(client) ) {
 		PrintToChat(client, "You do not have access to this command");
 		return Plugin_Handled;
 	} 
@@ -130,13 +130,13 @@ public Action:Cmd_WitchSettings(client, args) {
 		// Must be valid limit value	
 		if( StrEqual(witchSetting, "limit", false) ) {
 			SetConVarInt( hWitchLimit, iValue );
-			Client_PrintToChat( client, true, "Witch limit set to {G}%d", iValue );
+			Client_PrintToChatAll( true, "Witch limit set to {G}%d", iValue );
 		} else if( StrEqual(witchSetting, "period", false) ) {
 			SetConVarFloat( hWitchPeriod, float(iValue) );
-			Client_PrintToChat( client, true, "Witch spawn period set to {G}%d", iValue );
+			Client_PrintToChatAll( true, "Witch spawn period set to {G}%d", iValue );
 		} else if( StrEqual(witchSetting, "mode", false) ) {
 			SetConVarInt( hWitchPeriodMode, iValue );
-			Client_PrintToChat( client, true, "Witch spawn mode set to {G}%d", iValue );
+			Client_PrintToChatAll( true, "Witch spawn mode set to {G}%d", iValue );
 		} else {
 			ReplyToCommand(client, "witch < limit | period | mode > < value >");
 			ReplyToCommand(client, "<period> The time (seconds) interval in which exactly one witch will spawn [ >= 1 ]");

@@ -5,7 +5,7 @@
 #include <left4downtown>
 #include "includes/hardcoop_util.sp"
 
-#define DEBUG_SR 0
+#define DEBUG 0
 #define	NO_TEMP_HEALTH 0.0
 #define SECONDARY_SLOT 1
 
@@ -53,7 +53,7 @@ public RestoreHealth() {
 			SetEntPropFloat(client, Prop_Send, "m_healthBuffer", NO_TEMP_HEALTH);		
 			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0); //reset incaps
 			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", false);
-					#if DEBUG_SR
+					#if DEBUG
 						new String:ClientName[32];
 						GetClientName(client, ClientName, sizeof(ClientName));
 						PrintToChatAll("Restored health and reset revive count on %s (entity index %i):", ClientName, client);
@@ -65,7 +65,7 @@ public RestoreHealth() {
 public ResetInventory() {
 	for (new client = 0; client <= MaxClients; client++) {
 		if ( IsSurvivor(client) ) {
-					#if DEBUG_SR
+					#if DEBUG
 						new String:ClientName[32];
 						GetClientName(client, ClientName, sizeof(ClientName));
 						PrintToChatAll("Resetting inventory of %s (entity index %i):", ClientName, client);

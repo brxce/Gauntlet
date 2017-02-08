@@ -17,7 +17,7 @@ public Plugin:myinfo =
 };
 
 public OnPluginStart() {
-	CreateTimer(150.0, Timer_Hint, _, TIMER_REPEAT);
+	CreateTimer(250.0, Timer_Hint, _, TIMER_REPEAT);
 	RegConsoleCmd("sm_gauntlethelp", Cmd_ShowHelp, "Display the help menu");
 }
 
@@ -46,14 +46,13 @@ public ShowHelpMenu(client) {
 	decl String:heading[255];
 	decl String:limitcmd[255], String:weightcmd[255], String:timercmd[255];
 	decl String:bosscmds[255];
-	decl String:joinSurvivors[255], String:spawnedDead[255], String:spawnedOutOfSaferoom[255];
+	decl String:playerMode[255], String:joinSurvivors[255], String:spawnedDead[255], String:spawnedOutOfSaferoom[255];
 	decl String:misc[255];
-	decl String:closepanel[255];
 	
 	new Handle:WelcomePanel = CreatePanel(INVALID_HANDLE);
 	
 	// Heading
-	Format(heading, sizeof(heading), "=====+ GAUNTLET HELP +=====");
+	Format(heading, sizeof(heading), "=====+ GAUNTLET HELP ('5' to close) +=====");
 	SetPanelTitle(WelcomePanel, heading);
 	DrawPanelText(WelcomePanel, " \n");
 
@@ -70,11 +69,13 @@ public ShowHelpMenu(client) {
 	DrawPanelText(WelcomePanel, " \n"); // empty line to separate sections
 	
 	// Survivor commands
-	Format(joinSurvivors, sizeof(joinSurvivors), "!join (join survivor team), !spectate (spectate survivor team)");
+	Format(playerMode, sizeof(playerMode), "!playermode <value> -> add or remove survivors");
+	DrawPanelText(WelcomePanel, playerMode);
+	Format(joinSurvivors, sizeof(joinSurvivors), "!join , !spectate -> survivor team");
 	DrawPanelText(WelcomePanel, joinSurvivors);
-	Format(spawnedDead, sizeof(spawnedDead), "!respawn - respawn (spawned dead)");
+	Format(spawnedDead, sizeof(spawnedDead), "!respawn -> respawn (spawned dead)");
 	DrawPanelText(WelcomePanel, spawnedDead);	
-	Format(spawnedOutOfSaferoom, sizeof(spawnedOutOfSaferoom), "!return - teleport to saferoom (spawned out of the world)");
+	Format(spawnedOutOfSaferoom, sizeof(spawnedOutOfSaferoom), "!return -> teleport to saferoom (spawned out of the world)");
 	DrawPanelText(WelcomePanel, spawnedOutOfSaferoom);
 	DrawPanelText(WelcomePanel, " \n"); // empty line to separate sections
 	
@@ -83,16 +84,12 @@ public ShowHelpMenu(client) {
 	DrawPanelText(WelcomePanel, misc);
 	DrawPanelText(WelcomePanel, " \n"); // empty line to separate sections
 	
-	Format(closepanel, sizeof(closepanel), "Press '5' to close");
-	DrawPanelText(WelcomePanel, closepanel);
-	
 	SendPanelToClient(WelcomePanel, client, NullMenuHandler, 60);
 	CloseHandle(WelcomePanel);
 }
 
 public Action:Timer_Hint(Handle:timer) {
-	Client_PrintToChatAll(true, "Type {O}!gauntlethelp {N}to display the welcome menu");
-	Client_PrintToChatAll(true, "Press {B}USE {N}and {B}RELOAD {N}to show {O}Spawner HUD {N}for 3s");
+	Client_PrintToChatAll(true, "Press {B}USE {N}and {B}RELOAD {N}to show {O}Spawner HUD {N}for {G}3{N}s. Type {O}!gauntlethelp {N}to show command menu");
 }
 
 public NullMenuHandler(Handle:menu, MenuAction:action, param1, param2) {}

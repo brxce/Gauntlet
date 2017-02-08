@@ -47,7 +47,7 @@ new laserCache;
  */
  
 SpawnPositioner_OnModuleStart() {
-	hCvarSpawnPositionerMode = CreateConVar( "ss_spawnpositioner_mode", "1", "[ 0 = disabled, 1 = Radial Reposition only, 2 = Grid Reposition with Radial fallback ]" );
+	hCvarSpawnPositionerMode = CreateConVar( "ss_spawnpositioner_mode", "2", "[ 0 = disabled, 1 = Radial Reposition only, 2 = Grid Reposition with Radial fallback ]" );
 	HookConVarChange( hCvarSpawnPositionerMode, ConVarChanged:SpawnPositionerMode );
 	hCvarMaxSearchAttempts = CreateConVar( "ss_spawn_max_search_attempts", "100", "Max attempts to make per SI spawn to find an acceptable location to which to relocate them" );
 	hCvarSpawnSearchHeight = CreateConVar( "ss_spawn_search_height", "50", "Attempts to find a valid spawn location will move down from this height relative to a survivor");
@@ -137,7 +137,7 @@ RepositionGrid( userid ) {
 							gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
 							DrawBeam( gridPos, spawnPos, VALID_MESH );
 						#endif
-						
+					
 					TeleportEntity( infectedBot, spawnPos, NULL_VECTOR, NULL_VECTOR ); // all spawn conditions satisifed
 					repositionSuccess = true;
 					break;
@@ -385,6 +385,7 @@ GetRearSurvivor() {
 }
 
 bool:IsPlayerStuck(Float:pos[3], client) {
+	new bool:isStuck = true;
 	if( IsValidClient(client) ) {
 		new Float:mins[3];
 		new Float:maxs[3];		
@@ -398,10 +399,9 @@ bool:IsPlayerStuck(Float:pos[3], client) {
 		}
 		
 		TR_TraceHullFilter(pos, pos, mins, maxs, MASK_ALL, TraceEntityFilterPlayer, client);
-		return TR_DidHit();
-	} else {
-		return true;
+		isStuck = TR_DidHit();
 	}
+	return isStuck;
 }  
 
 // filter out players, since we can't get stuck on them
@@ -441,5 +441,13 @@ stock DrawBeam( Float:startPos[3], Float:endPos[3], spawnResult ) {
 	Color[PURPLE] = {128, 0, 128, 75}; // purple
 	new Float:beamDuration = 5.0;
 	TE_SetupBeamPoints(startPos, endPos, laserCache, 0, 1, 1, beamDuration, 5.0, 5.0, 4, 0.0, Color[spawnResult], 0);
-	TE_SendToAll(); 
+	new iSurvivors[MaxClients];
+	new iNumSurvivors = 0;
+	for( new i = 1; i < MaxClients; i++ ) {
+		if( IsSurvivor(i) && !IsFakeClient(i) ) {
+			iSurvivors[iNumSurvivors] = i;
+			iNumSurvivors++;
+		}
+	}
+	TE_Send( iSurvivors, iNumSurvivors ); 
 }
