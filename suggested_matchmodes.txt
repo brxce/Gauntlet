@@ -2,18 +2,6 @@
 {
 	"Hard Coop"
 	{
-		"gauntlette1"
-		{
-			"name" "Gauntlette I (1p)"
-		}
-		"gauntlette2"
-		{
-			"name" "Gauntlette II (2p)"
-		}
-		"gauntlette3"
-		{
-			"name" "Gauntlette III (3p)"
-		}
 		"gauntlet"
 		{
 			"name" "Gauntlet (!playermode)"

@@ -160,7 +160,8 @@ OnePlayerMode() {
 	// Common and SI
 	SetCommonCvars( 5, 3, 3, 5 );
 	SetSICvars( 1500, 10, 10, 0.1 );
-	SetSIQuantities( 3, 3, 0, 0, 2, 0, 0, 0 );
+	SetSIQuantities( 4, 2, 0, 0, 4, 0, 0, 0 );
+	SetConVarBool( FindConVar("flow_tank_enable"), false );
 	// Autoslayer
 	SetConVarFloat( FindConVar("autoslayer_teamclear_delay"), 0.1 );
 	SetConVarBool( FindConVar("autoslayer_slay_all_infected"), false );
@@ -175,7 +176,8 @@ TwoPlayerMode() {
 	// Common and SI
 	SetCommonCvars( 10, 3, 3, 8 );
 	SetSICvars( 3000, 1, 2, 1.0 );
-	SetSIQuantities( 4, 3, 1, 0, 2, 0, 2, 2 );
+	SetSIQuantities( 5, 3, 1, 0, 2, 0, 1, 2 );
+	SetConVarBool( FindConVar("flow_tank_enable"), false );
 	// Autoslayer
 	SetConVarFloat( FindConVar("autoslayer_teamclear_delay"), 3.0 );
 	SetConVarBool( FindConVar("autoslayer_slay_all_infected"), true );
@@ -190,7 +192,8 @@ ThreePlayerMode() {
 	// Common and SI
 	SetCommonCvars( 15, 10, 10, 12 );
 	SetSICvars( 4500, 1, 2, 1.0 );
-	SetSIQuantities( 5, 4, 2, 1, 4, 0, 1, 1 );
+	SetSIQuantities( 6, 4, 2, 2, 4, 0, 1, 2 );
+	SetConVarBool( FindConVar("flow_tank_enable"), true );
 	// Autoslayer
 	SetConVarFloat( FindConVar("autoslayer_teamclear_delay"), 3.0 );
 	SetConVarBool( FindConVar("autoslayer_slay_all_infected"), true );
@@ -205,7 +208,8 @@ FourPlayerMode() {
 	// Common and SI
 	SetCommonCvars( 20, 13, 13, 15 );
 	SetSICvars( 6000, 1, 2, 1.0 );
-	SetSIQuantities( 8, 5, 2, 1, 5, 0, 1, 2 );
+	SetSIQuantities( 8, 5, 2, 1, 5, 0, 2, 2 );
+	SetConVarBool( FindConVar("flow_tank_enable"), true);
 	// Autoslayer
 	SetConVarFloat( FindConVar("autoslayer_teamclear_delay"), 3.0 );
 	SetConVarBool( FindConVar("autoslayer_slay_all_infected"), true );

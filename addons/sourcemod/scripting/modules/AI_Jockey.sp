@@ -59,14 +59,14 @@ public Action:Jockey_OnPlayerRunCmd(jockey, &buttons, &impulse, Float:vel[3], Fl
 		if( (flags & FL_ONGROUND) && !hasBeenShoved ) {
 			if (bDoNormalJump[jockey]) {
 				buttons |= IN_JUMP; // normal jump
-				bDoNormalJump[jockey] = !bDoNormalJump[jockey];
+				bDoNormalJump[jockey] = false;
 			} else {
 				if( bCanLeap[jockey] ) {
 					buttons |= IN_ATTACK; // pounce leap
 					bCanLeap[jockey] = false; // leap should be on cooldown
-					new Float:leapCooldown = float( GetConVarInt(FindConVar("z_jockey_leap_time")) );
+					new Float:leapCooldown = float( GetConVarInt(FindConVar("z_jockey_leap_again_timer")) );
 					CreateTimer(leapCooldown, Timer_LeapCooldown, any:jockey, TIMER_FLAG_NO_MAPCHANGE);
-					bDoNormalJump[jockey] = !bDoNormalJump[jockey];
+					bDoNormalJump[jockey] = true;
 				}					
 			}
 			

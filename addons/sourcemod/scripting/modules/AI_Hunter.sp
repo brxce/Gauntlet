@@ -110,9 +110,7 @@ public Action:Hunter_OnPlayerRunCmd(hunter, &buttons, &impulse, Float:vel[3], Fl
 					bHasQueuedLunge[hunter] = false; // unblock lunge interval timer
 				} // else lunge queue is being processed
 			}
-		} else {
-			buttons &= ~IN_DUCK; // do not crouch before seeing survivors
-		}		
+		} 	
 	} 	
 	return Plugin_Changed;
 }

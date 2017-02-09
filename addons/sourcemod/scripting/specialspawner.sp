@@ -115,9 +115,11 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	GetConVarString(FindConVar("mp_gamemode"), gameMode, sizeof(gameMode));
 	if( StrContains(gameMode, "versus", false) != -1 || StrContains(gameMode, "scavenge", false) != -1 ) {
 		SetFailState("Plugin does not support PvP modes");
-	} 
-	g_bHasSpawnTimerStarted = false;
-	StartSpawnTimer();
+	} else if( StrContains(gameMode, "survival", false) == -1 ) { // would otherwise cause spawns in survival before button is pressed
+		g_bHasSpawnTimerStarted = false;
+		StartSpawnTimer();
+	}
+	
 }
 
 public OnSurvivalRoundStart() {
