@@ -119,7 +119,6 @@ RepositionGrid( userid ) {
 			TR_TraceRay( gridPos, direction, MASK_ALL, RayType_Infinite );
 			// found solid land below the [x, y, z] coordinate
 			if( TR_DidHit() ) { 
-				DrawSpawnGrid();
 				new Float:traceImpact[3];
 				TR_GetEndPosition( traceImpact ); 
 				new Float:spawnPos[3];
@@ -133,6 +132,7 @@ RepositionGrid( userid ) {
 				if( IsOnValidMesh(spawnPos) && !IsPlayerStuck(spawnPos, infectedBot) && GetSurvivorProximity(spawnPos) > GetConVarInt(hCvarSpawnProximityMin) ) {
 						
 						#if DEBUG_POSITIONER
+							DrawSpawnGrid();
 							LogMessage("[SS] ( %d attempts ) Found a valid GRID SPAWN position for userid '%d'", i, userid );
 							gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
 							DrawBeam( gridPos, spawnPos, VALID_MESH );
@@ -145,6 +145,7 @@ RepositionGrid( userid ) {
 				} else {
 				
 						#if DEBUG_POSITIONER
+							DrawSpawnGrid();
 							gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
 							DrawBeam( gridPos, spawnPos, INVALID_MESH );
 						#endif
@@ -218,7 +219,7 @@ Float:CheckMaxCoord( Float:oldMax, Float:checkValue ) {
 	}
 }
 
-DrawSpawnGrid() {
+stock DrawSpawnGrid() {
 	new Float:xMin = spawnGrid[X_MIN];
 	new Float:xMax = spawnGrid[X_MAX];
 	new Float:yMin = spawnGrid[Y_MIN];

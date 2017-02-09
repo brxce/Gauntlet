@@ -1,7 +1,5 @@
 #pragma semicolon 1
 
-#define SERVER 0
-
 #define DEBUG_WEIGHTS 0
 #define DEBUG_SPAWNQUEUE 0
 #define DEBUG_TIMERS 0
@@ -152,7 +150,7 @@ public OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
 public Action:Timer_StarvationLOS( Handle:timer, any:userid ) {
 	new client = GetClientOfUserId( userid );
 	// increment tracked LOS time
-	if( bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {
+	if( IsBotInfected(client) && IsPlayerAlive(client) && bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {
 		g_fTimeLOS[userid] = 0.0;
 	} else {
 		g_fTimeLOS[userid] += 0.5; 

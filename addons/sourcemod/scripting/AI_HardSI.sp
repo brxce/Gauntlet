@@ -81,32 +81,30 @@ public Action:Timer_ForceInfectedAssault( Handle:timer ) {
 
 // Modify SI movement
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
-	if( !IsBotInfected(client) || !IsPlayerAlive(client) ) { // bots continue to trigger this callback for a few seconds after death
-		return Plugin_Continue;
-	}
-	new botInfected = client;
-	switch( L4D2_Infected:GetInfectedClass(botInfected) ) {
-	
-		case (L4D2Infected_Hunter): {
-			if( !bHasBeenShoved[botInfected] ) return Hunter_OnPlayerRunCmd( botInfected, buttons, impulse, vel, angles, weapon );
-		}		
+	if( IsBotInfected(client) && IsPlayerAlive(client) ) { // bots continue to trigger this callback for a few seconds after death
+		new botInfected = client;
+		switch( L4D2_Infected:GetInfectedClass(botInfected) ) {
 		
-		case (L4D2Infected_Charger): {
-			return Charger_OnPlayerRunCmd( botInfected, buttons, impulse, vel, angles, weapon );
-		}	
-		
-		case (L4D2Infected_Jockey): {
-			return Jockey_OnPlayerRunCmd( botInfected, buttons, impulse, vel, angles, weapon, bHasBeenShoved[botInfected] );
-		}
+			case (L4D2Infected_Hunter): {
+				if( !bHasBeenShoved[botInfected] ) return Hunter_OnPlayerRunCmd( botInfected, buttons, impulse, vel, angles, weapon );
+			}		
 			
-		case (L4D2Infected_Tank): {
-			return Tank_OnPlayerRunCmd( botInfected, buttons, impulse, vel, angles, weapon );
-		}
+			case (L4D2Infected_Charger): {
+				return Charger_OnPlayerRunCmd( botInfected, buttons, impulse, vel, angles, weapon );
+			}	
 			
-		default: {
-			return Plugin_Continue;
+			case (L4D2Infected_Jockey): {
+				return Jockey_OnPlayerRunCmd( botInfected, buttons, impulse, vel, angles, weapon, bHasBeenShoved[botInfected] );
+			}
+				
+			case (L4D2Infected_Tank): {
+				return Tank_OnPlayerRunCmd( botInfected, buttons, impulse, vel, angles, weapon );
+			}
+				
+			default: {
+				return Plugin_Continue;
+			}		
 		}
-		
 	}
 	return Plugin_Continue;
 }
