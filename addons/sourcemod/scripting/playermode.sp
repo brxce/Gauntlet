@@ -30,9 +30,12 @@ public OnPluginStart() {
 		case 4: FourPlayerMode();
 		default: FourPlayerMode();
 	}
+	SetConVarBool( FindConVar("l4d_ready_enabled"), true );
+	SetConVarString( FindConVar("l4d_ready_cfg_name"), "Gauntlet" );
 }
 
 public OnPluginEnd() {
+	SetConVarBool( FindConVar("l4d_ready_enabled"), false );
 	// Survivors
 	ResetConVar( FindConVar("survivor_limit") );
 	ResetConVar( FindConVar("confogl_pills_limit") );

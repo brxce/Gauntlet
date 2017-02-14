@@ -152,20 +152,20 @@ public OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
 public Action:Timer_StarvationLOS( Handle:timer, any:userid ) {
 	new client = GetClientOfUserId( userid );
 	// increment tracked LOS time
-	if( IsBotInfected(client) && IsPlayerAlive(client) && bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {
-		g_fTimeLOS[userid] = 0.0;
-	} else {
-		g_fTimeLOS[userid] += 0.5; 
-	}
-	// check if they are starved
-	if( IsPlayerAlive(client) ) {
+	if( IsBotInfected(client) && IsPlayerAlive(client) ) {
 		if( IsBotInfected(client) && g_fTimeLOS[userid] > 10.0 ) {
 			ForcePlayerSuicide(client);
 			return Plugin_Stop;
-		}			
+		}
+		if( bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {
+			g_fTimeLOS[userid] = 0.0;
+		} else {
+			g_fTimeLOS[userid] += 0.5; 
+		}
 	} else {
 		return Plugin_Stop;
 	}
+	
 	return Plugin_Continue;
 }
 
