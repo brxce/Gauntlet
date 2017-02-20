@@ -101,6 +101,7 @@ PlayerModeVote( client, playerMode ) {
 }
 
 public VoteResultHandler( Handle:vote, numVotes, numClients, const clientInfo[][2], numItems, const itemInfo[][2] ) {
+	new bool:votePassed = false;
 	for( new i = 0; i < numItems; i++ ) {
 		if( itemInfo[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES ) {
 			if( itemInfo[i][BUILTINVOTEINFO_ITEM_VOTES] > (numClients / 2) ) {
@@ -115,6 +116,7 @@ public VoteResultHandler( Handle:vote, numVotes, numClients, const clientInfo[][
 						}
 					} 
 					DisplayBuiltinVotePass(vote, "Changing player mode...");
+					votePassed = true;
 				} else {
 					new numPlayerSurvivors = 0;
 					for( new j = 1; j < MaxClients; j++ ) {
@@ -131,15 +133,17 @@ public VoteResultHandler( Handle:vote, numVotes, numClients, const clientInfo[][
 							default: FourPlayerMode();
 						}
 						DisplayBuiltinVotePass(vote, "Changing player mode...");
+						votePassed = true;
 					} else {
 						PrintToChatAll("Too many players to reduce survivor limit");
-						DisplayBuiltinVoteFail(vote);
 					}
 				}
 			}
 		}
 	}
-	DisplayBuiltinVoteFail(vote);
+	if( !votePassed ) {
+		DisplayBuiltinVoteFail(vote);
+	}
 }
 
 public VoteActionHandler(Handle:vote, BuiltinVoteAction:action, param1, param2) {
@@ -158,8 +162,6 @@ OnePlayerMode() {
 	// Survivors
 	SetConVarInt( FindConVar("survivor_limit"), 1 );
 	SetConVarInt( FindConVar("confogl_pills_limit"), 2 );
-	SetConVarInt( FindConVar("survivor_ledge_grab_health"), 0 );
-	SetConVarInt( FindConVar("survivor_max_incapacitated_count"), 0 );
 	// Common and SI
 	SetCommonCvars( 5, 3, 3, 5 );
 	SetSICvars( 1500, 10, 10, 0.1 );
