@@ -95,7 +95,7 @@ public Action:Timer_SlaySurvivors(Handle:timer) {
 			SlaySurvivors();
 			Client_PrintToChatAll(true, "[AS] {N}AutoSlayed {O}survivors!");	
 		} else {
-		Client_PrintToChatAll(true, "[AS] ...AutoSlayer {G}cancelled!");
+			Client_PrintToChatAll(true, "[AS] ...AutoSlayer {G}cancelled!");
 		}
 		secondsPassed = 0;
 		return Plugin_Stop;

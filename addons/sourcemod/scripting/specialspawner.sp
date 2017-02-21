@@ -15,7 +15,7 @@
 new Handle:hCvarReadyUpEnabled;
 new Handle:hCvarConfigName;
 new bool:bShowSpawnerHUD[MAXPLAYERS];
-new Float:g_fTimeLOS[10000]; // not sure what the largest possible userid is
+new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 
 // Modules
 #include "includes/hardcoop_util.sp"
@@ -142,7 +142,7 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 public OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
 	new userid = GetEventInt(event, "userid");
 	new client = GetClientOfUserId(userid);
-	if( IsBotInfected(client) && !IsTank(client) ) {
+	if( IsBotInfected(client) && !IsTank(client) && userid >= 0 ) {
 		g_fTimeLOS[userid] = 0.0;
 		// Checking LOS
 		CreateTimer( 0.5, Timer_StarvationLOS, userid, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
