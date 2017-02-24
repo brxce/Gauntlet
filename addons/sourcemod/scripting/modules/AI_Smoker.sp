@@ -1,4 +1,5 @@
 #pragma semicolon 1
+#define SMOKER_TONGUE_DELAY 1.0
 
 new Handle:hCvarTongueDelay;
 new Handle:hCvarSmokerHealth;
@@ -15,7 +16,7 @@ public Smoker_OnModuleStart() {
     HookConVarChange(hCvarChokeDamageInterrupt, ConVarChanged:OnTongueCvarChange);    
     // Delay before smoker shoots its tongue
     hCvarTongueDelay = FindConVar("smoker_tongue_delay"); 
-    SetConVarFloat(hCvarTongueDelay, 0.5); // default 1.5
+    SetConVarFloat(hCvarTongueDelay, SMOKER_TONGUE_DELAY); // default 1.5
     HookConVarChange(hCvarTongueDelay, ConVarChanged:OnTongueCvarChange);
 }
 
@@ -26,7 +27,7 @@ public Smoker_OnModuleEnd() {
 
 // Game tries to reset these cvars
 public OnTongueCvarChange() {
-	SetConVarFloat(hCvarTongueDelay, 0.5);	
+	SetConVarFloat(hCvarTongueDelay, SMOKER_TONGUE_DELAY);	
 	SetConVarInt(hCvarChokeDamageInterrupt, GetConVarInt(hCvarSmokerHealth));
 }
 

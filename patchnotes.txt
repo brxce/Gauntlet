@@ -30,6 +30,10 @@ around the survivor grid
 Both RADIAL and GRID spawning fallback onto vanilla spawning if
 'ss_spawn_search_attempt_limit' is reached
 
+GAUNTLET SURVIVAL
+- launch config after loading a survival game (map restart required if
+survival round has already begun)
+
 SM_GIVE_GIVEMENU.SMX
 - added !give plugin that alllows survivors to pick their weapon
 
@@ -40,12 +44,17 @@ COOPBOSSES.SMX
 AI_HARDSI.SMX
 - fixed smoker death while smoking dmg threshold dropping to 50
 - jockeys now respect the "z_jockey_leap_again_timer" cooldown on their ability
+- increased smoker tongue delay from 0.5 to 1.0 seconds
 
 AUTOSLAYER.SMX now has a new(default) mode that slays after a configured amount time all SI if all survivors are immobilised
+ 
+PILLSUPPLY.SMX
+- now grants pills upon pickup
 
 Added PLAYERMODE.SMX
 - use command !playermode to add or remove survivors between 1 and 'pm_max_survivors' cvar
 - any playermode above 4 uses four player cvars except for 'survivor_limit'
+- my philosophy here is to make the default settings easy for people playing Gauntlet for the first time
 
 TICKRATEFIXES.SMX
 - removed l4dpistoldelay.smx load as it is superceded by TickrateFixes

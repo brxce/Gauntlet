@@ -54,6 +54,7 @@ public ShowHelpMenu(client) {
 	// Heading
 	Format(heading, sizeof(heading), "=====+ GAUNTLET HELP ('5' to close) +=====");
 	SetPanelTitle(WelcomePanel, heading);
+	DrawPanelText(WelcomePanel, "Fully customisable SI difficulty!");
 	DrawPanelText(WelcomePanel, " \n");
 
 	// SI commands

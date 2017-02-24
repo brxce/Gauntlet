@@ -28,6 +28,7 @@ new bool:g_bHasReceivedSuppPills;
 public OnPluginStart() {
 	hCvarSuppPillPercent = CreateConVar("supplementary_pill_percent", "50", "Percent of map completion upon which a second set of pills is granted. '-1' to disable");
 
+	HookEvent( "revive_success", OnReviveSuccess, EventHookMode_PostNoCopy );
 	HookEvent("mission_lost", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("finale_win", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
@@ -46,6 +47,13 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea() {
 	DistributePills();
 	g_bIsRoundActive = true;
 	g_bHasReceivedSuppPills = false;
+}
+
+public Action:OnReviveSuccess( Handle:event, const String:eventName[], bool:dontBroadcast ) {
+	new revived = GetClientOfUserId( GetEventInt(event, "subject") );
+	if( IsSurvivor(revived) && IsPlayerAlive(revived) ) {
+		GiveItem( revived, "pain_pills" );
+	}
 }
 
 public OnRoundOver() {
