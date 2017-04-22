@@ -23,11 +23,13 @@ public Plugin:myinfo = {
 };
 
 public OnPluginStart() {
-	// Cvar
+	// Cvars
 	hCvarAutoSlayerMode = CreateConVar("autoslayer_mode", "1", "On all survivors incapacitated/pinned : -1 = Slay survivors, 0 = OFF, 1 = Slay infected");
+	// This applies for "autoslayer_mode 1" (slay survivors)
 	hCvarGracePeriod = CreateConVar("autoslayer_graceperiod", "7.0", "Time(sec) before pinned/incapacitated survivor team is slayed by 'slay survivors' AutoSlayer mode", FCVAR_PLUGIN, true, 0.0 );
+	// These only applies for "autoslayer_mode -1" (slay infected when all survivors are pinned)
+	hCvarSlayAllInfected = CreateConVar( "autoslayer_slay_all_infected", "1", "0 = only slays infected that are pinning survivors, 1 = all infected are slayed" );
 	hCvarTeamClearDelay = CreateConVar( "autoslayer_teamclear_delay", "3.0", "Time(sec) before survivor team is cleared by 'slay infected' AutoSlayer mode", FCVAR_PLUGIN, true, 0.0 );
-	hCvarSlayAllInfected = CreateConVar( "autoslayer_slay_all_infected", "1", "0 = only infected pinning survivors are slayed, 1 = all infected are slayed" );
 	HookConVarChange(hCvarAutoSlayerMode, ConVarChanged:OnAutoSlayerModeChange);
 	// Event hooks
 	HookEvent("player_incapacitated", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy);

@@ -14,6 +14,8 @@
 
 new Handle:hCvarReadyUpEnabled;
 new Handle:hCvarConfigName;
+new Handle:hCvarLineOfSightStarvationTime;
+
 new bool:bShowSpawnerHUD[MAXPLAYERS];
 new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 
@@ -77,6 +79,7 @@ public OnPluginStart() {
 	HookEvent("player_death", OnPlayerDeath, EventHookMode_PostNoCopy);
 	// LOS tracking
 	HookEvent("player_spawn", OnPlayerSpawn, EventHookMode_PostNoCopy);
+	hCvarLineOfSightStarvationTime = CreateConVar( "ss_los_starvation_time", "7.5", "SI will be slayed after being denied LOS to survivor team for this amount of time" );
 	// Customisation commands
 	RegConsoleCmd("sm_weight", Cmd_SetWeight, "Set spawn weights for SI classes");
 	RegConsoleCmd("sm_limit", Cmd_SetLimit, "Set individual, total and simultaneous SI spawn limits");
@@ -91,7 +94,7 @@ public OnPluginEnd() {
 	ResetConVar( FindConVar("director_spectate_specials") );
 	ResetConVar( FindConVar("director_no_specials") ); // Disable Director spawning specials naturally
 	ResetConVar( FindConVar("z_safe_spawn_range") );
-	ResetConVar( FindConVar("z_spawn_safety_range"));
+	ResetConVar( FindConVar("z_spawn_safety_range") );
 	ResetConVar( FindConVar("z_spawn_range") );
 	ResetConVar( FindConVar("z_discard_range") );
 }
@@ -139,6 +142,13 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 	}
 }
 
+/***********************************************************************************************************************************************************************************
+
+                                                 					LOS STARVATION
+                                                                    
+***********************************************************************************************************************************************************************************/
+
+// Slay infected if they have not had LOS to survivors for a defined (hCvarLineOfSightStarvationTime/ss_los_starvation_time) period
 public OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
 	new userid = GetEventInt(event, "userid");
 	new client = GetClientOfUserId(userid);
@@ -153,7 +163,7 @@ public Action:Timer_StarvationLOS( Handle:timer, any:userid ) {
 	new client = GetClientOfUserId( userid );
 	// increment tracked LOS time
 	if( IsBotInfected(client) && IsPlayerAlive(client) ) {
-		if( IsBotInfected(client) && g_fTimeLOS[userid] > 10.0 ) {
+		if( g_fTimeLOS[userid] > GetConVarFloat(hCvarLineOfSightStarvationTime) ) {
 			ForcePlayerSuicide(client);
 			return Plugin_Stop;
 		}
