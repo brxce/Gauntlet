@@ -61,6 +61,7 @@ public OnPluginStart() {
 	hCvarReadyUpEnabled = CreateConVar("l4d_ready_enabled", "", "This cvar from readyup.smx is required by server_namer.smx, but is duplicated here to avoid use of readyup.smx");
 	hCvarConfigName = CreateConVar("l4d_ready_cfg_name", "", "This cvar from readyup.smx is required by server_namer.smx, but is duplicated here to avoid use of readyup.smx");
 	
+	SetConVarFlags( hCvarReadyUpEnabled, FCVAR_PLUGIN ); SetConVarFlags( hCvarConfigName, FCVAR_PLUGIN|FCVAR_PRINTABLEONLY ); // get rid of 'symbol is assigned a value that is never used' compiler warnings
 	SetConVarInt(hCvarReadyUpEnabled, 1); 
 	SetConVarString( hCvarConfigName, "" ); // get rid of 'symbol is assigned a value that is never used' compiler warnings
 	
