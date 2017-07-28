@@ -45,14 +45,14 @@ public Action:Timer_Welcome(Handle:timer, any:client) {
 public ShowHelpMenu(client) {
 	decl String:heading[255];
 	decl String:limitcmd[255], String:weightcmd[255], String:timercmd[255];
-	decl String:bosscmds[255];
+	decl String:bosscmds[255], String:spawnmode[255];
 	decl String:playerMode[255], String:joinSurvivors[255], String:spawnedDead[255], String:spawnedOutOfSaferoom[255];
 	decl String:misc[255];
 	
 	new Handle:WelcomePanel = CreatePanel(INVALID_HANDLE);
 	
 	// Heading
-	Format(heading, sizeof(heading), "=====+ GAUNTLET HELP ('5' to close) +=====");
+	Format(heading, sizeof(heading), "=====+ GAUNTLET HELP (Any NumKey to close) +=====");
 	SetPanelTitle(WelcomePanel, heading);
 	DrawPanelText(WelcomePanel, "Fully customisable SI difficulty!");
 	DrawPanelText(WelcomePanel, " \n");
@@ -67,6 +67,9 @@ public ShowHelpMenu(client) {
 	// Boss commands
 	Format(bosscmds, sizeof(bosscmds), "!toggletank, !witch < limit | period | mode >");
 	DrawPanelText(WelcomePanel, bosscmds);
+	// SpawnModes
+	Format(spawnmode, sizeof(spawnmode), "!spawnmode <value> - (0=Vanilla, 1=Radial, 2=Grid)");
+	DrawPanelText(WelcomePanel, spawnmode);
 	DrawPanelText(WelcomePanel, " \n"); // empty line to separate sections
 	
 	// Survivor commands
