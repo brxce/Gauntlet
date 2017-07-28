@@ -85,6 +85,7 @@ public OnPluginStart() {
 	RegConsoleCmd("sm_limit", Cmd_SetLimit, "Set individual, total and simultaneous SI spawn limits");
 	RegConsoleCmd("sm_timer", Cmd_SetTimer, "Set a variable or constant spawn time (seconds)");
 	RegConsoleCmd("sm_spawnmode", Cmd_SpawnMode, "[ 0 = vanilla spawning, 1 = radial repositioning, 2 = grid repositioning ]");
+	RegConsoleCmd("sm_spawnproximity", Cmd_SpawnProximity, "Set the minimum and maximum spawn distance");
 	// Admin commands
 	RegAdminCmd("sm_resetspawns", Cmd_ResetSpawns, ADMFLAG_RCON, "Reset by slaying all special infected and restarting the timer");
 	RegAdminCmd("sm_forcetimer", Cmd_StartSpawnTimerManually, ADMFLAG_RCON, "Manually start the spawn timer");
@@ -346,6 +347,27 @@ public Action:Cmd_SpawnMode( client, args ) {
 		Client_PrintToChat( client, true, "[SS] Current spawnmode: {O}%s", spawnModes[GetConVarInt(hCvarSpawnPositionerMode)] );
 		ReplyToCommand( client, "Usage: spawnmode <mode> [ 0 = vanilla spawning, 1 = radial repositioning, 2 = grid repositioning ]" );
 	}
+}
+
+public Action:Cmd_SpawnProximity(client, args) {	
+	if( args == 2 ) {
+		new Float:min, Float:max;
+		decl String:arg[8];
+		GetCmdArg( 1, arg, sizeof(arg) );
+		min = StringToFloat(arg);
+		GetCmdArg( 2, arg, sizeof(arg) );
+		max = StringToFloat(arg);
+		if( min > 0.0 && max > 1.0 && max > min ) {
+			SetConVarFloat( hCvarSpawnProximityMin, min );
+			SetConVarFloat( hCvarSpawnProximityMax, max );
+			Client_PrintToChat(client, true, "[SS] Spawn proximity set between {G}%.3f {N}and {G}%.3f {N}units", min, max );
+		} else {
+			ReplyToCommand(client, "[SS] Max(>= 1.0) spawn proximity must greater than min(>= 0.0) spawn proximity");
+		}
+	} else {
+		ReplyToCommand(client, "[SS] spawnproximity <min> <max>");
+	}
+	return Plugin_Handled;
 }
 
 /***********************************************************************************************************************************************************************************
