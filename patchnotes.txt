@@ -1,80 +1,8 @@
-- !playermode <number of players> allows for instant adjustment between 1-8(cvar'able) survivor slots. Adjusts common cvars and other cvars to adapt to the survivor limit
-- please make players aware of this new command ^
-- New spawning plugin allows for more varied spawns. Each SI class still respects a limit, but there is also a wave size limit that restricts the total number of SI spawned at a time.
-Set plural limits for each SI class to allow for varied spawns. For example, with a limit of 2 for each of the six SI classes but a group spawn size of 3, there is an equal possibility for each of the classes to be included in one of the three slots, and even a chance for double a particular class to spawn.
-- new SpawnPositioner module teleports SI closer to survivors upon spawn, making non-hunter SI more threatening when spawned in a decently sized wave.
-	- !spawnmode 0(vanilla) recommended for closed maps like Parish and !spawnmode 2(grid) recommended over !spawnmode 1(radial) for open maps like dark carnival
-- SI(besides tank) now die of LOS starvation after 10 seconds. This helps clear out SI that have spawned in bad places, especially in finales, and blocking further SI from spawning. 
+End saferoom kits will now properly remain as kits and not pills, carrying over to the next map.
 
-SPECIALSPAWNER.SMX
-With 'special' ;) thanks to the authors of the l4d2_autoIS plugin, all credits to them for their code:
-- Compatible with survival; launch a survival game from lobby, then load "Gauntlet Survival" config (vanilla weapons and equipment)
-- New plugin [specialspawner.smx] to replace [special_infected_wave_spawner.smx]
-	- SI spawn in groups of configurable size, up to an 'SI limit'
-	- 'SI limit' cvar that can be overriden with Admin only 'SI limit Server cap' cvar 
-	- SI class limits and spawn weights that affect spawn probability; spawns will vary a lot more 
-	- !limit, !weight, !timer cmds for all users
-	- hold your "USE" and "RELOAD" keys to read limits and other customisation settings off the Spawner HUD; fades after 1s
-- SI can now spawn within LOS of survivors
-Created two new spawn modes that may be accessed with the 'spawnmode'
-command
-0:  vanilla spawning from far away
-1: RADIAL spawning (spawn on the circumference of circles of radius cvar
-'ss_spawn_proximity_min'
-2: GRID spawning
-- grid encompasses highest and lowest 'x' and 'y' coordinates held by
-survivor team
-- SI spawn spawn within buffer zone of distance 'ss_spawn_proximity_max'
-around the survivor grid
-- spawn coordinates are generated using uniform RNG
-Both RADIAL and GRID spawning fallback onto vanilla spawning if
-'ss_spawn_search_attempt_limit' is reached
+Flow tank is now enabled by default 
+- (!toggletank to switch this feature)
+- customise this feature in .cfg with 'flow_tank_enable' cvar
 
-GAUNTLET SURVIVAL
-- launch config after loading a survival game (map restart required if
-survival round has already begun)
-
-SM_GIVE_GIVEMENU.SMX
-- added !give plugin that alllows survivors to pick their weapon
-
-COOPBOSSES.SMX
-- Added witch spawning functionality to coopbosses
-	- see sourcecode for cvars
-
-AI_HARDSI.SMX
-- fixed smoker death while smoking dmg threshold dropping to 50
-- jockeys now respect the "z_jockey_leap_again_timer" cooldown on their ability
-- increased smoker tongue delay from 0.5 to 1.0 seconds
-
-AUTOSLAYER.SMX now has a new(default) mode that slays after a configured amount time all SI if all survivors are immobilised
- 
-PILLSUPPLY.SMX
-- now grants pills upon pickup
-
-Added PLAYERMODE.SMX
-- use command !playermode to add or remove survivors between 1 and 'pm_max_survivors' cvar
-- any playermode above 4 uses four player cvars except for 'survivor_limit'
-- my philosophy here is to make the default settings easy for people playing Gauntlet for the first time
-
-TICKRATEFIXES.SMX
-- removed l4dpistoldelay.smx load as it is superceded by TickrateFixes
-- removed duplicate plugin loads
-
-Added new vanilla cvar settings to improve AI thanks to this addon: http://steamcommunity.com/sharedfiles/filedetails/?id=732341797
-Not sure what they all do, but I have selected these as they sound like they have potential for improved AI. 2147483647 appears to be the largest number possible for a cvar
-JOCKEY
-- z_jockey_ride_hazard_scan_distance 1900
-- z_jockey_ride_scan_distance 3000
-- z_jockey_ride_scan_interval 1.50
-- z_jockey_lookahead 1600
-TANK
-- tank_stuck_visibility_tolerance_choose_new_target 1.5
-- tank_stuck_time_choose_new_target 0.5
-NEXTBOT (general survivor/infected AI)
-- nb_path_segment_influence_radius 2147483647
-- nb_path_draw_inc 2147483647
-- nb_saccade_speed 4150
-- nb_saccade_time 0
-- nb_speed_look_ahead_range 338
-
-
+[specialspawner.smx]
+- drops spawn proximity check if spawning outside of all survivor's LOS

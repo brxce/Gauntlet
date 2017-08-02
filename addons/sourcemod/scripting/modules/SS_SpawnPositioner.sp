@@ -106,6 +106,7 @@ RepositionGrid( userid ) {
 		new Float:gridPos[3];
 		gridPos[COORD_X] = GetRandomFloat(spawnGrid[X_MIN], spawnGrid[X_MAX]);
 		gridPos[COORD_Y] = GetRandomFloat(spawnGrid[Y_MIN], spawnGrid[Y_MAX]);
+		// 'z' coordinate taken just above height of nearest survivor
 		new closestSurvivor = GetClosestSurvivor2D(gridPos);
 		new Float:survivorPos[3];
 		GetClientAbsOrigin(closestSurvivor, survivorPos);
@@ -129,19 +130,22 @@ RepositionGrid( userid ) {
 					return;
 				}
 				// Is this a valid spawn spot
-				if( IsOnValidMesh(spawnPos) && !IsPlayerStuck(spawnPos, infectedBot) && GetSurvivorProximity(spawnPos) > GetConVarInt(hCvarSpawnProximityMin) ) {
-						
-						#if DEBUG_POSITIONER
-							DrawSpawnGrid();
-							LogMessage("[SS] ( %d attempts ) Found a valid GRID SPAWN position for userid '%d'", i, userid );
-							gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
-							DrawBeam( gridPos, spawnPos, VALID_MESH );
-						#endif
+				if( IsOnValidMesh(spawnPos) && !IsPlayerStuck(spawnPos, infectedBot) ) {
+						// Do we like this valid spawn spot( either far enough from survivors or out of sight )
+						if( !HasSurvivorLOS(spawnPos) || GetSurvivorProximity(spawnPos) > GetConVarInt(hCvarSpawnProximityMin) ) {
+							
+								#if DEBUG_POSITIONER
+									DrawSpawnGrid();
+									LogMessage("[SS] ( %d attempts ) Found a valid GRID SPAWN position for userid '%d'", i, userid );
+									gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
+									DrawBeam( gridPos, spawnPos, VALID_MESH );
+								#endif
 					
-					TeleportEntity( infectedBot, spawnPos, NULL_VECTOR, NULL_VECTOR ); // all spawn conditions satisifed
-					repositionSuccess = true;
-					break;
-					
+							TeleportEntity( infectedBot, spawnPos, NULL_VECTOR, NULL_VECTOR ); // all spawn conditions satisifed
+							repositionSuccess = true;
+							break;
+						}
+			
 				} else {
 				
 						#if DEBUG_POSITIONER
@@ -343,6 +347,22 @@ bool:CheckSurvivorsSeparated() {
                                                                     
 ***********************************************************************************************************************************************************************************/
 	
+stock bool:HasSurvivorLOS( Float:pos[3] ) {
+	new bool:hasLOS = false;
+	for( new i = 1; i < MaxClients; ++i ) {
+		if( IsSurvivor(i) && IsPlayerAlive(i) ) {
+			new Float:origin[3];
+			GetClientAbsOrigin(i, origin);
+			TR_TraceRay( pos, origin, MASK_ALL, RayType_EndPoint );
+			if( !TR_DidHit() ) {
+				hasLOS = true;
+				break;
+			}
+		}	
+	}
+	return hasLOS;
+}
+
 GetLeadSurvivor() {
 	// Find the farthest flow held by a survivor
 	new Float:farthestFlow = -1.0;

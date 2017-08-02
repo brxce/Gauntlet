@@ -47,7 +47,7 @@
 		"ss_charger_limit" { "value" "2" "type" "int" }
 		"ss_time_min" { "value" "15.0" "type" "float" }
 		"ss_time_max" { "value" "20.0" "type" "float" }
-		"flow_tank_enable" { "value" "0" "type" "int" }
+		"flow_tank_enable" { "value" "1" "type" "int" }
 		"z_pounce_damage_delay" { "value" "1.0" "type" "float" }
 		"autoslayer_slay_all_infected" { "value" "1" "type" "int" }
 		"autoslayer_teamclear_delay" { "value" "3.0" "type" "float" }		
@@ -73,7 +73,7 @@
 		"ss_charger_limit" { "value" "2" "type" "int" }
 		"ss_time_min" { "value" "15.0" "type" "float" }
 		"ss_time_max" { "value" "20.0" "type" "float" }
-		"flow_tank_enable" { "value" "0" "type" "int" }
+		"flow_tank_enable" { "value" "1" "type" "int" }
 		"z_pounce_damage_delay" { "value" "1.0" "type" "float" }
 		"autoslayer_slay_all_infected" { "value" "1" "type" "int" }
 		"autoslayer_teamclear_delay" { "value" "3.0" "type" "float" }		
@@ -99,7 +99,7 @@
 		"ss_charger_limit" { "value" "2" "type" "int" }
 		"ss_time_min" { "value" "20.0" "type" "float" }
 		"ss_time_max" { "value" "25.0" "type" "float" }
-		"flow_tank_enable" { "value" "0" "type" "int" }
+		"flow_tank_enable" { "value" "1" "type" "int" }
 		"z_pounce_damage_delay" { "value" "1.0" "type" "float" }
 		"autoslayer_slay_all_infected" { "value" "1" "type" "int" }
 		"autoslayer_teamclear_delay" { "value" "3.0" "type" "float" }		
