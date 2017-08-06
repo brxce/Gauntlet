@@ -132,7 +132,7 @@ RepositionGrid( userid ) {
 				// Is this a valid spawn spot
 				if( IsOnValidMesh(spawnPos) && !IsPlayerStuck(spawnPos, infectedBot) ) {
 						// Do we like this valid spawn spot( either far enough from survivors or out of sight )
-						if( !HasSurvivorLOS(spawnPos) || GetSurvivorProximity(spawnPos) > GetConVarInt(hCvarSpawnProximityMin) ) {
+						if( /*!HasSurvivorLOS(spawnPos) ||*/ GetSurvivorProximity(spawnPos) > GetConVarInt(hCvarSpawnProximityMin) ) {
 							
 								#if DEBUG_POSITIONER
 									DrawSpawnGrid();

@@ -1,8 +1,3 @@
-End saferoom kits will now properly remain as kits and not pills, carrying over to the next map.
-
-Flow tank is now enabled by default 
-- (!toggletank to switch this feature)
-- customise this feature in .cfg with 'flow_tank_enable' cvar
-
-[specialspawner.smx]
-- drops spawn proximity check if spawning outside of all survivor's LOS
+TODO:
+- not spawn in pple's face
+- inside spawns
