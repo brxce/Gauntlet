@@ -165,7 +165,17 @@ public Action:Timer_StarvationLOS( Handle:timer, any:userid ) {
 	// increment tracked LOS time
 	if( IsBotInfected(client) && IsPlayerAlive(client) ) {
 		if( g_fTimeLOS[userid] > GetConVarFloat(hCvarLineOfSightStarvationTime) ) {
-			ForcePlayerSuicide(client);
+			switch ( GetConVarInt(FindConVar("ss_spawnpositioner_mode")) ) {
+				case 1: {
+					RepositionRadial(userid, GetLeadSurvivor());
+				}
+				case 2: {
+					RepositionGrid(userid);
+				}
+				default: {
+					
+				}
+			}
 			return Plugin_Stop;
 		}
 		if( bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {

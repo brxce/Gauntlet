@@ -34,7 +34,7 @@ new Handle:hCvarSpawnSearchHeight;
 new Handle:hCvarSpawnProximityMin;
 new Handle:hCvarSpawnProximityMax;
 
-new g_AllSurvivors[MAXPLAYERS]; // MAXPLAYERS because who knows what crazy configs people might put together
+new g_AllSurvivors[MAXPLAYERS]; // MAXPLAYERS because who knows what survivor limit people may use
 new Float:spawnGrid[4];
 
 new laserCache;

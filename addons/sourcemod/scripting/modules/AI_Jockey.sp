@@ -56,7 +56,7 @@ public Action:Jockey_OnPlayerRunCmd(jockey, &buttons, &impulse, Float:vel[3], Fl
 		new flags = GetEntityFlags(jockey);
 		
 		// Alternate normal jump and pounces if jockey has not been shoved
-		if( (flags & FL_ONGROUND) && !hasBeenShoved ) {
+		if ( (flags & FL_ONGROUND) && !hasBeenShoved ) { // jump/leap off cd when on ground (unless being shoved)
 			if (bDoNormalJump[jockey]) {
 				buttons |= IN_JUMP; // normal jump
 				bDoNormalJump[jockey] = false;
@@ -67,12 +67,10 @@ public Action:Jockey_OnPlayerRunCmd(jockey, &buttons, &impulse, Float:vel[3], Fl
 					new Float:leapCooldown = float( GetConVarInt(FindConVar("z_jockey_leap_again_timer")) );
 					CreateTimer(leapCooldown, Timer_LeapCooldown, any:jockey, TIMER_FLAG_NO_MAPCHANGE);
 					bDoNormalJump[jockey] = true;
-				}					
+				} 			
 			}
 			
-		} 
-		
-		else { // midair, release buttons
+		} else { // midair, release buttons
 			buttons &= ~IN_JUMP;
 			buttons &= ~IN_ATTACK;
 		}		

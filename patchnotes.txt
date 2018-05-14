@@ -1,9 +1,2 @@
 PATCH
-- fixed survivors outside of solo play (survivor_limit = 1) being cleared by AutoSlayer when all other teammates have died
-
-TODO:
-- not spawn in pple's face
-- inside spawns
 - relocate lost spawns instead of slaying
-- fix jockey leap cooldown between jumps and after m2
-- los slaying on tank disable this
