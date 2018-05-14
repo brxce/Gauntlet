@@ -67,7 +67,7 @@ public OnPlayerDeath(Handle:event, String:name[], bool:dontBroadcast) {
 }
 
 AutoSlayer() {
-	if( GetConVarInt(hCvarAutoSlayerMode) != 0 && !g_bIsAutoSlayerActive && IsTeamImmobilised() && !IsTeamWiped() ) { 
+	if( GetConVarInt(hCvarAutoSlayerMode) != 0 && !g_bIsAutoSlayerActive && IsTeamImmobilised() && !IsTeamWiped() && !IsLastStanding() ) { 
 		g_bIsAutoSlayerActive = true;
 		Client_PrintToChatAll(true, "[AS] {O}Initiating AutoSlayer...");
 		if( GetConVarInt(hCvarAutoSlayerMode) < 0 ) { // Slay survivors
@@ -174,4 +174,18 @@ bool:IsTeamWiped() {
 		} 
 	}
 	return bIsTeamWiped;
+}
+
+/**
+ * @return: true if all survivors but one have died
+**/
+bool:IsLastStanding() {
+	new num_survivors = GetConVarInt(FindConVar("survivor_limit"));
+	new num_alive_survivors = 0;
+	for ( new i = 0; i < MaxClients; ++i ) {
+		if ( IsSurvivor(i) && !IsPlayerAlive(i) ) {
+			++num_alive_survivors;	
+		}
+	}
+	return (num_survivors - num_alive_survivors == 1 ? true : false ); 
 }
