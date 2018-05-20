@@ -1,2 +1,9 @@
 PATCH
-- relocate lost spawns instead of slaying
+AI spawning algorithm has been expanded to consider nav mesh distance
+- this improves spawns in semi transparent corridors such as the Parish alarm event following the hedge maze and bridge (c5m2_park)
+- increased maximum spawn relocation attempts from 100 to 500 per SI; testing required for server load concerns
+- potential spawn relocations will not only be rejected if they are too far from survivors displacement wise, but also in terms of flow distance as measured by the map's internal navigation mesh
+	-> cvar "ss_spawn_proximity_flow_dist_LOS", default "900" (flow distance)
+- furthermore, spawn relocations outside of LOS will be facilitated with a lower flow distance restriction i.e. outside of LOS, infected are allowed but not always able to spawn around corner
+	-> cvar "ss_spawn_proximity_flow_dist_no_LOS" default "500" (flow distance)
+- fixed AI target selection decision making to exclude dead survivors

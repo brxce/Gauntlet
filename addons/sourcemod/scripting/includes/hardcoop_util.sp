@@ -100,16 +100,11 @@ stock GetMaxSurvivorCompletion() {
 	decl Float:tmp_flow;
 	decl Float:origin[3];
 	decl Address:pNavArea;
-	for( new client = 1; client <= MaxClients; client++ ) {
-		if( IsSurvivor(client) )
-		{
+	for ( new client = 1; client <= MaxClients; client++ ) {
+		if ( IsSurvivor(client) && IsPlayerAlive(client) ) {
 			GetClientAbsOrigin(client, origin);
-			pNavArea = L4D2Direct_GetTerrorNavArea(origin);
-			if (pNavArea != Address_Null)
-			{
-				tmp_flow = L4D2Direct_GetTerrorNavAreaFlow(pNavArea);
-				flow = MAX(flow, tmp_flow);
-			}
+			tmp_flow = GetFlow(origin);
+			flow = MAX(flow, tmp_flow);
 		}
 	}
 	
@@ -126,19 +121,14 @@ stock GetMaxSurvivorCompletion() {
  * @return: the farthest flow distance currently held by a survivor
  */
 stock Float:GetFarthestSurvivorFlow() {
-	new Float: flow;
-	new Float:farthestFlow = 0.0;
+	new Float:farthest_flow = 0.0;
 	decl Float:origin[3];
-	decl Address:pNavArea;
 	for (new client = 1; client <= MaxClients; client++) {
-        if (IsClientInGame(client) && L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor) {
+        if ( IsSurvivor(client) && IsPlayerAlive(client) ) {
             GetClientAbsOrigin(client, origin);
-            pNavArea = L4D2Direct_GetTerrorNavArea(origin);
-            if (pNavArea != Address_Null) {
-				flow = L4D2Direct_GetTerrorNavAreaFlow(pNavArea);
-				if (flow > farthestFlow) {
-				    farthestFlow = flow;
-				}
+            new Float:flow = GetFlow(origin);
+            if ( flow > farthest_flow ) {
+            	farthest_flow = flow;
             }
         }
     }
@@ -149,23 +139,70 @@ stock Float:GetFarthestSurvivorFlow() {
  * Returns the average flow distance covered by each survivor
  */
 stock Float:GetAverageSurvivorFlow() {
-    new survivorCount = 0;
-    new Float:totalFlow = 0.0;
+    new survivor_count = 0;
+    new Float:total_flow = 0.0;
     decl Float:origin[3];
-    decl Address:pNavArea;
     for (new client = 1; client <= MaxClients; client++) {
-        if (IsClientInGame(client) && L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor) {
-            survivorCount++;
+        if ( IsSurvivor(client) && IsPlayerAlive(client) ) {
+            survivor_count++;
             GetClientAbsOrigin(client, origin);
-            pNavArea = L4D2Direct_GetTerrorNavArea(origin);
-            if (pNavArea != Address_Null) {
-                totalFlow += L4D2Direct_GetTerrorNavAreaFlow(pNavArea);
+            new Float:client_flow = GetFlow(origin);
+            if ( GetFlow(origin) != -1.0 ) {
+            	total_flow++;
             }
         }
     }
-    return FloatDiv(totalFlow, float(survivorCount));
+    return FloatDiv(totalFlow, float(survivor_count));
 }
 
+/**
+ * Returns the flow distance from given point to closest alive survivor. 
+ * Returns -1.0 if either the given point or the survivors as a whole are not upon a valid nav mesh
+ */
+stock GetFlowDistToSurvivors(const Float:pos[3]) {
+	new spawnpoint_flow;
+	new lowest_flow_dist = -1;
+	
+	spawnpoint_flow = GetFlow(pos);
+	if ( spawnpoint_flow == -1) {
+		return -1;
+	}
+	
+	for ( new j = 0; j < MaxClients; j++ ) {
+		if ( IsSurvivor(j) && IsPlayerAlive(j) ) {
+			new Float:origin[3];
+			new flow_dist;
+			
+			GetClientAbsOrigin(j, origin);
+			flow_dist = GetFlow(origin);
+			
+			// have we found a new valid(i.e. != -1) lowest flow_dist
+			if ( flow_dist != -1 && FloatCompare(FloatAbs(float(flow_dist) - float(spawnpoint_flow)), float(lowest_flow_dist)) ==  -1 ) {
+				lowest_flow_dist = flow_dist;
+			}
+		}
+	}
+	
+	return lowest_flow_dist;
+}
+
+/**
+ * Returns the flow distance of a given point
+ */
+ stock GetFlow(const Float:o[3]) {
+ 	new Float:origin[3]; //non constant var
+ 	origin[0] = o[0];
+ 	origin[1] = o[1];
+ 	origin[2] = o[2];
+ 	decl Address:pNavArea;
+ 	pNavArea = L4D2Direct_GetTerrorNavArea(origin);
+ 	if ( pNavArea != Address_Null ) {
+ 		return RoundToNearest(L4D2Direct_GetTerrorNavAreaFlow(pNavArea));
+ 	} else {
+ 		return -1;
+ 	}
+ }
+ 
 /**
  * Returns true if the player is incapacitated. 
  *
@@ -184,10 +221,11 @@ stock bool:IsIncapacitated(client) {
 **/
 stock GetClosestSurvivor( Float:referencePos[3], excludeSurvivor = -1 ) {
 	new Float:survivorPos[3];
-	new iClosestAbsDisplacement = -1; 
-	new closestSurvivor = -1;		
+	new closestSurvivor = GetRandomSurvivor();	
+	GetClientAbsOrigin( closestSurvivor, survivorPos );
+	new iClosestAbsDisplacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );
 	for (new client = 1; client < MaxClients; client++) {
-		if( IsSurvivor(client) && client != excludeSurvivor ) {
+		if( IsSurvivor(client) && IsPlayerAlive(client) && client != excludeSurvivor ) {
 			GetClientAbsOrigin( client, survivorPos );
 			new iAbsDisplacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );			
 			if( iClosestAbsDisplacement < 0 ) { // Start with the absolute displacement to the first survivor found:
@@ -208,14 +246,19 @@ stock GetClosestSurvivor( Float:referencePos[3], excludeSurvivor = -1 ) {
  * @param specificSurvivor: the index of the survivor to be measured, -1 to search for distance to closest survivor
  * @return: the distance
  */
-stock GetSurvivorProximity( Float:referencePos[3], specificSurvivor = -1 ) {
+stock GetSurvivorProximity( const Float:rp[3], specificSurvivor = -1 ) {
 	
 	new targetSurvivor;
 	new Float:targetSurvivorPos[3];
+	new Float:referencePos[3]; // non constant var
+	referencePos[0] = rp[0];
+	referencePos[1] = rp[1];
+	referencePos[2] = rp[2];
+	
 
 	if( specificSurvivor > 0 && IsSurvivor(specificSurvivor) ) { // specified survivor
 		targetSurvivor = specificSurvivor;		
-	} else { // closest survivor
+	} else { // closest survivor		
 		targetSurvivor = GetClosestSurvivor( referencePos );
 	}
 	
@@ -228,7 +271,7 @@ stock GetRandomSurvivor() {
 	new survivors[MAXPLAYERS];
 	new numSurvivors = 0;
 	for( new i = 0; i < MAXPLAYERS; i++ ) {
-		if( IsSurvivor(i) ) {
+		if( IsSurvivor(i) && IsPlayerAlive(i) ) {
 		    survivors[numSurvivors] = i;
 		    numSurvivors++;
 		}

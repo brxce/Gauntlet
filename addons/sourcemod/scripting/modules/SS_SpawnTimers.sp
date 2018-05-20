@@ -12,8 +12,8 @@ new g_bHasSpawnTimerStarted = true;
 
 SpawnTimers_OnModuleStart() {
 	// Timer
-	hSpawnTimeMin = CreateConVar("ss_time_min", "15.0", "The minimum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 0.0);
-	hSpawnTimeMax = CreateConVar("ss_time_max", "20.0", "The maximum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 1.0);
+	hSpawnTimeMin = CreateConVar("ss_time_min", "12.0", "The minimum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 0.0);
+	hSpawnTimeMax = CreateConVar("ss_time_max", "15.0", "The maximum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 1.0);
 	hSpawnTimeMode = CreateConVar("ss_time_mode", "1", "The spawn time mode [ 0 = RANDOMIZED | 1 = INCREMENTAL | 2 = DECREMENTAL ]", FCVAR_PLUGIN, true, 0.0, true, 2.0);
 	HookConVarChange(hSpawnTimeMin, ConVarChanged:CalculateSpawnTimes);
 	HookConVarChange(hSpawnTimeMax, ConVarChanged:CalculateSpawnTimes);
@@ -22,6 +22,10 @@ SpawnTimers_OnModuleStart() {
 	hCvarIncapAllowance = CreateConVar( "ss_incap_allowance", "7", "Grace period(sec) per incapped survivor" );
 	// sets SpawnTimeMin, SpawnTimeMax, and SpawnTimes[]
 	SetSpawnTimes(); 
+}
+
+SpawnTimers_OnModuleEnd() {
+	CloseHandle(hSpawnTimer);
 }
 
 /***********************************************************************************************************************************************************************************

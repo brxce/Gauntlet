@@ -15,6 +15,7 @@
 new Handle:hCvarReadyUpEnabled;
 new Handle:hCvarConfigName;
 new Handle:hCvarLineOfSightStarvationTime;
+new Handle:hTimerHUD;
 
 new bool:bShowSpawnerHUD[MAXPLAYERS];
 new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
@@ -39,7 +40,7 @@ public Plugin:myinfo =
 	name = "Special Spawner",
 	author = "Tordecybombo, breezy",
 	description = "Provides customisable special infected spawing beyond vanilla coop limits",
-	version = "1.0",
+	version = "",
 	url = ""
 };
 
@@ -98,6 +99,10 @@ public OnPluginEnd() {
 	ResetConVar( FindConVar("z_spawn_safety_range") );
 	ResetConVar( FindConVar("z_spawn_range") );
 	ResetConVar( FindConVar("z_discard_range") );
+	
+	CloseHandle(hTimerHUD);
+	SpawnTimers_OnModuleEnd();
+	SpawnPositioner_OnModuleEnd();
 }
 
 /***********************************************************************************************************************************************************************************
@@ -110,7 +115,7 @@ public OnConfigsExecuted() {
 	// Load customised cvar values to override any .cfg values
 	LoadCacheSpawnLimits();
 	LoadCacheSpawnWeights(); 
-	CreateTimer( 0.1, Timer_DrawSpawnerHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
+	hTimerHUD = CreateTimer( 0.1, Timer_DrawSpawnerHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
 }
 
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) { 
@@ -164,6 +169,13 @@ public Action:Timer_StarvationLOS( Handle:timer, any:userid ) {
 	new client = GetClientOfUserId( userid );
 	// increment tracked LOS time
 	if( IsBotInfected(client) && IsPlayerAlive(client) ) {
+	
+		if( bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {
+			g_fTimeLOS[userid] = 0.0;
+		} else {
+			g_fTimeLOS[userid] += 0.5; 
+		}
+		
 		if( g_fTimeLOS[userid] > GetConVarFloat(hCvarLineOfSightStarvationTime) ) {
 			switch ( GetConVarInt(FindConVar("ss_spawnpositioner_mode")) ) {
 				case 1: {
@@ -173,20 +185,13 @@ public Action:Timer_StarvationLOS( Handle:timer, any:userid ) {
 					RepositionGrid(userid);
 				}
 				default: {
-					
 				}
 			}
 			return Plugin_Stop;
 		}
-		if( bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {
-			g_fTimeLOS[userid] = 0.0;
-		} else {
-			g_fTimeLOS[userid] += 0.5; 
-		}
 	} else {
 		return Plugin_Stop;
 	}
-	
 	return Plugin_Continue;
 }
 
@@ -225,7 +230,7 @@ public Action:Cmd_SetLimit(client, args) {
 				Client_PrintToChatAll(true, "[SS] -> {O}Max {N}SI limit set to {G}%i", iLimitValue);		           
 			} else if( StrEqual(sTargetClass, "group", false) || StrEqual(sTargetClass, "wave", false) ) {
 				SpawnSizeCache = iLimitValue;
-				Client_PrintToChatAll(true, "[SS] -> SI {O}wave {N}spawn size set to {G}%i", iLimitValue);
+				Client_PrintToChatAll(true, "[SS] -> SI will spawn in {O}groups{N} of {G}%i", iLimitValue);
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(Spawns[i], sTargetClass, false) ) {
@@ -447,23 +452,20 @@ public Action:Timer_DrawSpawnerHUD( Handle:timer ) {
 }
 
 FillHeaderInfo(Handle:spawnerHUD) {
-	SetPanelTitle(spawnerHUD, "Spawner HUD");
-	// Server SI limit
-	new String:buffer[64];
-	Format( buffer, sizeof(buffer), "SI limit server cap: %i", GetConVarInt(hSILimitServerCap) );
-	DrawPanelText(spawnerHUD, buffer);
+	SetPanelTitle(spawnerHUD, "--------- SPAWNER HUD ---------");
 	DrawPanelText(spawnerHUD, " \n");
 }
 
 FillSpecialInfectedInfo(Handle:spawnerHUD) {
 	// Potential SI
 	new String:SILimit[32];
-	Format( SILimit, sizeof(SILimit), "SI limit -> %d/%d", CountSpecialInfectedBots(), GetConVarInt(hSILimit) );
+	Format( SILimit, sizeof(SILimit), "SI max -> %d / %d (Cap: %d)", CountSpecialInfectedBots(), GetConVarInt(hSILimit), GetConVarInt(hSILimitServerCap) );
 	DrawPanelText(spawnerHUD, SILimit);
 	// Simultaneous spawn limit
 	new String:simultaneousSpawnLimit[32];
 	Format( simultaneousSpawnLimit, sizeof(simultaneousSpawnLimit), "Group spawn size -> %d", GetConVarInt(hSpawnSize) );
 	DrawPanelText(spawnerHUD, simultaneousSpawnLimit);
+	DrawPanelText(spawnerHUD, " \n");
 	// Individual class weights and limits
 	new String:classCustomisationInfo[NUM_TYPES_INFECTED][64];
 	for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {

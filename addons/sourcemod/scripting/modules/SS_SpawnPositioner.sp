@@ -33,6 +33,8 @@ new Handle:hCvarMaxSearchAttempts;
 new Handle:hCvarSpawnSearchHeight;
 new Handle:hCvarSpawnProximityMin;
 new Handle:hCvarSpawnProximityMax;
+new Handle:hCvarSpawnProximityFlowNoLOS;
+new Handle:hCvarSpawnProximityFlowLOS; 
 
 new g_AllSurvivors[MAXPLAYERS]; // MAXPLAYERS because who knows what survivor limit people may use
 new Float:spawnGrid[4];
@@ -49,11 +51,20 @@ new laserCache;
 SpawnPositioner_OnModuleStart() {
 	hCvarSpawnPositionerMode = CreateConVar( "ss_spawnpositioner_mode", "2", "[ 0 = disabled, 1 = Radial Reposition only, 2 = Grid Reposition with Radial fallback ]" );
 	HookConVarChange( hCvarSpawnPositionerMode, ConVarChanged:SpawnPositionerMode );
-	hCvarMaxSearchAttempts = CreateConVar( "ss_spawn_max_search_attempts", "100", "Max attempts to make per SI spawn to find an acceptable location to which to relocate them" );
+	hCvarMaxSearchAttempts = CreateConVar( "ss_spawn_max_search_attempts", "500", "Max attempts to make per SI spawn to find an acceptable location to which to relocate them" );
 	hCvarSpawnSearchHeight = CreateConVar( "ss_spawn_search_height", "50", "Attempts to find a valid spawn location will move down from this height relative to a survivor");
 	hCvarSpawnProximityMin = CreateConVar( "ss_spawn_proximity_min", "500", "Closest an SI may spawn to a survivor", FCVAR_PLUGIN, true, 1.0 );
 	hCvarSpawnProximityMax = CreateConVar( "ss_spawn_proximity_max", "650", "Furthest an SI may spawn to a survivor", FCVAR_PLUGIN, true, float(GetConVarInt(hCvarSpawnProximityMin)) );
+	// N.B. the hCvarSpawnProximityFlow___ cvars are not a lower and upper bound;
+	hCvarSpawnProximityFlowNoLOS = CreateConVar( "ss_spawn_proximity_flow_dist_no_LOS", "500", 
+									"Closest spawns by flow distance; considered when there is no LOS on survivors" );
+	hCvarSpawnProximityFlowLOS = CreateConVar( "ss_spawn_proximity_flow_dist_LOS", "900", 
+									"Farthest spawns by flow distance; bounded by lowest straight line distance to survivor team" );
 	HookEvent("player_spawn", OnPlayerSpawnPost, EventHookMode_PostNoCopy);
+}
+
+SpawnPositioner_OnModuleEnd() {
+	ResetConVar( FindConVar("z_spawn_range") );
 }
 
 public SpawnPositionerMode() {
@@ -71,6 +82,7 @@ public SpawnPositionerMode() {
 ***********************************************************************************************************************************************************************************/
 
 public OnPlayerSpawnPost(Handle:event, const String:name[], bool:dontBroadcast) {
+
     new userid = GetEventInt(event, "userid");
     new client = GetClientOfUserId(userid);
     if( GetConVarBool(hCvarSpawnPositionerMode) && IsBotInfected(client) ) {
@@ -86,7 +98,7 @@ public Action:Timer_PositionSI(Handle:timer, any:userid) {
 	} else {
 		RepositionRadial( userid, GetRandomSurvivor() );
 	}
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 /***********************************************************************************************************************************************************************************
@@ -99,75 +111,101 @@ public Action:Timer_PositionSI(Handle:timer, any:userid) {
  * Reposition the SI to a random point on a 2D grid around the survivors. 
  */
 RepositionGrid( userid ) {
-	new bool:repositionSuccess = false;
+	new infectedBot = GetClientOfUserId(userid);
+	
+	if ( !IsBotInfected(infectedBot) || !IsPlayerAlive(infectedBot) ) {
+		return;
+	}
+	
 	UpdateSpawnGrid();
+	
 	for( new i = 0; i < GetConVarInt(hCvarMaxSearchAttempts); i++ ) {
-		// Uniform RNG for 'x' and 'y' coordinates
 		new Float:gridPos[3];
+		new Float:survivorPos[3];
+		new closestSurvivor;
+		
+		// 'x' and 'y' for potential spawn point coordinates is selected with uniform RNG
 		gridPos[COORD_X] = GetRandomFloat(spawnGrid[X_MIN], spawnGrid[X_MAX]);
 		gridPos[COORD_Y] = GetRandomFloat(spawnGrid[Y_MIN], spawnGrid[Y_MAX]);
-		// 'z' coordinate taken just above height of nearest survivor
-		new closestSurvivor = GetClosestSurvivor2D(gridPos);
-		new Float:survivorPos[3];
+		// 'z' for potential spawn point coordinate is taken from just above the height of nearest survivor
+		closestSurvivor = GetClosestSurvivor2D(gridPos);
 		GetClientAbsOrigin(closestSurvivor, survivorPos);
 		gridPos[COORD_Z] = survivorPos[COORD_Z] + float( GetConVarInt(hCvarSpawnSearchHeight) );
+		
 		// Search down the vertical column from the generated [x, y ,z] coordinate for a valid spawn position
-		if( IsSurvivor(closestSurvivor) && IsPlayerAlive(closestSurvivor) ) { // double check return value from GetClosestSurvivor2D
-			new Float:direction[3];
-			direction[PITCH] = MAX_ANGLE; // straight down
-			direction[YAW] = 0.0;
-			direction[ROLL] = 0.0;
-			TR_TraceRay( gridPos, direction, MASK_ALL, RayType_Infinite );
-			// found solid land below the [x, y, z] coordinate
-			if( TR_DidHit() ) { 
-				new Float:traceImpact[3];
-				TR_GetEndPosition( traceImpact ); 
-				new Float:spawnPos[3];
-				spawnPos = traceImpact;
-				spawnPos[COORD_Z] += NAV_MESH_HEIGHT; // from testing I presume the SI cannot spawn on the floor itself
-				new infectedBot = GetClientOfUserId(userid);
-				if( !IsBotInfected(infectedBot) || !IsPlayerAlive(infectedBot) ) {
-					return;
-				}
-				// Is this a valid spawn spot
-				if( IsOnValidMesh(spawnPos) && !IsPlayerStuck(spawnPos, infectedBot) ) {
-						// Do we like this valid spawn spot( either far enough from survivors or out of sight )
-						if( /*!HasSurvivorLOS(spawnPos) ||*/ GetSurvivorProximity(spawnPos) > GetConVarInt(hCvarSpawnProximityMin) ) {
-							
-								#if DEBUG_POSITIONER
-									DrawSpawnGrid();
-									LogMessage("[SS] ( %d attempts ) Found a valid GRID SPAWN position for userid '%d'", i, userid );
-									gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
-									DrawBeam( gridPos, spawnPos, VALID_MESH );
-								#endif
-					
-							TeleportEntity( infectedBot, spawnPos, NULL_VECTOR, NULL_VECTOR ); // all spawn conditions satisifed
-							repositionSuccess = true;
-							break;
-						}
+		new Float:direction[3];
+		direction[PITCH] = MAX_ANGLE; // straight down
+		direction[YAW] = 0.0;
+		direction[ROLL] = 0.0;
+		TR_TraceRay( gridPos, direction, MASK_ALL, RayType_Infinite );
+		
+		// found solid land below the [x, y, z] coordinate
+		if( TR_DidHit() ) { 
+			new Float:traceImpact[3];
+			new Float:spawnPos[3];
 			
-				} else {
+			TR_GetEndPosition( traceImpact ); 
+			spawnPos = traceImpact;
+			spawnPos[COORD_Z] += NAV_MESH_HEIGHT; // from testing I presume the SI cannot spawn on the floor itself
+			
+			if ( IsValidSpawn(infectedBot, spawnPos) ) {
+			
+					#if DEBUG_POSITIONER
+						DrawSpawnGrid();
+						new String:client_name[32];
+						GetClientName(GetClientOfUserId(userid), client_name, sizeof(client_name));
+						Client_PrintToChatAll(true, "[SS] {O}%s{N} GRID SPAWN, {R}%d{N} dist, ( {G}%d{N} attempts)", client_name, RoundFloat(GetFlowDistToSurvivors(spawnPos)), i + 1);
+						gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
+						DrawBeam( gridPos, spawnPos, VALID_MESH );
+					#endif
+					
+				TeleportEntity( infectedBot, spawnPos, NULL_VECTOR, NULL_VECTOR ); // all spawn conditions satisifed
+				return;
 				
-						#if DEBUG_POSITIONER
-							DrawSpawnGrid();
-							gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
-							DrawBeam( gridPos, spawnPos, INVALID_MESH );
-						#endif
-						
-				}
-			} 
-		}
+			} else {
+
+					#if DEBUG_POSITIONER
+						DrawSpawnGrid();
+						gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
+						DrawBeam( gridPos, spawnPos, INVALID_MESH );
+					#endif
+					
+			}
+		} 
  	}
  	// Could not find an acceptable spawn position
-	if( !repositionSuccess ) {
-		LogMessage("[SS] FAILED to find a valid GRID SPAWN position for userid '%d' after %d attempts", userid, GetConVarInt(hCvarMaxSearchAttempts) ); 
-	}
+	LogMessage("[SS] FAILED to find a valid GRID SPAWN position for userid '%d' after %d attempts", userid, GetConVarInt(hCvarMaxSearchAttempts) ); 
+	return;
  }
+ 
+bool:IsValidSpawn(infectedBot, const Float:spawnPos[3]) {
+	new bool:is_valid = false;
+	new flow_dist_survivors;
+	if( IsOnValidMesh(spawnPos) && !IsPlayerStuck(spawnPos, infectedBot) ) {
+		flow_dist_survivors = GetFlowDistToSurvivors(spawnPos);
+		if ( HasSurvivorLOS(spawnPos) ) {
+			new survivor_proximity = GetSurvivorProximity(spawnPos);
+			if ( survivor_proximity > GetConVarInt(hCvarSpawnProximityMin) && flow_dist_survivors < GetConVarInt(hCvarSpawnProximityFlowLOS) ) { 
+				is_valid = true;
+			}
+		} else { // try to keep spawn flow distance to survivors low if they are spawning outside of LOS
+			if ( flow_dist_survivors < GetConVarInt(hCvarSpawnProximityFlowNoLOS) && flow_dist_survivors != -1 ) {
+					
+					#if DEBUG_POSITIONER
+						Client_PrintToChatAll(true, "{G}flow dist %d{N} < cvar {G}%d{N}", flow_dist_survivors, GetConVarInt(hCvarSpawnProximityFlowNoLOS));
+					#endif
+				
+				is_valid = true;
+			}
+		}
+	}
+	return is_valid;
+}
 
 GetClosestSurvivor2D(Float:gridPos[3]) {
 	// Use the 'z' coordinate of the nearest survivor
 	new Float:proximity = UNINITIALISED_FLOAT;
-	new closestSurvivor = -1;
+	new closestSurvivor = GetRandomSurvivor();
 	for( new j = 1; j < MaxClients; j++ ) {
 		if( IsSurvivor(j) && IsPlayerAlive(j) ) {
 			new Float:survivorPos[3];
@@ -338,7 +376,6 @@ bool:CheckSurvivorsSeparated() {
 	} else {
 		return false;
 	}
-	
 }
 
 /***********************************************************************************************************************************************************************************
@@ -347,7 +384,7 @@ bool:CheckSurvivorsSeparated() {
                                                                     
 ***********************************************************************************************************************************************************************************/
 	
-stock bool:HasSurvivorLOS( Float:pos[3] ) {
+stock bool:HasSurvivorLOS( const Float:pos[3] ) {
 	new bool:hasLOS = false;
 	for( new i = 1; i < MaxClients; ++i ) {
 		if( IsSurvivor(i) && IsPlayerAlive(i) ) {
@@ -405,7 +442,7 @@ GetRearSurvivor() {
 	return rearSurvivor;
 }
 
-bool:IsPlayerStuck(Float:pos[3], client) {
+bool:IsPlayerStuck( const Float:pos[3], client) {
 	new bool:isStuck = true;
 	if( IsValidClient(client) ) {
 		new Float:mins[3];
@@ -442,7 +479,11 @@ stock CacheSurvivors() {
 	return (j - 1);
 }
 
-stock bool:IsOnValidMesh(Float:pos[3]) {
+stock bool:IsOnValidMesh(const Float:position[3]) {
+	new Float:pos[3];
+	pos[0] = position[0]; 
+	pos[1] = position[1]; 
+	pos[2] = position[2]; 
 	new Address:pNavArea;
 	pNavArea = L4D2Direct_GetTerrorNavArea(pos);
 	if (pNavArea != Address_Null) { 
