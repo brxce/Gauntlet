@@ -8,8 +8,8 @@ Installation instructions are found in the
 **[Install](/INSTALL.md)** file  
 
 *Please read the* **[Issues](/issues.md)** *file before downloading as this config is subject to major bugs for which workarounds have been developed*  
+# The Gauntlet Manifesto
 
-# Gauntlet Manifesto
 
 ## Horde shooters appeal to the questing desire for immersion and replay value. 
 
