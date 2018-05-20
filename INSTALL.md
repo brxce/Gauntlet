@@ -1,6 +1,6 @@
 # Installation  
 
-Remember to add entries for these configs in your 'matchmodes.txt'
+Remember to add entries for Gauntlet configs in your 'matchmodes.txt'
 
 ## Install AceMod, then copy the three folders from breezyplase/hardcoop
 >
@@ -10,25 +10,24 @@ Remember to add entries for these configs in your 'matchmodes.txt'
  * Make sure you have dhooks.ext.2.l4d2 extension installed
  
 >> ### AI improvements   
->>  * ai_aggressivespecials.smx
->>  * ai_smokersettings.smx  
->>  * ai_hunterpouncing.smx  
->>  * ai_jockeybehaviour.smx  
->>  * ai_chargefromclose.smx  
->>  * ai_tankbehaviour.smx  
+>>  * AI_HardSI.smx  
+>>  * specialspawner.smx  
 
 >> ### Versus simulation
 >>  * static_scoremod.smx
->>  * survivor_reset.smx
 >>  * pillsonly.smx
 >>  * mapskipper.smx
 >>  * coopbosses.smx
->>  * special_infected_wave_spawner.smx
  
 >> ### Misc.
->>  * autowipe.smx
->>  * survivormanagement.smx
->>  * l4d2_playstats_fixed.smx  
->>  * l4d_tank_damage_announce_fixed.smx  
+>>  * pillsupply.smx  
+>>  * autoslayer.smx  
+>>  * survivormanagement.smx  
+>>  * l4d2_meleeinthesaferoom.smx  
+>>  * sm_give_givemenu.smx    
+>>  * l4d2_playstats_fixed.smx     
+>>  * l4d_tank_damage_announce_fixed.smx      
+>>  * pause.smx (fixed for AI clients on spectator team)  
+>>  * hardcoop_reminder.smx  
 
 
