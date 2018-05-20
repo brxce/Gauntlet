@@ -90,7 +90,7 @@ PlayerModeVote( client, playerMode ) {
 			SetBuiltinVoteInitiator( hPlayerModeVote, client );
 			SetBuiltinVoteResultCallback( hPlayerModeVote, VoteResultHandler);
 			new iPlayerSurvivors[MaxClients];
-			new iNumPlayerSurvivors;
+			new iNumPlayerSurvivors = 0;
 			for( new i = 1; i < MaxClients; i++ ) {
 				if( IsSurvivor(i) && !IsFakeClient(i) ) {
 					iPlayerSurvivors[iNumPlayerSurvivors] = i;

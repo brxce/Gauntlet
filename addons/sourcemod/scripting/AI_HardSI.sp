@@ -157,10 +157,22 @@ public Action:OnAbilityUse(Handle:event, String:name[], bool:dontBroadcast) {
 			return Hunter_OnPounce(bot);
 		} else if( StrEqual(abilityName, "ability_charge") ) {
 			Charger_OnCharge(bot);
-		} else if( StrEqual(abilityName, "ability_tongue") || StrEqual(abilityName, "ability_spit") ) { // stop smokers and spitters running away
-			SetEntityMoveType(bot, MOVETYPE_NONE);
+		} else if( StrEqual(abilityName, "ability_spit") ) { // stop smokers and spitters running away
+			CreateTimer(0.5, Timer_Suicide, any:client, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
+	return Plugin_Handled;
+}
+
+public Action:OnTongueRelease(Handle:event, String:name[], bool:dontBroadcast) {
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+	if( IsBotInfected(client) ) {
+		CreateTimer(0.5, Timer_Suicide, any:client, TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+public Action:Timer_Suicide(Handle:timer, any:client) {
+	ForcePlayerSuicide(client);
 	return Plugin_Handled;
 }
 

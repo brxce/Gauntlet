@@ -38,15 +38,18 @@
 		"z_jockey_ride_damage" { "value" "1" "type" "int" }
 		"z_pounce_damage" { "value" "2" "type" "int" }
 		"ss_si_limit" { "value" "4" "type" "int" }
-		"ss_spawn_size" { "value" "3" "type" "int" }
+		"ss_spawn_size" { "value" "2" "type" "int" }
 		"ss_smoker_limit" { "value" "1" "type" "int" }
 		"ss_boomer_limit" { "value" "0" "type" "int" }
 		"ss_hunter_limit" { "value" "3" "type" "int" }
 		"ss_spitter_limit" { "value""0" "type" "int" }
 		"ss_jockey_limit" { "value" "1" "type" "int" }
 		"ss_charger_limit" { "value" "2" "type" "int" }
-		"ss_time_min" { "value" "15.0" "type" "float" }
-		"ss_time_max" { "value" "20.0" "type" "float" }
+		"ss_smoker_weight" { "value" "50" "type" "int" }
+		"ss_boomer_weight" { "value" "10" "type" "int" }
+		"ss_charger_weight" { "value" "76" "type" "int" }
+		"ss_time_min" { "value" "12.0" "type" "float" }
+		"ss_time_max" { "value" "15.0" "type" "float" }
 		"flow_tank_enable" { "value" "1" "type" "int" }
 		"z_pounce_damage_delay" { "value" "1.0" "type" "float" }
 		"autoslayer_slay_all_infected" { "value" "1" "type" "int" }
@@ -64,15 +67,18 @@
 		"z_jockey_ride_damage" { "value" "1" "type" "int" }
 		"z_pounce_damage" { "value" "2" "type" "int" }
 		"ss_si_limit" { "value" "5" "type" "int" }
-		"ss_spawn_size" { "value" "4" "type" "int" }
+		"ss_spawn_size" { "value" "3" "type" "int" }
 		"ss_smoker_limit" { "value" "1" "type" "int" }
 		"ss_boomer_limit" { "value" "0" "type" "int" }
 		"ss_hunter_limit" { "value" "4" "type" "int" }
 		"ss_spitter_limit" { "value""0" "type" "int" }
 		"ss_jockey_limit" { "value" "1" "type" "int" }
 		"ss_charger_limit" { "value" "2" "type" "int" }
-		"ss_time_min" { "value" "15.0" "type" "float" }
-		"ss_time_max" { "value" "20.0" "type" "float" }
+		"ss_smoker_weight" { "value" "50" "type" "int" }
+		"ss_boomer_weight" { "value" "10" "type" "int" }
+		"ss_charger_weight" { "value" "76" "type" "int" }
+		"ss_time_min" { "value" "12.0" "type" "float" }
+		"ss_time_max" { "value" "15.0" "type" "float" }
 		"flow_tank_enable" { "value" "1" "type" "int" }
 		"z_pounce_damage_delay" { "value" "1.0" "type" "float" }
 		"autoslayer_slay_all_infected" { "value" "1" "type" "int" }
@@ -90,15 +96,18 @@
 		"z_jockey_ride_damage" { "value" "1" "type" "int" }
 		"z_pounce_damage" { "value" "2" "type" "int" }
 		"ss_si_limit" { "value" "6" "type" "int" }
-		"ss_spawn_size" { "value" "5" "type" "int" }
-		"ss_smoker_limit" { "value" "2" "type" "int" }
+		"ss_spawn_size" { "value" "4" "type" "int" }
+		"ss_smoker_limit" { "value" "1" "type" "int" }
 		"ss_boomer_limit" { "value" "1" "type" "int" }
-		"ss_hunter_limit" { "value" "4" "type" "int" }
+		"ss_hunter_limit" { "value" "2" "type" "int" }
 		"ss_spitter_limit" { "value""0" "type" "int" }
 		"ss_jockey_limit" { "value" "2" "type" "int" }
 		"ss_charger_limit" { "value" "2" "type" "int" }
-		"ss_time_min" { "value" "20.0" "type" "float" }
-		"ss_time_max" { "value" "25.0" "type" "float" }
+		"ss_smoker_weight" { "value" "50" "type" "int" }
+		"ss_boomer_weight" { "value" "10" "type" "int" }
+		"ss_charger_weight" { "value" "76" "type" "int" }
+		"ss_time_min" { "value" "12.0" "type" "float" }
+		"ss_time_max" { "value" "15.0" "type" "float" }
 		"flow_tank_enable" { "value" "1" "type" "int" }
 		"z_pounce_damage_delay" { "value" "1.0" "type" "float" }
 		"autoslayer_slay_all_infected" { "value" "1" "type" "int" }
