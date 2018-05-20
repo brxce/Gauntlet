@@ -1,12 +1,12 @@
-#Installation  
+# Installation  
 
 
 Remember to add entries for these configs in your 'matchmodes.txt'
 
->###AceMod must be installed first
+>### AceMod must be installed first
 
 
-###AI improvements  
+### AI improvements  
 >
  * ai_aggressivespecials.smx
  * ai_smokersettings.smx  
@@ -15,7 +15,7 @@ Remember to add entries for these configs in your 'matchmodes.txt'
  * ai_chargefromclose.smx  
  * ai_tankbehaviour.smx  
 
-###Versus simulation
+### Versus simulation
 >
  * static_scoremod.smx
  * survivor_reset.smx
@@ -23,14 +23,14 @@ Remember to add entries for these configs in your 'matchmodes.txt'
  * mapskipper.smx
  * coopbosses.smx
  * special_infected_wave_spawner.smx
->###Misc.
+>### Misc.
 >
  * autowipe.smx
  * survivormanagement.smx
  * l4d2_playstats_fixed.smx  
  * l4d_tank_damage_announce_fixed.smx  
 
-###Upload
+### Upload
 >
  * Copy all folders into your server directory
 > * N.B. for custom campaigns, the missions text file   must be extracted from respective .vpks into the 'missions' folder

@@ -1,11 +1,13 @@
 # HARDCORE COOP!  
-### Can you survive to the saferoom as SI encroach in endless waves?  
   
-#### AI is greatly improved, and SI can spawn within LOS!    
->Installation instructions are found in the 
-**'Install'** file*  
+### With greatly improved AI and a deadly SI spawning algorithm!  
 
->Please read the **'Issues'** file before downloading as this config is subject to major bugs for which workarounds have been developed*  
+#### Can you survive to the saferoom as SI encroach in endless waves?  
+
+Installation instructions are found in the 
+**[Install](/INSTALL.md)** file  
+
+*Please read the* **[Issues](/issues.md)** *file before downloading as this config is subject to major bugs for which workarounds have been developed*  
 
 # Gauntlet Manifesto
 
