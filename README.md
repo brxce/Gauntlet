@@ -1,5 +1,5 @@
 # HARDCORE COOP!  
-###Can you survive to the saferoom as SI encroach in endless waves?  
+### Can you survive to the saferoom as SI encroach in endless waves?  
   
 #### AI is greatly improved, and SI can spawn within LOS!    
 >Installation instructions are found in the 
