@@ -2,7 +2,7 @@
 
 Remember to add entries for Gauntlet configs in your 'matchmodes.txt'
 
-## Install AceMod, then copy the three folders from breezyplase/hardcoop
+## Install AceMod, then copy the three folders from breezyplease/hardcoop
 >
  * Copy into your 'Left 4 Dead 2/left4dead2/' server directory
 > * N.B. for custom campaigns, the missions text file   must be extracted from respective .vpks into the 'missions' folder
