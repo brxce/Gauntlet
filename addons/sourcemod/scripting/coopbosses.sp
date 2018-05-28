@@ -2,7 +2,7 @@
 
 #define DEBUG 0
 #define SPAWN_ATTEMPT_INTERVAL 0.5
-#define MAX_SPAWN_ATTEMPTS 60
+#define MAX_SPAWN_ATTEMPTS 500
 
 #include <sourcemod>
 #include <sdktools>

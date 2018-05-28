@@ -47,7 +47,7 @@ new laserCache;
  * - "Player-Teleport by Dr. HyperKiLLeR" (sm_gotoRevA.smx)
  * Thanks to Newteee for his repositioning algorithm
  */
- 
+
 SpawnPositioner_OnModuleStart() {
 	hCvarSpawnPositionerMode = CreateConVar( "ss_spawnpositioner_mode", "2", "[ 0 = disabled, 1 = Radial Reposition only, 2 = Grid Reposition with Radial fallback ]" );
 	HookConVarChange( hCvarSpawnPositionerMode, ConVarChanged:SpawnPositionerMode );
