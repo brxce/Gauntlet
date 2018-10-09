@@ -23,7 +23,8 @@
 		"ss_time_max" { "value" "20.0" "type" "float" }
 		"flow_tank_enable" { "value" "0" "type" "int" }
 		"z_pounce_damage_delay" { "value" "0.1" "type" "float" }
-		"autoslayer_slay_all_infected" { "value" "0" "type" "int" }
+		"autoslayer_mode" { "value" "1" "type" "int" }
+		"autoslayer_slay_all_infected" { "value" "1" "type" "int" }
 		"autoslayer_teamclear_delay" { "value" "0.1" "type" "float" }
 	}
 	"2"

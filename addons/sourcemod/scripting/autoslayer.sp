@@ -43,8 +43,16 @@ public OnPluginStart() {
 	HookEvent("mission_lost", EventHook:PreventAutoSlayer, EventHookMode_PostNoCopy);
 }
 
+public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], errMax) 
+{
+	g_bIsAutoSlayerActive = false;
+	return APLRes_Success;
+}
+
 public OnAutoSlayerModeChange() {
-	CloseHandle(hAutoSlayerTimer);
+	if ( hAutoSlayerTimer != INVALID_HANDLE ) {
+		CloseHandle(hAutoSlayerTimer);
+	}
 }
 
 public PreventAutoSlayer() {
@@ -67,16 +75,33 @@ public OnPlayerDeath(Handle:event, String:name[], bool:dontBroadcast) {
 }
 
 AutoSlayer() {
-	if( GetConVarInt(hCvarAutoSlayerMode) != 0 && !g_bIsAutoSlayerActive && IsTeamImmobilised() && !IsTeamWiped() && !IsLastStanding() ) { 
+
+	new bool:bShouldTrigger = false;
+	
+	// Trigger when the whole survivor team is immobilised (pinned or dead), excluding situation when all have just died or a lone survivor has been pinned (outside of 1p mode)
+	if( GetConVarInt(hCvarAutoSlayerMode) != 0 && !g_bIsAutoSlayerActive ) {
+		if ( IsTeamImmobilised() && !IsTeamWiped() ) { // there is at least one survivor alive, but all standing survivors are pinned
+			if ( GetConVarInt(hCvarAutoSlayerMode) < 0 ) { // Slay survivors
+				bShouldTrigger = true;
+				hAutoSlayerTimer = CreateTimer( 1.0, Timer_SlaySurvivors, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
+			} else if ( GetConVarInt(hCvarAutoSlayerMode) > 0 ) {
+				if ( IsLastStanding() ) { // if there are no other survivors standing, only follow through with autoslay infected if this is 1P mode (i.e. do not save last standing survivors)
+					if ( GetConVarInt(FindConVar("survivor_limit")) == 1) {
+						bShouldTrigger = true;
+						CreateTimer( GetConVarFloat(hCvarTeamClearDelay), Timer_SlaySpecialInfected, _, TIMER_FLAG_NO_MAPCHANGE );
+					} 
+				} else { // multiple survivors, all alive and pinned
+					bShouldTrigger = true;
+					CreateTimer( GetConVarFloat(hCvarTeamClearDelay), Timer_SlaySpecialInfected, _, TIMER_FLAG_NO_MAPCHANGE );
+				}
+			}
+		} 
+	} 
+	
+	// Cvar activation and printout
+	if ( bShouldTrigger ) {
 		g_bIsAutoSlayerActive = true;
 		Client_PrintToChatAll(true, "[AS] {O}Initiating AutoSlayer...");
-		if( GetConVarInt(hCvarAutoSlayerMode) < 0 ) { // Slay survivors
-			hAutoSlayerTimer = CreateTimer( 1.0, Timer_SlaySurvivors, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
-		} else { // Slay infected
-			CreateTimer( GetConVarFloat(hCvarTeamClearDelay), Timer_SlaySpecialInfected, _, TIMER_FLAG_NO_MAPCHANGE );
-		}
-	} else { // AutoSlayer mode 0
-		return; // AutoSlayer is switched off
 	}
 }
 
