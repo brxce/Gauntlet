@@ -4,7 +4,6 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <colors>
 #include "includes/hardcoop_util.sp"
 
 public Plugin:myinfo = 
@@ -93,7 +92,7 @@ public ShowHelpMenu(client) {
 }
 
 public Action:Timer_Hint(Handle:timer) {
-	CPrintToChatAll("Press {olive}USE {default}and {olive}RELOAD {default}to show {blue}Spawner HUD {default}for 3s. Type {red}!gauntlethelp {default}to show command menu");
+	PrintToChatAll("Press {B}USE {N}and {B}RELOAD {N}to show {O}Spawner HUD {N}for {G}3{N}s. Type {O}!gauntlethelp {N}to show command menu");
 }
 
 public NullMenuHandler(Handle:menu, MenuAction:action, param1, param2) {}

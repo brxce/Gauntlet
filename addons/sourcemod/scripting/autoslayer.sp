@@ -2,7 +2,6 @@
 #define AUTOSLAYER_DEBUG 0
 
 #include <sourcemod>
-#include <colors>
 #include <sdktools>
 #include <left4dhooks>
 #include "includes/hardcoop_util.sp"
@@ -102,7 +101,7 @@ AutoSlayer() {
 	// Cvar activation and printout
 	if ( bShouldTrigger ) {
 		g_bIsAutoSlayerActive = true;
-		CPrintToChatAll("{olive}[AS] {default}Initiating AutoSlayer...");
+		PrintToChatAll("[AS] {O}Initiating AutoSlayer...");
 	}
 }
 
@@ -111,7 +110,7 @@ public Action:Timer_SlaySurvivors(Handle:timer) {
 	new countdown = RoundToNearest(GetConVarFloat(hCvarGracePeriod)) - secondsPassed;
 	// Check for survivors being cleared during the countdown
 	if( !IsTeamImmobilised() ) {
-		CPrintToChatAll("{olive}[AS] ...{blue}AutoSlayer cancelled!");	
+		PrintToChatAll("[AS] ...AutoSlayer {G}cancelled!");	
 		g_bIsAutoSlayerActive = false;
 		secondsPassed = 0;
 		return Plugin_Stop;
@@ -121,9 +120,9 @@ public Action:Timer_SlaySurvivors(Handle:timer) {
 		g_bIsAutoSlayerActive = false;
 		if( IsTeamImmobilised() && !IsTeamWiped() ) { // do not slay if already wiped
 			SlaySurvivors();
-			CPrintToChatAll("{olive}[AS] {red}AutoSlayed survivors!");	
+			PrintToChatAll("[AS] {N}AutoSlayed {O}survivors!");	
 		} else {
-			CPrintToChatAll("{olive}[AS] {default}...{blue}AutoSlayer cancelled!");
+			PrintToChatAll("[AS] ...AutoSlayer {G}cancelled!");
 		}
 		secondsPassed = 0;
 		return Plugin_Stop;
@@ -142,7 +141,7 @@ SlaySurvivors() { //incap everyone
 }
 
 public Action:Timer_SlaySpecialInfected(Handle:timer) {
-	CPrintToChatAll("[AS] AutoSlayed {blue}special infected");
+	PrintToChatAll("[AS] AutoSlayed {G}special infected");
 	for( new i = 0; i < MAXPLAYERS; i++ ) {
 		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
 			if( IsPinningASurvivor(i) ) {
