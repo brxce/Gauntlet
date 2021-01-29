@@ -2,7 +2,7 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <left4downtown>
+#include <left4dhooks>
 #include "includes/hardcoop_util.sp"
 
 #define DEBUG 0

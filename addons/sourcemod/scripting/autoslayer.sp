@@ -2,8 +2,8 @@
 #define AUTOSLAYER_DEBUG 0
 
 #include <sourcemod>
-#include <left4downtown>
-#include <smlib>
+#include <sdktools>
+#include <left4dhooks>
 #include "includes/hardcoop_util.sp"
 
 new bool:g_bIsAutoSlayerActive = true; // start true to prevent AutoSlayer being activated after round end or before round start
@@ -101,7 +101,7 @@ AutoSlayer() {
 	// Cvar activation and printout
 	if ( bShouldTrigger ) {
 		g_bIsAutoSlayerActive = true;
-		Client_PrintToChatAll(true, "[AS] {O}Initiating AutoSlayer...");
+		PrintToChatAll("[AS] {O}Initiating AutoSlayer...");
 	}
 }
 
@@ -110,7 +110,7 @@ public Action:Timer_SlaySurvivors(Handle:timer) {
 	new countdown = RoundToNearest(GetConVarFloat(hCvarGracePeriod)) - secondsPassed;
 	// Check for survivors being cleared during the countdown
 	if( !IsTeamImmobilised() ) {
-		Client_PrintToChatAll(true, "[AS] ...AutoSlayer {G}cancelled!");	
+		PrintToChatAll("[AS] ...AutoSlayer {G}cancelled!");	
 		g_bIsAutoSlayerActive = false;
 		secondsPassed = 0;
 		return Plugin_Stop;
@@ -120,14 +120,14 @@ public Action:Timer_SlaySurvivors(Handle:timer) {
 		g_bIsAutoSlayerActive = false;
 		if( IsTeamImmobilised() && !IsTeamWiped() ) { // do not slay if already wiped
 			SlaySurvivors();
-			Client_PrintToChatAll(true, "[AS] {N}AutoSlayed {O}survivors!");	
+			PrintToChatAll("[AS] {N}AutoSlayed {O}survivors!");	
 		} else {
-			Client_PrintToChatAll(true, "[AS] ...AutoSlayer {G}cancelled!");
+			PrintToChatAll("[AS] ...AutoSlayer {G}cancelled!");
 		}
 		secondsPassed = 0;
 		return Plugin_Stop;
 	} 
-	Client_PrintToChatAll(true, "[AS] %d...", countdown);	
+	PrintToChatAll("[AS] %d...", countdown);	
 	secondsPassed++;
 	return Plugin_Continue;
 }
@@ -141,7 +141,7 @@ SlaySurvivors() { //incap everyone
 }
 
 public Action:Timer_SlaySpecialInfected(Handle:timer) {
-	Client_PrintToChatAll( true, "[AS] AutoSlayed {G}special infected");
+	PrintToChatAll("[AS] AutoSlayed {G}special infected");
 	for( new i = 0; i < MAXPLAYERS; i++ ) {
 		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
 			if( IsPinningASurvivor(i) ) {

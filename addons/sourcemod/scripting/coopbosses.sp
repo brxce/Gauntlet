@@ -6,9 +6,7 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <smlib>
-#include <l4d2_direct>
-#include <left4downtown>
+#include <left4dhooks>
 #include "includes/hardcoop_util.sp"
 
 // Bibliography: "current" by "CanadaRox"
@@ -104,9 +102,9 @@ public Action:Cmd_ToggleTank(client, args) {
 		new bool:flowTankFlag = GetConVarBool(hCvarFlowTankEnable);
 		SetConVarBool( hCvarFlowTankEnable, !flowTankFlag );
 		if( GetConVarBool(hCvarFlowTankEnable) ) {
-			Client_PrintToChatAll( true, "Flow tank has been {G}enabled" );
+			PrintToChatAll("Flow tank has been {G}enabled" );
 		} else {
-			Client_PrintToChatAll(true, "Flow tank has been {O}disabled");
+			PrintToChatAll("Flow tank has been {O}disabled");
 		}		
 	} else {
 		PrintToChat( client, "You do not have access to this command" );
@@ -130,13 +128,13 @@ public Action:Cmd_WitchSettings(client, args) {
 		// Must be valid limit value	
 		if( StrEqual(witchSetting, "limit", false) ) {
 			SetConVarInt( hWitchLimit, iValue );
-			Client_PrintToChatAll( true, "Witch limit set to {G}%d", iValue );
+			PrintToChatAll("Witch limit set to {G}%d", iValue );
 		} else if( StrEqual(witchSetting, "period", false) ) {
 			SetConVarFloat( hWitchPeriod, float(iValue) );
-			Client_PrintToChatAll( true, "Witch spawn period set to {G}%d", iValue );
+			PrintToChatAll( "Witch spawn period set to {G}%d", iValue );
 		} else if( StrEqual(witchSetting, "mode", false) ) {
 			SetConVarInt( hWitchPeriodMode, iValue );
-			Client_PrintToChatAll( true, "Witch spawn mode set to {G}%d", iValue );
+			PrintToChatAll( "Witch spawn mode set to {G}%d", iValue );
 		} else {
 			ReplyToCommand(client, "witch < limit | period | mode > < value >");
 			ReplyToCommand(client, "<period> The time (seconds) interval in which exactly one witch will spawn [ >= 1 ]");
@@ -212,7 +210,7 @@ public OnGameFrame() {
 				// If they have not already fought the tank
 				if (!g_bHasEncounteredTank && !g_bIsFinale) {			
 					if (!g_bIsTankTryingToSpawn) {
-						Client_PrintToChatAll(true, "[CB] Attempting to spawn tank at {G}%d%% {N}map distance...", g_iTankPercent); 
+						PrintToChatAll("[CB] Attempting to spawn tank at {G}%d%% {N}map distance...", g_iTankPercent); 
 						g_bIsTankTryingToSpawn = true;
 						CreateTimer( SPAWN_ATTEMPT_INTERVAL, Timer_SpawnTank, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
 					} 

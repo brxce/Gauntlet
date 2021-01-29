@@ -2,7 +2,6 @@
 
 #pragma semicolon 1
 #include <sourcemod>
-#include <smlib>
 
 #if defined HARDCOOP_UTIL_included
 #endinput
@@ -96,10 +95,9 @@ stock bool:IsPinned(client) {
  * @return: The highest %map completion held by a survivor at the current point in time
  */
 stock GetMaxSurvivorCompletion() {
-	new Float:flow = 0.0;
-	decl Float:tmp_flow;
+	new  flow;
+	decl tmp_flow;
 	decl Float:origin[3];
-	decl Address:pNavArea;
 	for ( new client = 1; client <= MaxClients; client++ ) {
 		if ( IsSurvivor(client) && IsPlayerAlive(client) ) {
 			GetClientAbsOrigin(client, origin);
