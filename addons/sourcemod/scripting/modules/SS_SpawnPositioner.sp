@@ -26,8 +26,6 @@
 #define WHITE 3
 #define PURPLE 4
 
-#include <l4d2_direct>
-
 new Handle:hCvarSpawnPositionerMode;
 new Handle:hCvarMaxSearchAttempts;
 new Handle:hCvarSpawnSearchHeight;

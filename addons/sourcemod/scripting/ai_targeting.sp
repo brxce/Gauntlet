@@ -9,7 +9,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <adt_array>
-#include <left4downtown>
+#include <left4dhooks>
 #include "includes/hardcoop_util.sp"
 
 // Bibliography: "[L4D2] Defib using bots" by "DeathChaos25"
@@ -174,12 +174,6 @@ AttackTarget(client) {
 																				UTILITY
 
 ***********************************************************************************************************************************************************************************/
-
-ScriptCommand(const String:arguments[], any:...) {
-	new String:vscript[PLATFORM_MAX_PATH];
-	VFormat(vscript, sizeof(vscript), arguments, 2);
-	CheatCommand("script", vscript);
-}
 
 // @return: true if client is a survivor that is not dead/incapacitated nor pinned by an SI
 bool:IsMobile(client) {

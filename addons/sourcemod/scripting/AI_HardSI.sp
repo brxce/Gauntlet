@@ -2,8 +2,7 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <smlib>
-#include <left4downtown>
+#include <left4dhooks>
 
 #include "includes/hardcoop_util.sp"
 #include "modules/AI_Smoker.sp"

@@ -4,7 +4,6 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <smlib>
 #include "includes/hardcoop_util.sp"
 
 public Plugin:myinfo = 
@@ -93,11 +92,7 @@ public ShowHelpMenu(client) {
 }
 
 public Action:Timer_Hint(Handle:timer) {
-<<<<<<< Updated upstream
-	Client_PrintToChatAll(true, "Press {B}USE {N}and {B}RELOAD {N}to show {O}Spawner HUD {N}for {G}3{N}s. Type {O}!gauntlethelp {N}to show command menu");
-=======
-	CPrintToChatAll("Press {olive}USE {default}and {olive}RELOAD {default}to show Spawner HUD for 3s. Type {blue}!gauntlethelp {default}to show command menu");
->>>>>>> Stashed changes
+	PrintToChatAll("Press {B}USE {N}and {B}RELOAD {N}to show {O}Spawner HUD {N}for {G}3{N}s. Type {O}!gauntlethelp {N}to show command menu");
 }
 
 public NullMenuHandler(Handle:menu, MenuAction:action, param1, param2) {}

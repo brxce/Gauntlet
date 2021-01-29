@@ -2,9 +2,8 @@
 #include <sourcemod>
 #include <sdktools>
 #include <nextmap> // ForceChangeLevel()
-#include <smlib>
 #include <colors>
-#include <left4downtown>
+#include <left4dhooks>
 
 #define MISSIONS_PATH "missions"
 #define DELAY_FORCEMAP 6.5
@@ -52,7 +51,7 @@ public Action:Cmd_ToggleRetry(client, args) {
 
 PrintRetryOption() {
     if (g_bCanRetry) {
-    Client_PrintToChatAll(true, "Retry is {G}enabled{N}! Survivors will be allowed to retry map upon death");
+    PrintToChatAll("Retry is {red}enabled{default}! Survivors will be allowed to retry map upon death");
 	} else {
 	CPrintToChatAll("Retry is {red}disabled{default}! Next map will be loaded upon death");
 	}
