@@ -1,3 +1,0 @@
-#Do not sync these file types
-*.txt
-*.lnk
