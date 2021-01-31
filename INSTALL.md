@@ -3,7 +3,7 @@
 Remember to add entries for Gauntlet configs in your 'matchmodes.txt'
 
 ## Gauntlet runs off the ZoneMode codebase. Please install the [latest version of ZoneMod](https://github.com/SirPlease/L4D2-Competitive-Rework) first.  
-It is possible to run Gauntlet off a different versus config by altering
+It is possible to run Gauntlet off a different versus config by altering  
 /cfgogl/gauntlet/confogl.cfg  
 /cfgogl/gauntlet/gauntlet.cfg    
 /cfgogl/gauntlet/confogl_plugins.cfg    
