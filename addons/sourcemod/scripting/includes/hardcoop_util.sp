@@ -109,7 +109,7 @@ stock GetMaxSurvivorCompletion() {
 	new current = RoundToNearest(flow * 100 / L4D2Direct_GetMapMaxFlowDistance());
 		
 		#if DEBUG_FLOW
-			Client_PrintToChatAll( true, "Current: {G}%d%%", current );
+			CPrintToChatAll( true, "Current: {blue}%d%%", current );
 		#endif
 		
 	return current;
