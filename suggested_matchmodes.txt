@@ -1,10 +1,14 @@
 "MatchModes"
 {
-	"Gauntlet"
+	"Hard Coop"
 	{
 		"gauntlet"
 		{
 			"name" "Gauntlet (!playermode)"
+		}
+		"gauntlet_survival"
+		{
+			"name" "Gauntlet Survival"
 		}
 	}
 }
