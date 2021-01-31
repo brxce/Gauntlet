@@ -152,7 +152,7 @@ RepositionGrid( userid ) {
 						DrawSpawnGrid();
 						new String:client_name[32];
 						GetClientName(GetClientOfUserId(userid), client_name, sizeof(client_name));
-						Client_PrintToChatAll(true, "[SS] {O}%s{N} GRID SPAWN, {R}%d{N} dist, ( {G}%d{N} attempts)", client_name, RoundFloat(GetFlowDistToSurvivors(spawnPos)), i + 1);
+						CPrintToChatAll(true, "[SS] {olive}%s{default} GRID SPAWN, {red}%d{default} dist, ( {green}%d{default} attempts)", client_name, RoundFloat(GetFlowDistToSurvivors(spawnPos)), i + 1);
 						gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
 						DrawBeam( gridPos, spawnPos, VALID_MESH );
 					#endif
@@ -190,7 +190,7 @@ bool:IsValidSpawn(infectedBot, const Float:spawnPos[3]) {
 			if ( flow_dist_survivors < GetConVarInt(hCvarSpawnProximityFlowNoLOS) && flow_dist_survivors != -1 ) {
 					
 					#if DEBUG_POSITIONER
-						Client_PrintToChatAll(true, "{G}flow dist %d{N} < cvar {G}%d{N}", flow_dist_survivors, GetConVarInt(hCvarSpawnProximityFlowNoLOS));
+						CPrintToChatAll(true, "{olive}flow dist %d{default}< cvar {olive}%d{default}", flow_dist_survivors, GetConVarInt(hCvarSpawnProximityFlowNoLOS));
 					#endif
 				
 				is_valid = true;

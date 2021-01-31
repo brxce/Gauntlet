@@ -105,7 +105,7 @@ PlayerModeVote( client, playerMode ) {
 	} 
 }
 
-public VoteResultHandler( Handle:vote, numVotes, numClients, const clientInfo[][2], numItems, const itemInfo[][2] ) {
+public Action:VoteResultHandler( Handle:vote, int numVotes, int numClients, int clientInfo[][2], int numItems, int itemInfo[][2] ) {
 	new bool:votePassed = false;
 	for( new i = 0; i < numItems; i++ ) {
 		if( itemInfo[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES ) {
@@ -149,7 +149,8 @@ LoadCvars( playerMode ) {
 				new String:sCvarType[64];
 				KvGetString( g_hCvarKV, "type", sCvarType, sizeof(sCvarType) );
 				// Set cvar according to type
-				if( StrEqual(sCvarType, "int", false) ) {
+				if( StrEqual(
+					sCvarType, "int", false) ) {
 					SetConVarInt( FindConVar(sCvarName), KvGetNum(g_hCvarKV, "value", -1) );
 				} else if( StrEqual(sCvarType, "float", false) ) {
 					SetConVarFloat( FindConVar(sCvarName), KvGetFloat(g_hCvarKV, "value", -1.0) );
