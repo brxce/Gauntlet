@@ -1,10 +1,10 @@
-@@ -0,0 +1,54 @@
 # Repository documentatino
 FEATURES.md
 INSTALL.md
 LICENSE
 README.md
 *.txt
+*.json
 
 # Windows image file caches
 Thumbs.db
