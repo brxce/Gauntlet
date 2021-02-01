@@ -119,6 +119,7 @@ SITypeCount() { //Count the number of each SI ingame
 stock AttemptSpawnAuto(classIndex) {
 	new String:zombieClassName[16];
 	zombieClassName = Spawns[classIndex];
+	/*
 	// Create a client if necessary to circumvent the 3 SI limit
 	new iSpawnedSpecialsCount = CountSpecialInfectedBots();
 	if( iSpawnedSpecialsCount >= VANILLA_COOP_SI_LIMIT ) {
@@ -130,6 +131,7 @@ stock AttemptSpawnAuto(classIndex) {
 	        CreateTimer(0.1, Timer_KickBot, bot, TIMER_FLAG_NO_MAPCHANGE);
 	    }
 	}
+	*/
 	// Spawn with z_spawn_old using 'auto' parameter to let the Director find a spawn position  
 	CheatCommand("z_spawn_old", zombieClassName, "auto", true);
 }
