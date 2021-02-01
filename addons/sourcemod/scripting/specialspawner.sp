@@ -101,6 +101,7 @@ public OnPluginEnd() {
 	ResetConVar( FindConVar("z_discard_range") );
 	
 	CloseHandle(hTimerHUD);
+	hTimerHUD = INVALID_HANDLE;
 	SpawnTimers_OnModuleEnd();
 	SpawnPositioner_OnModuleEnd();
 }
