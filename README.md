@@ -1,6 +1,6 @@
-**[INSTALL](/INSTALL.md)** - Instructions to install on a Linux sourcemod server
-**[FEATURES](/FEATURES.md)** Full breakdown of customisable settings
-*Please read through the repository "Issues" before downloading*   
+**[INSTALL](/INSTALL.md)** - Instructions to install on a Linux sourcemod server  
+**[FEATURES](/FEATURES.md)** Full breakdown of customisable settings  
+*Please read through the repository "Issues" before downloading*     
 # Gauntlet - Extending L4D2's horde shooter game design 
 Gauntlet players control the difficulty level. Turn up the dial and test your limits.
 
