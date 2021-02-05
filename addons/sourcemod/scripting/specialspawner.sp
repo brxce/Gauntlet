@@ -26,6 +26,7 @@ new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 #include "modules/SS_SpawnTimers.sp"
 #include "modules/SS_SpawnQueue.sp"
 #include "modules/SS_SpawnPositioner.sp"
+#include "modules/SS2_DirectInfectedSpawn.sp"
 
 /*
  * TODO:
@@ -100,7 +101,8 @@ public OnPluginEnd() {
 	ResetConVar( FindConVar("z_spawn_range") );
 	ResetConVar( FindConVar("z_discard_range") );
 	
-	CloseHandle(hTimerHUD);
+	CloseHandle(hTimerHUD)
+	hTimerHUD = INVALID_HANDLE;
 	SpawnTimers_OnModuleEnd();
 	SpawnPositioner_OnModuleEnd();
 }
@@ -434,7 +436,7 @@ public Action:OnPlayerRunCmd( client, &buttons ) {
 	} else {
 		bShowSpawnerHUD[client] = false;
 	}
-}
+} 
 
 public Action:Timer_DrawSpawnerHUD( Handle:timer ) {
 	new Handle:spawnerHUD = CreatePanel();
