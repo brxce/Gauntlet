@@ -8,7 +8,8 @@ Installation instructions are found in the
 **[Install](/INSTALL.md)** file  
 
 *Please read through the repository "Issues" before downloading   
-# The Gauntlet Manifesto - extending the strengths of L4D2's game design 
+# The Gauntlet Manifesto 
+Extending the strengths of L4D2's game design 
 
 
 ## Horde shooter gameplay that offers dynamic replayability
