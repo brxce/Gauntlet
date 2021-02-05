@@ -1,16 +1,9 @@
-# HARDCORE COOP!  
-  
-### With improved AI and a deadly spawning algorithm!  
-
-#### Can you survive to the saferoom as SI encroach in endless waves?  
-
 Installation instructions are found in the 
-**[Install](/INSTALL.md)** file  
+**[INSTALL](/INSTALL.md)** file  
 
 *Please read through the repository "Issues" before downloading   
-# The Gauntlet Manifesto 
-Extending the strengths of L4D2's game design 
-
+# Gauntlet - Extending L4D2 game design principles 
+*Gauntlet players are afforded control of the difficulty level, empowered to turn up the dial beyond what they believed capable of handling*  
 
 ## Horde shooter gameplay that offers dynamic replayability
 
@@ -30,9 +23,6 @@ Gauntlet throws SI in waves at the survivor team, armed with improved AI .
 > - smokers have the potential to instantly reduce survivor DPS by 25% by immediately immobilising a survivor  
 > - boomers provide effective DPS reduction, eating survivor attention by their appearance in itself and through the spawning of hordes
 
-With these elements Gauntlet forces rapid decision making, making the game more dynamic and stimulating. 
-Mistakes will be made, and survival is dependent on the collective ability to cover individual defensive failures. 
 
-### Gauntlet players are afforded control of the difficulty level, empowered to turn up the dial beyond what they believed capable of handling  
 See the **[FEATURES](/FEATURES.md)** guide for a full breakdown of the options available
 
