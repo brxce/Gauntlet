@@ -251,16 +251,10 @@ CreateInfected()	- Uses SI names(to differentiate witch and witch bride)
 // Does not perform spawning; handles timing of spawn event 
 void TriggerSpawn( Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
 {
-	// Kick infected bots
-	if (GetClientCount(false) >= (MaxClients - number_int))
-	{
-		ReplyToCommand(client, "[SM] Attempt to kick dead infected bots...");
-		kick = KickDeadInfectedBots(client);
-    }
-    
-    if (kick <= 0) // spawn immediately without delay
+	int kick = KickDeadInfectedBots();
+	if (kick <= 0) // spawn immediately without delay
     {
-   		CreateSpawn(Left4Dead2_Infected:desiredClass, float pos[3], float ang[3]);
+   		ProcessSpawn(Left4Dead2_Infected:desiredClass, pos, ang);
 	} 
 	else { // spawn on short delay
 		DataPack data = CreateDataPack();
@@ -278,11 +272,12 @@ void TriggerSpawn( Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
 Action Timer_CreateInfected(Handle timer, DataPack data)
 {
 	int desiredClass;
-	float[3] pos, ang;
+	float pos[3];
+	float ang[3];
 	
 	// Read data pack
 	data.Reset();
-	desiredClass = ReadCell(); 
+	desiredClass = data.ReadCell(); 
 	for (int i = 0; i < 3; ++i) // pos[3]
 	{
 		pos[i] = data.ReadCell();
@@ -297,7 +292,7 @@ Action Timer_CreateInfected(Handle timer, DataPack data)
 		CloseHandle(data);
 	}
 	
-	ProcessSpawn(Left4Dead2_Infected:desiredClass, float pos[3], float ang[3]);
+	ProcessSpawn(Left4Dead2_Infected:desiredClass, pos, ang);
 }
 
 void ProcessSpawn (Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
@@ -307,27 +302,27 @@ void ProcessSpawn (Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
 	{
 		case L4D2Infected_Smoker:
 		{
-			spawnedClient = CreateInfected("smoker", pos, ang)
+			spawnedClient = CreateInfected("smoker", pos, ang);
 		}
 		case L4D2Infected_Boomer:
 		{
-			spawnedClient = CreateInfected("boomer", pos, ang)
+			spawnedClient = CreateInfected("boomer", pos, ang);
 		}
 		case L4D2Infected_Hunter:
 		{
-			spawnedClient = CreateInfected("hunter", pos, ang)
+			spawnedClient = CreateInfected("hunter", pos, ang);
 		}
 		case L4D2Infected_Spitter:
 		{
-			spawnedClient = ("spitter", pos, ang)
+			spawnedClient = CreateInfected("spitter", pos, ang);
 		}
 		case L4D2Infected_Jockey:
 		{
-			spawnedClient = ("jockey", pos, ang)
+			spawnedClient = CreateInfected("jockey", pos, ang);
 		}
 		case L4D2Infected_Charger:
 		{
-			spawnedClient = ("charger", pos, ang)
+			spawnedClient = CreateInfected("charger", pos, ang);
 		}
 		default:
 		{
@@ -342,8 +337,10 @@ void ProcessSpawn (Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
 
 int CreateInfected(const char[] zomb, float[3] pos, float[3] ang)
 {
-	int bot = -1;
-	
+	#if DEBUG_DI_SPAWN 
+		PrintToChatAll("Attempting to spawn %s", zomb); 
+	#endif
+	int bot = -1;	
 	if (StrEqual(zomb, "witch", false) || (g_isSequel && StrEqual(zomb, "witch_bride", false)))
 	{
 		int witch = CreateEntityByName("witch");
@@ -457,7 +454,7 @@ void RequestFrame_SetPos(DataPack data)
 	TeleportEntity(bot, pos, ang, NULL_VECTOR);
 }
 
-int KickDeadInfectedBots(int client)
+int KickDeadInfectedBots(int client=-1)
 {
 	int kicked_Bots = 0;
 	for (int loopclient = 1; loopclient <= MaxClients; loopclient++)
@@ -467,8 +464,10 @@ int KickDeadInfectedBots(int client)
 		KickClient(loopclient);
 		kicked_Bots += 1;
 	}
-	if (kicked_Bots > 0)
-	{ PrintToChat(client, "Kicked %i bots.", kicked_Bots); }
+	if (kicked_Bots > 0 && IsValidClient(client))
+	{ 
+		PrintToChat(client, "Kicked %i bots.", kicked_Bots);
+	}
 	return kicked_Bots;
 }
 
