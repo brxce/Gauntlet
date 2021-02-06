@@ -11,7 +11,6 @@
 #include <sourcemod>
 #include <sdktools>
 #include <left4dhooks>
-#include <colors>
 
 new Handle:hCvarReadyUpEnabled;
 new Handle:hCvarConfigName;
@@ -27,6 +26,7 @@ new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 #include "modules/SS_SpawnTimers.sp"
 #include "modules/SS_SpawnQueue.sp"
 #include "modules/SS_SpawnPositioner.sp"
+#include "modules/SS2_DirectInfectedSpawn.sp"
 
 /*
  * TODO:
@@ -101,7 +101,7 @@ public OnPluginEnd() {
 	ResetConVar( FindConVar("z_spawn_range") );
 	ResetConVar( FindConVar("z_discard_range") );
 	
-	CloseHandle(hTimerHUD);
+	CloseHandle(hTimerHUD)
 	hTimerHUD = INVALID_HANDLE;
 	SpawnTimers_OnModuleEnd();
 	SpawnPositioner_OnModuleEnd();
@@ -226,26 +226,26 @@ public Action:Cmd_SetLimit(client, args) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnLimitsCache[i] = iLimitValue;
 				}
-				PrintToChatAll( "[SS] All SI limits have been set to {blue}%d", iLimitValue );
+				PrintToChatAll( "[SS] All SI limits have been set to {G}%d", iLimitValue );
 			} else if( StrEqual(sTargetClass, "max", false) ) {  // Max specials
 				SILimitCache = iLimitValue;
-				CPrintToChatAll("[SS] -> {red}Max {default}SI limit set to {olive}%i", iLimitValue);		           
+				PrintToChatAll("[SS] -> {O}Max {N}SI limit set to {G}%i", iLimitValue);		           
 			} else if( StrEqual(sTargetClass, "group", false) || StrEqual(sTargetClass, "wave", false) ) {
 				SpawnSizeCache = iLimitValue;
-				CPrintToChatAll("[SS] -> SI will spawn in groups of {red}%i", iLimitValue);
+				PrintToChatAll("[SS] -> SI will spawn in {O}groups{N} of {G}%i", iLimitValue);
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(Spawns[i], sTargetClass, false) ) {
 						SpawnLimitsCache[i] = iLimitValue;
-						CPrintToChatAll("[SS] {olive}%s {default}limit set to {red}%i", sTargetClass, iLimitValue);
+						PrintToChatAll("[SS] {O}%s {N}limit set to {G}%i", sTargetClass, iLimitValue);
 					}
 				}
 			}
 		}	 
 	} else {  // Invalid command syntax
-		CPrintToChat(client, "!limit/sm_limit {olive}<class> <limit>");
-		PrintToChat(client, "<class> {olive}[ all | max | group/wave | smoker | boomer | hunter | spitter | jockey | charger ]");
-		PrintToChat(client, "<limit> {olive}[ >= 0 ]");
+		PrintToChat(client, "{O}!limit/sm_limit {B}<class> <limit>");
+		PrintToChat(client, "{B}<class> {N}[ all | max | group/wave | smoker | boomer | hunter | spitter | jockey | charger ]");
+		PrintToChat(client, "{B}<limit> {N}[ >= 0 ]");
 	}
 	// Load cache into appropriate cvars
 	LoadCacheSpawnLimits(); 
@@ -282,21 +282,21 @@ public Action:Cmd_SetWeight(client, args) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnWeightsCache[i] = iWeightPercent;			
 				}	
-				CPrintToChat(client, "[SS] -> All {olive}spawn weights {default}set to {red}%d", iWeightPercent );	
+				PrintToChat(client, "[SS] -> {O}All spawn weights {N}set to {G}%d", iWeightPercent );	
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(sTargetClass, Spawns[i], false) ) {
 						SpawnWeightsCache[i] =  iWeightPercent;
-						CPrintToChat(client, "[SS] {olive}%s {default}weight set to {red}%d", Spawns[i], iWeightPercent );				
+						PrintToChat(client, "[SS] {O}%s {N}weight set to {G}%d", Spawns[i], iWeightPercent );				
 					}
 				}	
 			}
 			
 		}
 	} else {
-		CPrintToChat( client, "!weight/sm_weight {olive}<class> <value>" );
-		PrintToChat( client, "<class> {olive}[ reset | all | smoker | boomer | hunter | spitter | jockey | charger ] " );	
-		PrintToChat( client, "value {olive}[ >= 0 ] " );	
+		PrintToChat( client, "{O}!weight/sm_weight {B}<class> <value>" );
+		PrintToChat( client, "{B}<class> {N}[ reset | all | smoker | boomer | hunter | spitter | jockey | charger ] " );	
+		PrintToChat( client, "{B}value {N}[ >= 0 ] " );	
 	}
 	LoadCacheSpawnWeights();
 	return Plugin_Handled;
@@ -319,7 +319,7 @@ public Action:Cmd_SetTimer(client, args) {
 		SetConVarFloat( hSpawnTimeMin, time );
 		SetConVarFloat( hSpawnTimeMax, time );
 		SetSpawnTimes(); //refresh times since hooked event from SetConVarFloat is temporarily disabled
-		CPrintToChat(client, "[SS] Spawn timer set to constant {olive}%.3f {default}seconds", time);
+		PrintToChat(client, "[SS] Spawn timer set to constant {G}%.3f {N}seconds", time);
 	} else if( args == 2 ) {
 		new Float:min, Float:max;
 		decl String:arg[8];
@@ -331,7 +331,7 @@ public Action:Cmd_SetTimer(client, args) {
 			SetConVarFloat( hSpawnTimeMin, min );
 			SetConVarFloat( hSpawnTimeMax, max );
 			SetSpawnTimes(); //refresh times since hooked event from SetConVarFloat is temporarily disabled
-			CPrintToChat(client, "[SS] Spawn timer will be between {olive}%.3f {default}and {olive}%.3f {default}seconds", min, max );
+			PrintToChat(client, "[SS] Spawn timer will be between {G}%.3f {N}and {G}%.3f {N}seconds", min, max );
 		} else {
 			ReplyToCommand(client, "[SS] Max(>= 1.0) spawn time must greater than min(>= 0.0) spawn time");
 		}
@@ -354,14 +354,14 @@ public Action:Cmd_SpawnMode( client, args ) {
 		if( mode >= 0 && mode <= 2 ) {
 			SetConVarInt( hCvarSpawnPositionerMode, mode );
 			new String:spawnModes[3][8] = { "Vanilla", "Radial", "Grid" };
-			CPrintToChat( client, "[SS] {olive}%s {default}spawn mode activated", spawnModes[mode] );
+			PrintToChat( client, "[SS] {O}%s {N}spawn mode activated", spawnModes[mode] );
 			isValidParams = true;
 		}
 	} 
 	// Correct command usage
 	if( !isValidParams ) {
 		new String:spawnModes[3][8] = { "Vanilla", "Radial", "Grid" };
-		CPrintToChat( client, "[SS] Current spawnmode: {olive}%s", spawnModes[GetConVarInt(hCvarSpawnPositionerMode)] );
+		PrintToChat( client, "[SS] Current spawnmode: {O}%s", spawnModes[GetConVarInt(hCvarSpawnPositionerMode)] );
 		ReplyToCommand( client, "Usage: spawnmode <mode> [ 0 = vanilla spawning, 1 = radial repositioning, 2 = grid repositioning ]" );
 	}
 }
@@ -377,7 +377,7 @@ public Action:Cmd_SpawnProximity(client, args) {
 		if( min > 0.0 && max > 1.0 && max > min ) {
 			SetConVarFloat( hCvarSpawnProximityMin, min );
 			SetConVarFloat( hCvarSpawnProximityMax, max );
-			CPrintToChat(client, "[SS] Spawn proximity set between {blue}%.3f {default}and {blue}%.3f {default}units", min, max );
+			PrintToChat(client, "[SS] Spawn proximity set between {G}%.3f {N}and {G}%.3f {N}units", min, max );
 		} else {
 			ReplyToCommand(client, "[SS] Max(>= 1.0) spawn proximity must greater than min(>= 0.0) spawn proximity");
 		}
@@ -436,7 +436,7 @@ public Action:OnPlayerRunCmd( client, &buttons ) {
 	} else {
 		bShowSpawnerHUD[client] = false;
 	}
-}
+} 
 
 public Action:Timer_DrawSpawnerHUD( Handle:timer ) {
 	new Handle:spawnerHUD = CreatePanel();

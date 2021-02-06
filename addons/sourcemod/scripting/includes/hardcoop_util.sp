@@ -290,11 +290,10 @@ stock L4D2_Infected:GetInfectedClass(client) {
     return L4D2_Infected:GetEntProp(client, Prop_Send, "m_zombieClass");
 }
 
-stock bool:IsInfected(client) {
-    if (!IsClientInGame(client) || L4D2_Team:GetClientTeam(client) != L4D2Team_Infected) {
-        return false;
-    }
-    return true;
+stock bool IsInfected(int client) {
+	if (!IsValidClient(client)) return false;
+	if (GetClientTeam(client) == _:L4D2_Infected) return true;
+	return false;
 }
 
 /**
@@ -358,7 +357,7 @@ stock CountSpecialInfectedBots() {
  *@return: true if client is a tank
  */
 stock bool:IsTank(client) {
-    return IsClientInGame(client)
+    return IsClientConnected(client)
         && L4D2_Team:GetClientTeam(client) == L4D2Team_Infected
         && GetInfectedClass(client) == L4D2Infected_Tank;
 }
@@ -485,12 +484,15 @@ stock SetSpawnDirection(SpawnDirection:direction) {
  * @param client: client ID
  * @return bool
  */
-stock bool:IsValidClient(client) {
-    if( client > 0 && client <= MaxClients && IsClientInGame(client) ) {
-    	return true;
-    } else {
-    	return false;
-    }    
+
+stock bool IsValidClient(int client, bool replaycheck = true) {
+	if (client <= 0 || client > MaxClients) return false;
+	if (!IsClientInGame(client)) return false;
+	//if (GetEntProp(client, Prop_Send, "m_bIsCoaching")) return false;
+	if (replaycheck) {
+		if (IsClientSourceTV(client) || IsClientReplay(client)) return false;
+	}
+	return true;
 }
 
 stock bool:IsGenericAdmin(client) {
@@ -499,7 +501,7 @@ stock bool:IsGenericAdmin(client) {
 
 // Kick dummy bot 
 public Action:Timer_KickBot(Handle:timer, any:client) {
-	if (IsClientInGame(client) && (!IsClientInKickQueue(client))) {
-		if (IsFakeClient(client))KickClient(client);
+	if ( IsClientConnected(client) && !IsClientInKickQueue(client) && IsFakeClient(client) ) {
+		KickClient(client);
 	}
 }

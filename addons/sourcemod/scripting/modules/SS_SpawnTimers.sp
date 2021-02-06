@@ -82,7 +82,7 @@ public Action:SpawnInfectedAuto(Handle:timer) {
 	if( numIncappedSurvivors > 0 && numIncappedSurvivors != GetConVarInt(FindConVar("survivor_limit")) ) { // grant grace period
 		new gracePeriod = numIncappedSurvivors * GetConVarInt(hCvarIncapAllowance);
 		CreateTimer( float(gracePeriod), Timer_GracePeriod, _, TIMER_FLAG_NO_MAPCHANGE );
-		CPrintToChatAll("{green}%ds {olive}grace period {default}was granted because of {green}%d {default}incapped survivor(s)", gracePeriod, numIncappedSurvivors);
+		PrintToChatAll("{G}%ds {O}grace period {N}was granted because of {G}%d {N}incapped survivor(s)", gracePeriod, numIncappedSurvivors);
 	} else { // spawn immediately
 		GenerateAndExecuteSpawnQueue();
 	}
