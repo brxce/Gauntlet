@@ -78,7 +78,7 @@ public SpawnPositionerMode() {
                                                                     
 ***********************************************************************************************************************************************************************************/
 
-AttemptSpawnAuto(int SIClass)
+AttemptSpawnAuto(L4D2_Infected:SIClass)
 {
 	if( CheckSurvivorsSeparated() ) {
 		RadialSpawn( SIClass, GetLeadSurvivor() );	
@@ -98,7 +98,7 @@ AttemptSpawnAuto(int SIClass)
 /*
  * Reposition the SI to a random point on a 2D grid around the survivors. 
  */
-GridSpawn( int SIClass ) {
+GridSpawn( L4D2_Infected:SIClass ) {
 	
 	UpdateSpawnGrid();
 	
@@ -126,7 +126,6 @@ GridSpawn( int SIClass ) {
 		if( TR_DidHit() ) { 
 			new Float:traceImpact[3];
 			new Float:spawnPos[3];
-			
 			TR_GetEndPosition( traceImpact ); 
 			spawnPos = traceImpact;
 			spawnPos[COORD_Z] += NAV_MESH_HEIGHT; // from testing I presume the SI cannot spawn on the floor itself
@@ -140,7 +139,7 @@ GridSpawn( int SIClass ) {
 						DrawBeam( gridPos, spawnPos, VALID_MESH );
 					#endif
 					
-				TriggerSpawn(L4D2_Infected:SIClass, spawnPos, NULL_VECTOR); // all spawn conditions satisifed
+				TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); // all spawn conditions satisifed
 				return;
 				
 			} else {
@@ -280,7 +279,7 @@ stock DrawSpawnGrid() {
  * Reposition the SI to a point on the circumference of a circle [spawn_proximity] from a survivor; respects distance to all survivors
  * Always spawns SI at [ss_spawn_proximity_min] distance to survivors
  */
-RadialSpawn( SIClass, survivorTarget ) {
+RadialSpawn( L4D2_Infected:SIClass, survivorTarget ) {
 	new bool:spawnSuccess = false;
 	new Float:survivorPos[3];
 	new Float:rayEnd[3];
@@ -313,7 +312,7 @@ RadialSpawn( SIClass, survivorTarget ) {
 						DrawBeam( rayEnd, spawnPos, VALID_MESH ); 
 					#endif
 						
-				TriggerSpawn(L4D2_Infected:SIClass, spawnPos, NULL_VECTOR); 
+				TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); 
 				spawnSuccess = true;
 				break;
 					

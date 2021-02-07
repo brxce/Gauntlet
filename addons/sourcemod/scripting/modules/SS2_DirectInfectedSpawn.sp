@@ -337,9 +337,6 @@ void ProcessSpawn (Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
 
 int CreateInfected(const char[] zomb, float[3] pos, float[3] ang)
 {
-	#if DEBUG_DI_SPAWN 
-		PrintToChatAll("Attempting to spawn %s", zomb); 
-	#endif
 	int bot = -1;	
 	if (StrEqual(zomb, "witch", false) || (g_isSequel && StrEqual(zomb, "witch_bride", false)))
 	{

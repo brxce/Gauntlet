@@ -91,6 +91,19 @@ stock bool:IsPinned(client) {
 	return bIsPinned;
 }
 
+
+stock bool:IsPinningASurvivor(client) {
+	new bool:isPinning = false;
+	if( IsBotInfected(client) && IsPlayerAlive(client) ) {
+		if( GetEntPropEnt(client, Prop_Send, "m_tongueVictim") > 0 ) isPinning = true; // smoker
+		if( GetEntPropEnt(client, Prop_Send, "m_pounceVictim") > 0 ) isPinning = true; // hunter
+		if( GetEntPropEnt(client, Prop_Send, "m_carryVictim") > 0 ) isPinning = true; // charger carrying
+		if( GetEntPropEnt(client, Prop_Send, "m_pummelVictim") > 0 ) isPinning = true; // charger pounding
+		if( GetEntPropEnt(client, Prop_Send, "m_jockeyVictim") > 0 ) isPinning = true; // jockey
+	}
+	return isPinning;
+}
+
 /**
  * @return: The highest %map completion held by a survivor at the current point in time
  */

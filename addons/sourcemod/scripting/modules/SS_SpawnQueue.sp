@@ -50,10 +50,10 @@ SITypeCount() { //Count the number of each SI ingame
 		SpawnCounts[i] = 0;
 	}
 	for( new i = 1; i < MaxClients; i++ ) {
-		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
-			switch( L4D2_Infected:GetEntProp(i, Prop_Send, "m_zombieClass") ) {//detect SI type
+		if( IsBotInfected(i) && IsPlayerAlive(i) ) { 
+			switch( L4D2_Infected:GetEntProp(i, Prop_Send, "m_zombieClass") ) { //detect SI type
 				case L4D2Infected_Smoker:
-					SpawnCounts[_:L4D2Infected_Smoker - 1]++;
+					SpawnCounts[_:L4D2Infected_Smoker - 1]++; // array indices start 0, where L4D2Infected numbering starts from 1
 				
 				case L4D2Infected_Boomer:
 					SpawnCounts[_:L4D2Infected_Boomer - 1]++;

@@ -1,4 +1,4 @@
-// Special Infected constants (for spawning)
+// array indices for Special Infected
 #define SI_SMOKER		0
 #define SI_BOOMER		1
 #define SI_HUNTER		2
@@ -9,22 +9,23 @@
 #define UNINITIALISED -1
 
 // Settings upon load
-new Handle:hSILimitServerCap;
-new Handle:hSILimit;
-new Handle:hSpawnWeights[NUM_TYPES_INFECTED], Handle:hScaleWeights;
-new Handle:hSpawnLimits[NUM_TYPES_INFECTED];
 new Handle:hSpawnSize;
+new Handle:hSILimit;
+new Handle:hSpawnLimits[NUM_TYPES_INFECTED];
+new Handle:hSpawnWeights[NUM_TYPES_INFECTED], Handle:hScaleWeights;
+new Handle:hSILimitServerCap;
 
-// Customised settings; cache
-new SILimitCache = UNINITIALISED;
-new SpawnWeightsCache[NUM_TYPES_INFECTED] = { UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED };
-new SpawnLimitsCache[NUM_TYPES_INFECTED] = { UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED };
+// Cache customised settings to re-apply after map changes
 new SpawnSizeCache = UNINITIALISED;
+new SILimitCache = UNINITIALISED;
+new SpawnLimitsCache[NUM_TYPES_INFECTED] = { UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED };
+new SpawnWeightsCache[NUM_TYPES_INFECTED] = { UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED, UNINITIALISED };
+
 
 public SpawnQuantities_OnModuleStart() {
 	// Server SI max (marked FCVAR_CHEAT; admin only)
 	hSILimitServerCap = CreateConVar("ss_server_si_limit", "12", "The max amount of special infected at once", FCVAR_CHEAT, true, 1.0);
-	// Spawn limits
+	// Spawn limits - this value is flattened to the above server SI Max cvar
 	hSILimit = CreateConVar("ss_si_limit", "8", "The max amount of special infected at once", FCVAR_PLUGIN, true, 1.0, true, float(GetConVarInt(hSILimitServerCap)) );
 	HookConVarChange(hSILimit, ConVarChanged:CalculateSpawnTimes);
 	hSpawnSize = CreateConVar("ss_spawn_size", "3", "The amount of special infected spawned at each spawn interval", FCVAR_PLUGIN, true, 1.0, true, float(GetConVarInt(hSILimitServerCap)) );
@@ -51,7 +52,7 @@ public SpawnQuantities_OnModuleStart() {
                                                                     
 ***********************************************************************************************************************************************************************************/
 
-LoadCacheSpawnLimits() {
+LoadCacheSpawnLimits() { // If cached values exist, apply them
 	if( SILimitCache != UNINITIALISED ) SetConVarInt( hSILimit, SILimitCache );
 	if( SpawnSizeCache != UNINITIALISED ) SetConVarInt( hSpawnSize, SpawnSizeCache );
 	for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {		
@@ -61,7 +62,7 @@ LoadCacheSpawnLimits() {
 	}
 }
 
-LoadCacheSpawnWeights() {
+LoadCacheSpawnWeights() { // if cached values exist, apply them
 	for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {		
 		if( SpawnWeightsCache[i] != UNINITIALISED ) {
 			SetConVarInt( hSpawnWeights[i], SpawnWeightsCache[i] );
