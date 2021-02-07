@@ -14,8 +14,6 @@
 #include "modules/AI_Tank.sp"
 #include "modules/AI_Witch.sp"
 
-new Handle:hCvarAssaultReminderInterval;
-
 new bool:bHasBeenShoved[MAXPLAYERS]; // shoving resets SI movement 
 
 public Plugin:myinfo = 
@@ -28,8 +26,6 @@ public Plugin:myinfo =
 };
 
 public OnPluginStart() { 
-	// Cvars
-	hCvarAssaultReminderInterval = CreateConVar( "ai_assault_reminder_interval", "2", "Frequency(sec) at which the 'nb_assault' command is fired to make SI attack" );
 	// Event hooks
 	HookEvent("player_spawn", InitialiseSpecialInfected, EventHookMode_Pre);
 	HookEvent("ability_use", OnAbilityUse, EventHookMode_Pre); 
@@ -56,20 +52,6 @@ public OnPluginEnd() {
 	Jockey_OnModuleEnd();
 	Tank_OnModuleEnd();
 	Witch_OnModuleEnd();
-}
-
-/***********************************************************************************************************************************************************************************
-
-																	KEEP SI AGGRESSIVE
-																	
-***********************************************************************************************************************************************************************************/
-
-public Action:L4D_OnFirstSurvivorLeftSafeArea(firstSurvivor) {
-	CreateTimer( float(GetConVarInt(hCvarAssaultReminderInterval)), Timer_ForceInfectedAssault, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
-}
-
-public Action:Timer_ForceInfectedAssault( Handle:timer ) {
-	CheatCommand("nb_assault");
 }
 
 /***********************************************************************************************************************************************************************************
