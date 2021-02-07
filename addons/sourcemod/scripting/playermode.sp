@@ -105,7 +105,7 @@ PlayerModeVote( client, playerMode ) {
 	} 
 }
 
-public VoteResultHandler( Handle:vote, numVotes, numClients, const clientInfo[][2], numItems, const itemInfo[][2] ) {
+public Action:VoteResultHandler( Handle:vote, int numVotes, int numClients, int clientInfo[][2], int numItems, int itemInfo[][2] ) {
 	new bool:votePassed = false;
 	for( new i = 0; i < numItems; i++ ) {
 		if( itemInfo[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES ) {

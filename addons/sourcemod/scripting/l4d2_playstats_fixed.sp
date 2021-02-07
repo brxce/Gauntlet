@@ -3,8 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
-#include <left4downtown>
-#include <l4d2_direct>
+#include <left4dhooks>
 #include <clientprefs>
 #undef REQUIRE_PLUGIN
 #include <readyup>
@@ -212,7 +211,7 @@
 
 
 // types of statistic table(sets)
-enum _:strStatType
+enum strStatType
 {
     typGeneral,
     typMVP,
@@ -224,14 +223,14 @@ enum _:strStatType
 };
 
 // information for entire game
-enum _:strGameData
+enum strGameData
 {
             gmFailed,               // survivors lost the mission * times
             gmStartTime             // GetTime() value when starting
 };
 
 // information per round
-enum _:strRoundData
+enum strRoundData
 {
             rndRestarts,            // how many times retried?
             rndPillsUsed,
@@ -256,7 +255,7 @@ enum _:strRoundData
 #define MAXRNDSTATS                 18
 
 // information per player
-enum _:strPlayerData
+enum strPlayerData
 {
             plyShotsShotgun,        // 0 pellets
             plyShotsSmg,            // all bullets from smg/rifle
@@ -339,7 +338,7 @@ enum _:strPlayerData
 #define MAXPLYSTATS                 76
 
 // information per infected player (during other team's survivor round)
-enum _:strInfData
+enum strInfData
 {
             infDmgTotal,            //      including on incapped, excluding all tank damage!
             infDmgUpright,          // 1

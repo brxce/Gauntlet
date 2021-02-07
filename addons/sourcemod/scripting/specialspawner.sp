@@ -4,13 +4,15 @@
 #define DEBUG_SPAWNQUEUE 0
 #define DEBUG_TIMERS 0
 #define DEBUG_POSITIONER 0
+#define PLUGIN_NAME "Special Spawner"
 
 #define VANILLA_COOP_SI_LIMIT 2
 #define NUM_TYPES_INFECTED 6
 
 #include <sourcemod>
 #include <sdktools>
-#include <left4downtown>
+#include <left4dhooks>
+#include <colors>
 
 new Handle:hCvarReadyUpEnabled;
 new Handle:hCvarConfigName;
@@ -26,6 +28,7 @@ new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 #include "modules/SS_SpawnTimers.sp"
 #include "modules/SS_SpawnQueue.sp"
 #include "modules/SS_SpawnPositioner.sp"
+#include "modules/SS2_DirectInfectedSpawn.sp"
 
 /*
  * TODO:
@@ -60,6 +63,7 @@ public OnPluginStart() {
 	SpawnTimers_OnModuleStart();
 	SpawnQueue_OnModuleStart();
 	SpawnPositioner_OnModuleStart();
+	DirectInfectedSpawn_OnPluginStart();
 	// Compatibility with server_namer.smx
 	hCvarReadyUpEnabled = CreateConVar("l4d_ready_enabled", "1", "This cvar from readyup.smx is required by server_namer.smx, but is duplicated here to avoid use of readyup.smx");
 	hCvarConfigName = CreateConVar("l4d_ready_cfg_name", "Hard Coop", "This cvar from readyup.smx is required by server_namer.smx, but is duplicated here to avoid use of readyup.smx");
@@ -75,7 +79,6 @@ public OnPluginStart() {
 	HookEvent("mission_lost", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("round_end", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
-	HookEvent("survival_round_start", EventHook:OnSurvivalRoundStart, EventHookMode_PostNoCopy);
 	// Faster spawns
 	HookEvent("player_death", OnPlayerDeath, EventHookMode_PostNoCopy);
 	// LOS tracking
@@ -109,6 +112,7 @@ public OnPluginEnd() {
 /***********************************************************************************************************************************************************************************
 
                                                  					PER ROUND
+                                  SS_SpawnTimers -> SS_SpawnQueue + SS_SpawnQuantities -> SS_SpawnPositioner -> SS_DirectInfectedSpawn
                                                                     
 ***********************************************************************************************************************************************************************************/
 
@@ -117,6 +121,10 @@ public OnConfigsExecuted() {
 	LoadCacheSpawnLimits();
 	LoadCacheSpawnWeights(); 
 	hTimerHUD = CreateTimer( 0.1, Timer_DrawSpawnerHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
+}
+
+public OnMapStart() {
+	DirectInfectedSpawn_OnMapStart();
 }
 
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) { 
@@ -130,11 +138,6 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 		StartSpawnTimer();
 	}
 	
-}
-
-public OnSurvivalRoundStart() {
-	g_bHasSpawnTimerStarted = false;
-	StartSpawnTimer();
 }
 
 public OnRoundOver() {
@@ -170,20 +173,21 @@ public Action:Timer_StarvationLOS( Handle:timer, any:userid ) {
 	new client = GetClientOfUserId( userid );
 	// increment tracked LOS time
 	if( IsBotInfected(client) && IsPlayerAlive(client) ) {
-	
 		if( bool:GetEntProp(client, Prop_Send, "m_hasVisibleThreats") ) {
 			g_fTimeLOS[userid] = 0.0;
 		} else {
 			g_fTimeLOS[userid] += 0.5; 
 		}
-		
-		if( g_fTimeLOS[userid] > GetConVarFloat(hCvarLineOfSightStarvationTime) ) {
+		// If an SI has not seen the survivors for a while, clone them closer to survivors
+		if( g_fTimeLOS[userid] > GetConVarFloat(hCvarLineOfSightStarvationTime) ) { 
 			switch ( GetConVarInt(FindConVar("ss_spawnpositioner_mode")) ) {
 				case 1: {
-					RepositionRadial(userid, GetLeadSurvivor());
+					RadialSpawn(L4D2_Infected:GetInfectedClass(client), GetLeadSurvivor());
+					ForcePlayerSuicide(client);
 				}
 				case 2: {
-					RepositionGrid(userid);
+					GridSpawn(L4D2_Infected:GetInfectedClass(client)); 
+					ForcePlayerSuicide(client);
 				}
 				default: {
 				}
@@ -218,33 +222,33 @@ public Action:Cmd_SetLimit(client, args) {
 		new iLimitValue = StringToInt(sLimitValue);    
 		// Must be valid limit value		
 		if( iLimitValue < 0 ) {
-			PrintToChat(client, "[SS] Limit value must be >= 0");
+			CPrintToChat(client, "{olive}[{default}SS{olive}]{default} Limit value must be {blue}>= 0");
 		} else {
 			// Apply limit value to appropriate class
 			if( StrEqual(sTargetClass, "all", false) ) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnLimitsCache[i] = iLimitValue;
 				}
-				Client_PrintToChatAll( true, "[SS] All SI limits have been set to {G}%d", iLimitValue );
+				CPrintToChatAll( "{olive}[{default}SS{olive}]{default} All SI limits have been set to {blue}%d", iLimitValue );
 			} else if( StrEqual(sTargetClass, "max", false) ) {  // Max specials
 				SILimitCache = iLimitValue;
-				Client_PrintToChatAll(true, "[SS] -> {O}Max {N}SI limit set to {G}%i", iLimitValue);		           
+				CPrintToChatAll("{olive}[{default}SS{olive}]{default} -> {olive}Max{default} SI limit set to {blue}%i", iLimitValue);		           
 			} else if( StrEqual(sTargetClass, "group", false) || StrEqual(sTargetClass, "wave", false) ) {
 				SpawnSizeCache = iLimitValue;
-				Client_PrintToChatAll(true, "[SS] -> SI will spawn in {O}groups{N} of {G}%i", iLimitValue);
+				CPrintToChatAll("{olive}[{default}SS{olive}]{default} -> SI will spawn in {olive}groups{N} of {blue}%i", iLimitValue);
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(Spawns[i], sTargetClass, false) ) {
 						SpawnLimitsCache[i] = iLimitValue;
-						Client_PrintToChatAll(true, "[SS] {O}%s {N}limit set to {G}%i", sTargetClass, iLimitValue);
+						CPrintToChatAll("{olive}[{default}SS{olive}]{default} {olive}%s{default}limit set to {blue}%i", sTargetClass, iLimitValue);
 					}
 				}
 			}
 		}	 
 	} else {  // Invalid command syntax
-		Client_PrintToChat(client, true, "{O}!limit/sm_limit {B}<class> <limit>");
-		Client_PrintToChat(client, true, "{B}<class> {N}[ all | max | group/wave | smoker | boomer | hunter | spitter | jockey | charger ]");
-		Client_PrintToChat(client, true, "{B}<limit> {N}[ >= 0 ]");
+		CPrintToChat(client, "!limit/sm_limit {blue}<class> {olive}<limit>");
+		CPrintToChat(client, "<class> [ {olive}all | {blue}max | {olive}group/wave{default} | smoker | boomer | hunter | spitter | jockey | charger ]");
+		CPrintToChat(client, "<limit> [ >= {blue}0{default} ]");
 	}
 	// Load cache into appropriate cvars
 	LoadCacheSpawnLimits(); 
@@ -262,7 +266,7 @@ public Action:Cmd_SetWeight(client, args) {
 		GetCmdArg(1, arg, sizeof(arg));	
 		if( StrEqual(arg, "reset", false) ) {
 			ResetWeights();
-			ReplyToCommand(client, "[SS] Spawn weights reset to default values");
+			ReplyToCommand(client, "{olive}[{default}SS{olive}]{default} Spawn weights reset to default values");
 		} 
 	} else if( args == 2 ) {
 		// Read in the SI class
@@ -274,28 +278,28 @@ public Action:Cmd_SetWeight(client, args) {
 		GetCmdArg(2, sWeightPercent, sizeof(sWeightPercent));
 		new iWeightPercent = StringToInt(sWeightPercent);      
 		if( iWeightPercent < 0 || iWeightPercent > 100 ) {
-			PrintToChat( client, "0 <= weight value <= 100") ;
+			CPrintToChat( client, "0 <= weight value <= 100") ;
 			return Plugin_Handled;
 		} else { //presets for spawning special infected i only
 			if( StrEqual(sTargetClass, "all", false) ) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnWeightsCache[i] = iWeightPercent;			
 				}	
-				Client_PrintToChat(client, true, "[SS] -> {O}All spawn weights {N}set to {G}%d", iWeightPercent );	
+				CPrintToChat(client, "{olive}[{default}SS{olive}]{default} -> All {olive}spawn weights{olive} set to {blue}%d", iWeightPercent );	
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(sTargetClass, Spawns[i], false) ) {
 						SpawnWeightsCache[i] =  iWeightPercent;
-						Client_PrintToChat(client, true, "[SS] {O}%s {N}weight set to {G}%d", Spawns[i], iWeightPercent );				
+						CPrintToChat(client, "{olive}[{default}SS{olive}]{default} {olive}%s{default} weight set to {blue}%d", Spawns[i], iWeightPercent);
 					}
 				}	
 			}
 			
 		}
 	} else {
-		Client_PrintToChat( client, true, "{O}!weight/sm_weight {B}<class> <value>" );
-		Client_PrintToChat( client, true, "{B}<class> {N}[ reset | all | smoker | boomer | hunter | spitter | jockey | charger ] " );	
-		Client_PrintToChat( client, true, "{B}value {N}[ >= 0 ] " );	
+		CPrintToChat( client, "!weight/sm_weight {blue}<class> {olive}<value>" );
+		CPrintToChat( client, "<class> [ {blue}reset | {olive}all{default} | smoker | boomer | hunter | spitter | jockey | charger ] " );	
+		CPrintToChat( client, "{olive}value{default} [ >= {blue}0{blue} ] " );	
 	}
 	LoadCacheSpawnWeights();
 	return Plugin_Handled;
@@ -318,7 +322,7 @@ public Action:Cmd_SetTimer(client, args) {
 		SetConVarFloat( hSpawnTimeMin, time );
 		SetConVarFloat( hSpawnTimeMax, time );
 		SetSpawnTimes(); //refresh times since hooked event from SetConVarFloat is temporarily disabled
-		Client_PrintToChat(client, true, "[SS] Spawn timer set to constant {G}%.3f {N}seconds", time);
+		PrintToChat(client, "{olive}[{default}SS{olive}]{default} Spawn timer set to constant {blue}%.3f{default} seconds", time);
 	} else if( args == 2 ) {
 		new Float:min, Float:max;
 		decl String:arg[8];
@@ -330,12 +334,12 @@ public Action:Cmd_SetTimer(client, args) {
 			SetConVarFloat( hSpawnTimeMin, min );
 			SetConVarFloat( hSpawnTimeMax, max );
 			SetSpawnTimes(); //refresh times since hooked event from SetConVarFloat is temporarily disabled
-			Client_PrintToChat(client, true, "[SS] Spawn timer will be between {G}%.3f {N}and {G}%.3f {N}seconds", min, max );
+			CPrintToChat(client, "{olive}[{default}SS{olive}]{default} Spawn timer will be between {blue}%.3f{default} and {blue}%.3f{default} seconds", min, max );
 		} else {
-			ReplyToCommand(client, "[SS] Max(>= 1.0) spawn time must greater than min(>= 0.0) spawn time");
+			ReplyToCommand(client, "Max(>= 1.0) spawn time must greater than min(>= 0.0) spawn time");
 		}
 	} else {
-		ReplyToCommand(client, "[SS] timer <constant> || timer <min> <max>");
+		ReplyToCommand(client, "timer <constant> || timer <min><max>");
 	}
 	return Plugin_Handled;
 }
@@ -353,14 +357,14 @@ public Action:Cmd_SpawnMode( client, args ) {
 		if( mode >= 0 && mode <= 2 ) {
 			SetConVarInt( hCvarSpawnPositionerMode, mode );
 			new String:spawnModes[3][8] = { "Vanilla", "Radial", "Grid" };
-			Client_PrintToChat( client, true, "[SS] {O}%s {N}spawn mode activated", spawnModes[mode] );
+			CPrintToChat( client, "{olive}[{default}SS{olive}]{default} {blue}%s{default} spawn mode activated", spawnModes[mode] );
 			isValidParams = true;
 		}
 	} 
 	// Correct command usage
 	if( !isValidParams ) {
 		new String:spawnModes[3][8] = { "Vanilla", "Radial", "Grid" };
-		Client_PrintToChat( client, true, "[SS] Current spawnmode: {O}%s", spawnModes[GetConVarInt(hCvarSpawnPositionerMode)] );
+		CPrintToChat( client, "{olive}[{default}SS{olive}]{default} Current spawnmode: {blue}%s", spawnModes[GetConVarInt(hCvarSpawnPositionerMode)] );
 		ReplyToCommand( client, "Usage: spawnmode <mode> [ 0 = vanilla spawning, 1 = radial repositioning, 2 = grid repositioning ]" );
 	}
 }
@@ -376,12 +380,12 @@ public Action:Cmd_SpawnProximity(client, args) {
 		if( min > 0.0 && max > 1.0 && max > min ) {
 			SetConVarFloat( hCvarSpawnProximityMin, min );
 			SetConVarFloat( hCvarSpawnProximityMax, max );
-			Client_PrintToChat(client, true, "[SS] Spawn proximity set between {G}%.3f {N}and {G}%.3f {N}units", min, max );
+			CPrintToChat(client, "{olive}[{default}SS{olive}]{default} Spawn proximity set between {blue}%.3f{default} and {blue}%.3f{default} units", min, max );
 		} else {
-			ReplyToCommand(client, "[SS] Max(>= 1.0) spawn proximity must greater than min(>= 0.0) spawn proximity");
+			ReplyToCommand(client, "Max(>= 1.0) spawn proximity must greater than min(>= 0.0) spawn proximity");
 		}
 	} else {
-		ReplyToCommand(client, "[SS] spawnproximity <min> <max>");
+		ReplyToCommand(client, "spawnproximity <min> <max>");
 	}
 	return Plugin_Handled;
 }
@@ -399,14 +403,14 @@ public Action:Cmd_ResetSpawns(client, args) {
 		}
 	}	
 	StartCustomSpawnTimer(SpawnTimes[0]);
-	ReplyToCommand( client, "[SS] Slayed all special infected. Spawn timer restarted. Next potential spawn in %.3f seconds.", GetConVarFloat(hSpawnTimeMin) );
+	ReplyToCommand( client, "Slayed all special infected. Spawn timer restarted. Next potential spawn in %.3f seconds.", GetConVarFloat(hSpawnTimeMin) );
 	return Plugin_Handled;
 }
 
 public Action:Cmd_StartSpawnTimerManually(client, args) {
 	if( args < 1 ) {
 		StartSpawnTimer();
-		ReplyToCommand(client, "[SS] Spawn timer started manually.");
+		ReplyToCommand(client, "Spawn timer started manually.");
 	} else {
 		new Float:time = 1.0;
 		decl String:arg[8];
@@ -418,7 +422,7 @@ public Action:Cmd_StartSpawnTimerManually(client, args) {
 		}
 		
 		StartCustomSpawnTimer(time);
-		ReplyToCommand(client, "[SS] Spawn timer started manually. Next potential spawn in %.3f seconds.", time);
+		ReplyToCommand(client, "Spawn timer started manually. Next potential spawn in %.3f seconds.", time);
 	}
 	return Plugin_Handled;
 }
@@ -435,7 +439,7 @@ public Action:OnPlayerRunCmd( client, &buttons ) {
 	} else {
 		bShowSpawnerHUD[client] = false;
 	}
-}
+} 
 
 public Action:Timer_DrawSpawnerHUD( Handle:timer ) {
 	new Handle:spawnerHUD = CreatePanel();

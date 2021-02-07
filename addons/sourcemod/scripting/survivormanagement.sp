@@ -4,7 +4,7 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <left4downtown>
+#include <left4dhooks>
 #include "includes/hardcoop_util.sp"
 
 // Bibliography: "sb_takecontrol" by "pan xiaohai"
@@ -13,7 +13,7 @@ public Plugin:myinfo =
 {
 name = "Survivor Management",
 	author = "Breezy",
-	description = "Survivor manager for Hard Coop that provides !join, !return and !respawn commands",
+	description = "Survivor manager for Gauntlet that provides !join, !return and !respawn commands",
 	version = "1.0",
 	url = ""
 };

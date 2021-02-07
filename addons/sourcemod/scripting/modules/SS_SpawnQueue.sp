@@ -40,7 +40,39 @@ GenerateAndExecuteSpawnQueue() {
 			if( SpawnQueue[i] < 0 ) { // end of spawn queue (does not always fill the whole array)
 				break;
 			}
-			AttemptSpawnAuto(SpawnQueue[i]);
+			AttemptSpawnAuto(L4D2_Infected:(SpawnQueue[i] + 1));
+		}
+	}
+}
+
+SITypeCount() { //Count the number of each SI ingame
+	for (new i = 0; i < NUM_TYPES_INFECTED; i++) {
+		SpawnCounts[i] = 0;
+	}
+	for( new i = 1; i < MaxClients; i++ ) {
+		if( IsBotInfected(i) && IsPlayerAlive(i) ) { 
+			switch( L4D2_Infected:GetEntProp(i, Prop_Send, "m_zombieClass") ) { //detect SI type
+				case L4D2Infected_Smoker:
+					SpawnCounts[_:L4D2Infected_Smoker - 1]++; // array indices start 0, where L4D2Infected numbering starts from 1
+				
+				case L4D2Infected_Boomer:
+					SpawnCounts[_:L4D2Infected_Boomer - 1]++;
+				
+				case L4D2Infected_Hunter:
+					SpawnCounts[_:L4D2Infected_Hunter - 1]++;
+					
+				case L4D2Infected_Spitter:
+					SpawnCounts[_:L4D2Infected_Spitter - 1]++;
+				
+				case L4D2Infected_Jockey:
+					SpawnCounts[_:L4D2Infected_Jockey - 1]++;
+				
+				case L4D2Infected_Charger:
+					SpawnCounts[_:L4D2Infected_Charger - 1]++;
+				
+				default:
+					break;
+			}
 		}
 	}
 }
@@ -82,56 +114,4 @@ GenerateIndex() {
 		return i;
 	}
 	return -1; //no selection because all weights were negative or 0
-}
-
-SITypeCount() { //Count the number of each SI ingame
-	for (new i = 0; i < NUM_TYPES_INFECTED; i++) {
-		SpawnCounts[i] = 0;
-	}
-	for( new i = 1; i < MaxClients; i++ ) {
-		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
-			switch( L4D2_Infected:GetEntProp(i, Prop_Send, "m_zombieClass") ) {//detect SI type
-				case L4D2Infected_Smoker:
-					SpawnCounts[_:L4D2Infected_Smoker - 1]++;
-				
-				case L4D2Infected_Boomer:
-					SpawnCounts[_:L4D2Infected_Boomer - 1]++;
-				
-				case L4D2Infected_Hunter:
-					SpawnCounts[2]++;
-					
-				case L4D2Infected_Spitter:
-					SpawnCounts[_:L4D2Infected_Spitter - 1]++;
-				
-				case L4D2Infected_Jockey:
-					SpawnCounts[_:L4D2Infected_Jockey - 1]++;
-				
-				case L4D2Infected_Charger:
-					SpawnCounts[_:L4D2Infected_Charger - 1]++;
-				
-				default:
-					break;
-			}
-		}
-	}
-}
-
-stock AttemptSpawnAuto(classIndex) {
-	new String:zombieClassName[16];
-	zombieClassName = Spawns[classIndex];
-	/*
-	// Create a client if necessary to circumvent the 3 SI limit
-	new iSpawnedSpecialsCount = CountSpecialInfectedBots();
-	if( iSpawnedSpecialsCount >= VANILLA_COOP_SI_LIMIT ) {
-	    new String:sBotName[32];
-	    Format(sBotName, sizeof(sBotName), "Dummy %s", zombieClassName);
-	    new bot = CreateFakeClient(sBotName); 
-	    if (bot != 0) {
-	        ChangeClientTeam(bot, _:L4D2Team_Infected);
-	        CreateTimer(0.1, Timer_KickBot, bot, TIMER_FLAG_NO_MAPCHANGE);
-	    }
-	}
-	*/
-	// Spawn with z_spawn_old using 'auto' parameter to let the Director find a spawn position  
-	CheatCommand("z_spawn_old", zombieClassName, "auto", true);
 }

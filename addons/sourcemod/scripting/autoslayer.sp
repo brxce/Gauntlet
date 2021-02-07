@@ -1,178 +1,119 @@
 #pragma semicolon 1
 #define AUTOSLAYER_DEBUG 0
+#define NO_COUNTDOWN -1
 
 #include <sourcemod>
-#include <left4downtown>
-#include <smlib>
+#include <sdktools>
+#include <left4dhooks>
+#include <colors>
 #include "includes/hardcoop_util.sp"
 
-new bool:g_bIsAutoSlayerActive = true; // start true to prevent AutoSlayer being activated after round end or before round start
-new Handle:hCvarGracePeriod;
-new Handle:hCvarTeamClearDelay;
-new Handle:hCvarAutoSlayerMode;
-new Handle:hCvarSlayAllInfected;
-new Handle:hAutoSlayerTimer;
+int iAutoslayerCountdown[MAXPLAYERS + 1]; // track how much longer to allow an SI to pin a survivor before slaying them.
 
-// This plugin was created because of a Hard12 bug where a survivor fails to take damage while pinned
-// by special infected. If the whole team is immobilised, they get a grace period before they are AutoSlayerd.
+new Handle:hAutoSlayerTimer; 
+new Handle:hCvarPinTime;
+
 public Plugin:myinfo = {
 	name = "AutoSlayer",
 	author = "Breezy",
-	description = "Slays configured team if survivors are simultaneously incapped/pinned",
-	version = "2.0"
+	description = "Applies configurable lifespans to attacking special infected, to allow survivors to handle more spawns",
+	version = "3.0"
 };
 
-public OnPluginStart() {
-	// Cvars
-	hCvarAutoSlayerMode = CreateConVar("autoslayer_mode", "1", "On all survivors incapacitated/pinned : -1 = Slay survivors, 0 = OFF, 1 = Slay infected");
-	// This applies for "autoslayer_mode 1" (slay survivors)
-	hCvarGracePeriod = CreateConVar("autoslayer_graceperiod", "7.0", "Time(sec) before pinned/incapacitated survivor team is slayed by 'slay survivors' AutoSlayer mode", FCVAR_PLUGIN, true, 0.0 );
-	// These only applies for "autoslayer_mode -1" (slay infected when all survivors are pinned)
-	hCvarSlayAllInfected = CreateConVar( "autoslayer_slay_all_infected", "1", "0 = only slays infected that are pinning survivors, 1 = all infected are slayed" );
-	hCvarTeamClearDelay = CreateConVar( "autoslayer_teamclear_delay", "3.0", "Time(sec) before survivor team is cleared by 'slay infected' AutoSlayer mode", FCVAR_PLUGIN, true, 0.0 );
-	HookConVarChange(hCvarAutoSlayerMode, ConVarChanged:OnAutoSlayerModeChange);
+public OnPluginStart() 
+{
+	hCvarPinTime = CreateConVar("autoslayer_pintime", "7", "How long an SI is allowed to pin a survivor");
 	// Event hooks
-	HookEvent("player_incapacitated", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy);
-	HookEvent("choke_start", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy);
-	HookEvent("lunge_pounce", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy);
-	HookEvent("charger_pummel_start", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy); 
-	HookEvent("jockey_ride", EventHook:OnPlayerImmobilised, EventHookMode_PostNoCopy);	
+	HookEvent("choke_start", EventHook:OnPlayerPinned, EventHookMode_PostNoCopy);
+	HookEvent("lunge_pounce", EventHook:OnPlayerPinned, EventHookMode_PostNoCopy);
+	HookEvent("charger_pummel_start", EventHook:OnPlayerPinned, EventHookMode_PostNoCopy); 
+	HookEvent("jockey_ride", EventHook:OnPlayerPinned, EventHookMode_PostNoCopy);	
 	HookEvent("player_death", OnPlayerDeath, EventHookMode_Pre);
 	// Prevent AutoSlayer activating between maps
-	HookEvent("map_transition", EventHook:PreventAutoSlayer, EventHookMode_PostNoCopy);
-	HookEvent("mission_lost", EventHook:PreventAutoSlayer, EventHookMode_PostNoCopy);
+	HookEvent("map_transition", EventHook:OnGameOver, EventHookMode_PostNoCopy);
+	HookEvent("mission_lost", EventHook:OnGameOver, EventHookMode_PostNoCopy);
+	HookEvent("finale_win", EventHook:OnGameOver, EventHookMode_PostNoCopy);
+}
+
+public OnPluginEnd() 
+{
+	StopAutoslayer();
 }
 
 public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], errMax) 
 {
-	g_bIsAutoSlayerActive = false;
 	return APLRes_Success;
 }
 
-public OnAutoSlayerModeChange() {
-	if ( hAutoSlayerTimer != INVALID_HANDLE ) {
-		CloseHandle(hAutoSlayerTimer);
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client) 
+{ 
+	for (int i = 0; i < (MAXPLAYERS + 1); ++i) 
+	{	
+		iAutoslayerCountdown[i] = NO_COUNTDOWN;
 	}
+	hAutoSlayerTimer = CreateTimer(1.0, Timer_AutoSlayer, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
-public PreventAutoSlayer() {
-	g_bIsAutoSlayerActive = true;
+public OnPlayerPinned(Handle:event, String:name[], bool:dontBroadcast) {
+	int attackingSI = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (iAutoslayerCountdown[attackingSI] == NO_COUNTDOWN)
+	{
+		if (GetConVarInt(FindConVar("survivor_limit")) == 1 ) // instant clear in single player mode
+		{
+			KickClient(attackingSI);
+			iAutoslayerCountdown[attackingSI] = NO_COUNTDOWN;
+		}
+		else // delayed clear otherwise
+		{
+			iAutoslayerCountdown[attackingSI] = GetConVarInt(hCvarPinTime);
+			if (IsTeamImmobilised()) // in case any of the pinning SI are not dealing any damage
+			{
+				SlaySurvivors();
+			}
+		}
+	}
+	
 }
 
-public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
-	g_bIsAutoSlayerActive = false;
-}
-
-public OnPlayerImmobilised() {
-	AutoSlayer();
-}
-
+// Reset countdown array for SI that have died
 public OnPlayerDeath(Handle:event, String:name[], bool:dontBroadcast) {
 	new client = GetClientOfUserId( GetEventInt(event, "userid") );
-	if( IsSurvivor(client) ) {
-		AutoSlayer();
+	if (IsInfected(client)) {
+		iAutoslayerCountdown[client] = NO_COUNTDOWN; 
 	}
 }
 
-AutoSlayer() {
+public OnGameOver()
+{
+	StopAutoslayer();
+}
 
-	new bool:bShouldTrigger = false;
-	
-	// Trigger when the whole survivor team is immobilised (pinned or dead), excluding situation when all have just died or a lone survivor has been pinned (outside of 1p mode)
-	if( GetConVarInt(hCvarAutoSlayerMode) != 0 && !g_bIsAutoSlayerActive ) {
-		if ( IsTeamImmobilised() && !IsTeamWiped() ) { // there is at least one survivor alive, but all standing survivors are pinned
-			if ( GetConVarInt(hCvarAutoSlayerMode) < 0 ) { // Slay survivors
-				bShouldTrigger = true;
-				hAutoSlayerTimer = CreateTimer( 1.0, Timer_SlaySurvivors, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
-			} else if ( GetConVarInt(hCvarAutoSlayerMode) > 0 ) {
-				if ( IsLastStanding() ) { // if there are no other survivors standing, only follow through with autoslay infected if this is 1P mode (i.e. do not save last standing survivors)
-					if ( GetConVarInt(FindConVar("survivor_limit")) == 1) {
-						bShouldTrigger = true;
-						CreateTimer( GetConVarFloat(hCvarTeamClearDelay), Timer_SlaySpecialInfected, _, TIMER_FLAG_NO_MAPCHANGE );
-					} 
-				} else { // multiple survivors, all alive and pinned
-					bShouldTrigger = true;
-					CreateTimer( GetConVarFloat(hCvarTeamClearDelay), Timer_SlaySpecialInfected, _, TIMER_FLAG_NO_MAPCHANGE );
-				}
-			}
+public Action:Timer_AutoSlayer(Handle:timer, any:none) // Timer repeats every second; countsdown to clear pinned survivors
+{
+	for (int client = 0; client < (MAXPLAYERS + 1); ++client) 
+	{
+		if (iAutoslayerCountdown[client] > 0)
+		{
+			--iAutoslayerCountdown[client]; // keep counting down
 		} 
-	} 
-	
-	// Cvar activation and printout
-	if ( bShouldTrigger ) {
-		g_bIsAutoSlayerActive = true;
-		Client_PrintToChatAll(true, "[AS] {O}Initiating AutoSlayer...");
-	}
-}
-
-public Action:Timer_SlaySurvivors(Handle:timer) {
-	static secondsPassed = 0;
-	new countdown = RoundToNearest(GetConVarFloat(hCvarGracePeriod)) - secondsPassed;
-	// Check for survivors being cleared during the countdown
-	if( !IsTeamImmobilised() ) {
-		Client_PrintToChatAll(true, "[AS] ...AutoSlayer {G}cancelled!");	
-		g_bIsAutoSlayerActive = false;
-		secondsPassed = 0;
-		return Plugin_Stop;
-	} 		
-	// Countdown ended
-	if( countdown <= 0 ) {
-		g_bIsAutoSlayerActive = false;
-		if( IsTeamImmobilised() && !IsTeamWiped() ) { // do not slay if already wiped
-			SlaySurvivors();
-			Client_PrintToChatAll(true, "[AS] {N}AutoSlayed {O}survivors!");	
-		} else {
-			Client_PrintToChatAll(true, "[AS] ...AutoSlayer {G}cancelled!");
-		}
-		secondsPassed = 0;
-		return Plugin_Stop;
-	} 
-	Client_PrintToChatAll(true, "[AS] %d...", countdown);	
-	secondsPassed++;
-	return Plugin_Continue;
-}
-
-SlaySurvivors() { //incap everyone
-	for (new client = 1; client < MaxClients; client++) {
-		if (IsSurvivor(client) && IsPlayerAlive(client)) {
-			ForcePlayerSuicide(client);
+		else if (iAutoslayerCountdown[client] == 0 && IsClientInGame(client) && !IsClientInKickQueue(client)) // time to slay
+		{
+			KickClient(client);
+			iAutoslayerCountdown[client] = NO_COUNTDOWN; 
 		}
 	}
 }
 
-public Action:Timer_SlaySpecialInfected(Handle:timer) {
-	Client_PrintToChatAll( true, "[AS] AutoSlayed {G}special infected");
-	for( new i = 0; i < MAXPLAYERS; i++ ) {
-		if( IsBotInfected(i) && IsPlayerAlive(i) ) {
-			if( IsPinningASurvivor(i) ) {
-				ForcePlayerSuicide(i);
-			} else {
-				if( GetConVarBool(hCvarSlayAllInfected) && !IsTank(i) ) {
-					ForcePlayerSuicide(i);
-				} 
-			}
-		}
-	}
-	g_bIsAutoSlayerActive = false;
-}
-
-bool:IsPinningASurvivor(client) {
-	new bool:isPinning = false;
-	if( IsBotInfected(client) && IsPlayerAlive(client) ) {
-		if( GetEntPropEnt(client, Prop_Send, "m_tongueVictim") > 0 ) isPinning = true; // smoker
-		if( GetEntPropEnt(client, Prop_Send, "m_pounceVictim") > 0 ) isPinning = true; // hunter
-		if( GetEntPropEnt(client, Prop_Send, "m_carryVictim") > 0 ) isPinning = true; // charger carrying
-		if( GetEntPropEnt(client, Prop_Send, "m_pummelVictim") > 0 ) isPinning = true; // charger pounding
-		if( GetEntPropEnt(client, Prop_Send, "m_jockeyVictim") > 0 ) isPinning = true; // jockey
-	}
-	return isPinning;
+void StopAutoslayer()
+{
+	CloseHandle(hAutoSlayerTimer);
+	hAutoSlayerTimer = INVALID_HANDLE;
 }
 
 /**
  * @return: true if all survivors are either incapacitated or pinned
 **/
 bool:IsTeamImmobilised() {
-	// If any survivor is found to be alive and neither pinned nor incapacitated the team is not immobilised.
 	new bool:bIsTeamImmobilised = true;
 	for (new client = 1; client < MaxClients; client++) {
 		if (IsSurvivor(client) && IsPlayerAlive(client)) {
@@ -185,32 +126,10 @@ bool:IsTeamImmobilised() {
 	return bIsTeamImmobilised;
 }
 
-/**
- * @return: true if all survivors are either incapacitated
-**/
-bool:IsTeamWiped() {
-	new bool:bIsTeamWiped = true;
-	for (new client = 1; client < MaxClients; client++) {
+SlaySurvivors() { //incap everyone
+	for (new client = 1; client < (MAXPLAYERS + 1); client++) {
 		if (IsSurvivor(client) && IsPlayerAlive(client)) {
-			if ( !IsIncapacitated(client) ) {		
-				bIsTeamWiped = false;				
-				break;
-			} 
-		} 
-	}
-	return bIsTeamWiped;
-}
-
-/**
- * @return: true if all survivors but one have died
-**/
-bool:IsLastStanding() {
-	new num_survivors = GetConVarInt(FindConVar("survivor_limit"));
-	new num_alive_survivors = 0;
-	for ( new i = 0; i < MaxClients; ++i ) {
-		if ( IsSurvivor(i) && !IsPlayerAlive(i) ) {
-			++num_alive_survivors;	
+			ForcePlayerSuicide(client);
 		}
 	}
-	return (num_survivors - num_alive_survivors == 1 ? true : false ); 
 }

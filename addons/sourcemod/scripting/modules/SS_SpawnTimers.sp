@@ -82,7 +82,7 @@ public Action:SpawnInfectedAuto(Handle:timer) {
 	if( numIncappedSurvivors > 0 && numIncappedSurvivors != GetConVarInt(FindConVar("survivor_limit")) ) { // grant grace period
 		new gracePeriod = numIncappedSurvivors * GetConVarInt(hCvarIncapAllowance);
 		CreateTimer( float(gracePeriod), Timer_GracePeriod, _, TIMER_FLAG_NO_MAPCHANGE );
-		Client_PrintToChatAll(true, "{G}%ds {O}grace period {N}was granted because of {G}%d {N}incapped survivor(s)", gracePeriod, numIncappedSurvivors);
+		CPrintToChatAll("{olive}[{default}SS{olive}]{default} {blue}%d{default}s {olive}grace period{default} was granted because of {blue}%d{default} incapped survivor(s)", gracePeriod, numIncappedSurvivors);
 	} else { // spawn immediately
 		GenerateAndExecuteSpawnQueue();
 	}
@@ -106,6 +106,7 @@ EndSpawnTimer() {
 	if( g_bHasSpawnTimerStarted ) {
 		if( hSpawnTimer != INVALID_HANDLE ) {
 			CloseHandle(hSpawnTimer);
+			hSpawnTimer = INVALID_HANDLE;
 		}
 		g_bHasSpawnTimerStarted = false;
 		
@@ -135,7 +136,6 @@ SetSpawnTimes() {
 }
 
 public CalculateSpawnTimes() {
-	new i;
 	new iSILimit =  GetConVarInt(hSILimit);
 	new Float:fSpawnTimeMin = GetConVarFloat(hSpawnTimeMin);
 	new Float:fSpawnTimeMax = GetConVarFloat(hSpawnTimeMax);
@@ -144,7 +144,7 @@ public CalculateSpawnTimes() {
 		switch( GetConVarInt(hSpawnTimeMode) ) {
 			case 1: { // incremental spawn time mode			
 				SpawnTimes[0] = fSpawnTimeMin;
-				for( i = 1; i < MAXPLAYERS; i++ ) {
+				for( int i = 1; i < MAXPLAYERS; i++ ) {
 					if( i < iSILimit ) {
 						SpawnTimes[i] = SpawnTimes[i-1] + unit;
 					} else {
@@ -154,7 +154,7 @@ public CalculateSpawnTimes() {
 			}
 			case 2: { // decremental spawn time mode			
 				SpawnTimes[0] = fSpawnTimeMax;
-				for( i = 1; i < MAXPLAYERS; i++ ) {
+				for( int i = 1; i < MAXPLAYERS; i++ ) {
 					if (i < iSILimit) {
 						SpawnTimes[i] = SpawnTimes[i-1] - unit;
 					} else {
@@ -169,7 +169,7 @@ public CalculateSpawnTimes() {
 	}
 	
 		#if DEBUG_TIMERS
-			for (i = 1; i < NUM_TYPES_INFECTED; i++) {
+			for (int i = 1; i < NUM_TYPES_INFECTED; i++) {
 				LogMessage("%d : %.5f s", i, SpawnTimes[i]);
 			}
 		#endif
