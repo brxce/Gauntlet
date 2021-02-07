@@ -149,8 +149,7 @@ LoadCvars( playerMode ) {
 				new String:sCvarType[64];
 				KvGetString( g_hCvarKV, "type", sCvarType, sizeof(sCvarType) );
 				// Set cvar according to type
-				if( StrEqual(
-					sCvarType, "int", false) ) {
+				if( StrEqual(sCvarType, "int", false) ) {
 					SetConVarInt( FindConVar(sCvarName), KvGetNum(g_hCvarKV, "value", -1) );
 				} else if( StrEqual(sCvarType, "float", false) ) {
 					SetConVarFloat( FindConVar(sCvarName), KvGetFloat(g_hCvarKV, "value", -1.0) );
