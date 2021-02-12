@@ -30,10 +30,6 @@ new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 #include "modules/SS_SpawnPositioner.sp"
 #include "modules/SS2_DirectInfectedSpawn.sp"
 
-/*
- * TODO:
-*/
-
 /***********************************************************************************************************************************************************************************
      					All credit for the spawn timer, quantities and queue modules goes to the developers of the 'l4d2_autoIS' plugin                            
 ***********************************************************************************************************************************************************************************/
@@ -75,6 +71,8 @@ public OnPluginStart() {
 	SetConVarInt( FindConVar("z_spawn_safety_range"), 0 );
 	//SetConVarInt( FindConVar("z_spawn_range"), 750 ); // default 1500 (potentially very far from survivors) is remedied if SpawnPositioner module is active 
 	SetConVarInt( FindConVar("z_discard_range"), 1250 ); // discard zombies farther away than this	
+	// Adjust game difficulty
+	HookConVarChange(FindConVar("survivor_limit"), ConVarChange_SurvivorLimit);
 	// Resetting at the end of rounds
 	HookEvent("mission_lost", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
 	HookEvent("map_transition", EventHook:OnRoundOver, EventHookMode_PostNoCopy);
@@ -142,6 +140,11 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 
 public OnRoundOver() {
 	EndSpawnTimer();
+}
+
+public ConVarChange_SurvivorLimit(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	// Do stuff	
 }
 
 // Kick infected bots promptly after death to allow quicker infected respawn
