@@ -4,21 +4,20 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <builtinvotes>
+#include <left4dhooks>
+#include <nativevotes>
 #include "includes/hardcoop_util.sp"
 
-new Handle:g_hCvarKV = INVALID_HANDLE;
-
 new Handle:hCvarMaxSurvivors;
-new Handle:hPlayerModeVote;
-new g_iDesiredPlayerMode;
+
+int g_iPlayerMode = 4;
 
 public Plugin:myinfo = 
 {
 	name = "Player Mode",
 	author = "breezy",
 	description = "Allows survivors to change the team limit and adapts gameplay cvars to these changes",
-	version = "1.0",
+	version = "2.0",
 	url = ""
 };
 
@@ -30,43 +29,112 @@ public OnPluginStart() {
 	GetGameFolderName( sGameFolder, sizeof(sGameFolder) );
 	if( !StrEqual(sGameFolder, "left4dead2", false) ) {
 		SetFailState("Plugin supports Left 4 dead 2 only!");
-	} else {
-		g_hCvarKV = CreateKeyValues("Cvars");
-		BuildPath( Path_SM, sGameFolder, PLATFORM_MAX_PATH, CVARS_PATH );
-		if( !FileToKeyValues(g_hCvarKV, sGameFolder) ) {
-			SetFailState("Couldn't load playermode_cvars.txt!");
-		}
-	}
-	LoadCvars( GetConVarInt(FindConVar("survivor_limit")) );
+	} 
 }
 
 public OnPluginEnd() {
-	SetConVarBool( FindConVar("l4d_ready_enabled"), false );
-	// Survivors
 	ResetConVar( FindConVar("survivor_limit") );
-	ResetConVar( FindConVar("confogl_pills_limit") );
-	// Common
-	ResetConVar( FindConVar("z_common_limit") );
-	ResetConVar( FindConVar("z_mob_spawn_min_size") );
-	ResetConVar( FindConVar("z_mob_spawn_max_size") );
-	ResetConVar( FindConVar("z_mega_mob_size") );
-	// SI
-	ResetConVar( FindConVar("z_tank_health") );
-	ResetConVar( FindConVar("z_jockey_ride_damage") );
-	ResetConVar( FindConVar("z_pounce_damage") );
-	ResetConVar( FindConVar("z_pounce_damage_delay") );
-	// Autoslayer
-	ResetConVar( FindConVar("autoslayer_teamclear_delay") );
-	ResetConVar( FindConVar("autoslayer_slay_all_infected") );
+	if ( FindConVar("confogl_pills_limit") != INVALID_HANDLE ) 
+	{
+		ResetConVar(FindConVar("confogl_pills_limit"));	
+	}
 }
 
-public Action:Cmd_PlayerMode( client, args ) {
+public Action Cmd_PlayerMode(int client, int args) {	
+	if( IsSurvivor(client) || IsGenericAdmin(client) ) {
+		if( args == 1 ) {
+			new String:sValue[32]; 
+			GetCmdArg(1, sValue, sizeof(sValue));
+			new iValue = StringToInt(sValue);
+			if( iValue > 0 && iValue <= GetConVarInt(hCvarMaxSurvivors) ) 
+			{
+				if (!NativeVotes_IsVoteTypeSupported(NativeVotesType_Custom_YesNo))
+				{
+					ReplyToCommand(client, "Game does not support Custom Yes/No votes.");
+					return Plugin_Handled;
+				}
+				
+				if (!NativeVotes_IsNewVoteAllowed())
+				{
+					new seconds = NativeVotes_CheckVoteDelay();
+					ReplyToCommand(client, "Vote is not allowed for %d more seconds", seconds);
+				}
+				
+				new Handle:vote = NativeVotes_Create(YesNoHandler, NativeVotesType_Custom_YesNo);
+				g_iPlayerMode = iValue;
+				NativeVotes_SetInitiator(vote, client);
+				char voteStimulus[64];
+				Format(voteStimulus, sizeof(voteStimulus), "Change to %d player mode?", iValue);
+				NativeVotes_SetDetails(vote, voteStimulus);
+				NativeVotes_DisplayToAll(vote, 30);
+			} else {
+				ReplyToCommand( client, "Command restricted to values from 1 to %d", GetConVarInt(hCvarMaxSurvivors) );
+			}
+		} else {
+			ReplyToCommand( client, "Usage: playermode <value> [ 1 <= value <= %d", GetConVarInt(hCvarMaxSurvivors) );
+		}
+	} else {
+		ReplyToCommand(client, "You do not have access to this command");
+	}
+	return Plugin_Handled;
+}
+
+public YesNoHandler(Handle:vote, MenuAction:action, param1, param2)
+{
+	switch (action)
+	{
+		case MenuAction_End:
+		{
+			NativeVotes_Close(vote);
+		}
+		
+		case MenuAction_VoteCancel:
+		{
+			if (param1 == VoteCancel_NoVotes)
+			{
+				NativeVotes_DisplayFail(vote, NativeVotesFail_NotEnoughVotes);
+			}
+			else
+			{
+				NativeVotes_DisplayFail(vote, NativeVotesFail_Generic);
+			}
+		}
+		
+		case MenuAction_VoteEnd:
+		{
+			if (param1 == NATIVEVOTES_VOTE_NO)
+			{
+				NativeVotes_DisplayFail(vote, NativeVotesFail_Loses);
+			}
+			else
+			{
+				char msgVoteSuccess[64];
+				Format(msgVoteSuccess, sizeof(msgVoteSuccess), "Changing to %d playermode!", g_iPlayerMode);
+				NativeVotes_DisplayPass(vote, msgVoteSuccess);
+				SetConVarInt(FindConVar("survivor_limit"), g_iPlayerMode);
+				if ( FindConVar("confogl_pills_limit")  != INVALID_HANDLE )
+				{
+					SetConVarInt(FindConVar("confogl_pills_limit"), g_iPlayerMode);	
+				}
+			}
+		}
+	}
+}
+
+/**************************************************************************************
+
+Fallback using vanilla sourcemod functions - still missing implementation of MenuAction_End
+									
+**************************************************************************************
+
+public Action Cmd_PlayerMode(int client, int args) {	
 	if( IsSurvivor(client) || IsGenericAdmin(client) ) {
 		if( args == 1 ) {
 			new String:sValue[32]; 
 			GetCmdArg(1, sValue, sizeof(sValue));
 			new iValue = StringToInt(sValue);
 			if( iValue > 0 && iValue <= GetConVarInt(hCvarMaxSurvivors) ) {
+				g_iVoteNumbers = 0; // may have been previous vote
 				PlayerModeVote( client, iValue );
 			} else {
 				ReplyToCommand( client, "Command restricted to values from 1 to %d", GetConVarInt(hCvarMaxSurvivors) );
@@ -79,106 +147,88 @@ public Action:Cmd_PlayerMode( client, args ) {
 	}
 }
 
-PlayerModeVote( client, playerMode ) {
-	if( !IsBuiltinVoteInProgress() ) {
-		if( playerMode != GetConVarInt(FindConVar("survivor_limit")) ) {
-			hPlayerModeVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
-			g_iDesiredPlayerMode = playerMode;
-			new String:voteText[32];
-			Format( voteText, sizeof(voteText), "Switch to %d player?", playerMode );
-			SetBuiltinVoteArgument(hPlayerModeVote, voteText );
-			SetBuiltinVoteInitiator( hPlayerModeVote, client );
-			SetBuiltinVoteResultCallback( hPlayerModeVote, VoteResultHandler);
-			new iPlayerSurvivors[MaxClients];
-			new iNumPlayerSurvivors = 0;
-			for( new i = 1; i < MaxClients; i++ ) {
-				if( IsSurvivor(i) && !IsFakeClient(i) ) {
-					iPlayerSurvivors[iNumPlayerSurvivors] = i;
-					iNumPlayerSurvivors++;
-				}
-			}
-			DisplayBuiltinVote( hPlayerModeVote, iPlayerSurvivors, iNumPlayerSurvivors, 20 );
-			FakeClientCommand( client, "Vote Yes" );
-		} else {
-			PrintToChat( client, "This playermode is already active" );
-		}
-	} 
+PlayerModeVote(int client, int playermode)
+{
+	// Display vote menu
+	Menu MenuVote = new Menu(MenuHandler_VotePlayermode, MENU_ACTIONS_ALL);
+	MenuVote.SetTitle("Vote playermode", LANG_SERVER);
+	char sPlayermode[8];
+	Format(sPlayermode, sizeof(sPlayermode), "Playermode %d", playermode);
+	MenuVote.AddItem("desiredplayermode", sPlayermode);
+	MenuVote.Display(client, MENU_TIME_FOREVER);
 }
 
-public Action:VoteResultHandler( Handle:vote, int numVotes, int numClients, int clientInfo[][2], int numItems, int itemInfo[][2] ) {
-	new bool:votePassed = false;
-	for( new i = 0; i < numItems; i++ ) {
-		if( itemInfo[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES ) {
-			if( itemInfo[i][BUILTINVOTEINFO_ITEM_VOTES] > (numClients / 2) ) {
-				if( g_iDesiredPlayerMode > GetConVarInt(FindConVar("survivor_limit")) ) {
-					votePassed = true;
-				} else {
-					new numPlayerSurvivors = 0;
-					for( new j = 1; j < MaxClients; j++ ) {
-						if( IsSurvivor(j) && !IsFakeClient(j) ) {
-							numPlayerSurvivors++;
-						}
-					}
-					if( g_iDesiredPlayerMode >= numPlayerSurvivors ) {
-						votePassed = true;
-					} else {
-						PrintToChatAll("Too many players to reduce survivor limit");
-					}
-				}
+public int MenuHandler_VotePlayermode(Menu VoteMenu, MenuAction action, int param1, int param2)
+{
+	switch (action)
+	{
+		case MenuAction_Start:
+		{
+			PrintToServer("Displaying menu");
+		}
+		// How the menu should look for each client
+		case MenuAction_Display: // param1 is the client
+		{
+			char buffer[255];
+			Format(buffer, sizeof(buffer), "Vote for playermode"); 
+			
+			Panel panel = view_as<Panel>(param2);
+			panel.SetTitle(buffer);
+			PrintToServer("Client %d was sent menu with panel %x", param1, param2);
+		}
+		case MenuAction_Select: // param1 is the client, param2 is the item number to use for GetMenuItem
+		{
+			char info[32];
+			VoteMenu.GetItem(param2, info, sizeof(info)); 
+			if (StrEqual(info, "desiredplayermode"))
+			{
+				++g_iVoteNumbers;
+			}
+			else
+			{
+				PrintToServer("Client %d voted against the proposed playermode", param1);
 			}
 		}
-	}
-	if( votePassed ) {
-		LoadCvars( g_iDesiredPlayerMode );
-		DisplayBuiltinVotePass(vote, "Changing player mode...");
-	} else {
-		DisplayBuiltinVoteFail(vote);
-	}
-}
-
-LoadCvars( playerMode ) {
-	LogMessage( "Loading cvars for playermode %d", playerMode );
-	KvRewind( g_hCvarKV );
-	new String:sPlayerMode[16];
-	Format( sPlayerMode, sizeof(sPlayerMode), "%d", playerMode );
-	if( KvJumpToKey(g_hCvarKV, sPlayerMode) ) {
-		if( KvGotoFirstSubKey( g_hCvarKV ) ){
-			do {
-				new String:sCvarName[64];
-				KvGetSectionName( g_hCvarKV, sCvarName, sizeof(sCvarName) );
-				new String:sCvarType[64];
-				KvGetString( g_hCvarKV, "type", sCvarType, sizeof(sCvarType) );
-				// Set cvar according to type
-				if( StrEqual(sCvarType, "int", false) ) {
-					SetConVarInt( FindConVar(sCvarName), KvGetNum(g_hCvarKV, "value", -1) );
-				} else if( StrEqual(sCvarType, "float", false) ) {
-					SetConVarFloat( FindConVar(sCvarName), KvGetFloat(g_hCvarKV, "value", -1.0) );
-				} else if( StrEqual(sCvarType, "string", false) ) {
-					new String:stringValue[128];
-					KvGetString( g_hCvarKV, "value", stringValue, sizeof(stringValue), "Invalid String" );
-					SetConVarString( FindConVar(sCvarName), stringValue );
-				} else {
-					LogError( "Invalid cvar type %s given for %s", sCvarType, sCvarName );
+		case MenuAction_DrawItem: // param1 is the client, param2 is the item number for use with GetMenuItem
+		{
+			int style;
+			char info[32];
+			VoteMenu.GetItem(param2, info, sizeof(info), style);
+			return style;
+		}
+		case MenuAction_Cancel: // param1 is the client, param2 is the MenuCancel reason
+		{
+			PrintToServer("Client %d's menu was cancelled for reason %d", param1, param2);
+		}
+		case MenuAction_End: // param1 is the MenuEnd reason - if MenuCancel -> param2 is MenuCancel reason
+		{
+			int numPlayerSurvivors = 0;
+			for ( int i = 1; i < MAXPLAYERS + 1; ++i )
+			{
+				if ( IsValidClient(i) && L4D2_Team:GetClientTeam(i) == L4D2Team_Survivor && !IsFakeClient(i) ) 
+				{
+					++numPlayerSurvivors;
 				}
-
-			} while( KvGotoNextKey(g_hCvarKV, true) );
-		} else {
-			PrintToChatAll("No integer cvar settings listed");
-		}
-	} else {
-		PrintToChatAll( "No configs for player mode %d were found", playerMode );
-		LogError("No configs for playermode %d were found", playerMode);
-	}
-}
-
-public VoteActionHandler(Handle:vote, BuiltinVoteAction:action, param1, param2) {
-	switch (action) {
-		case BuiltinVoteAction_End: {
-			hPlayerModeVote = INVALID_HANDLE;
-			CloseHandle(vote);
-		}
-		case BuiltinVoteAction_Cancel: {
-			DisplayBuiltinVoteFail(vote, BuiltinVoteFailReason:param1);
+			}
+			
+			if ( (g_iVoteNumbers * 2) >= numPlayerSurvivors )
+			{
+				PrintToServer("Playermode vote successful!");
+				
+				//**********************************************************************************************************************
+				//
+				// Set playermode here
+				//
+				//************************************************************************************************************************
+			}
+			else
+			{
+				PrintToServer("Playermode vote failed!");
+			}
+			delete VoteMenu;
 		}
 	}
+	return 0;
 }
+
+*/

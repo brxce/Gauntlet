@@ -281,7 +281,7 @@ stock GetSurvivorProximity( const Float:rp[3], specificSurvivor = -1 ) {
 stock GetRandomSurvivor() {
 	new survivors[MAXPLAYERS];
 	new numSurvivors = 0;
-	for( new i = 0; i < MAXPLAYERS; i++ ) {
+	for( new i = 1; i < (MAXPLAYERS + 1); i++ ) {
 		if( IsSurvivor(i) && IsPlayerAlive(i) ) {
 		    survivors[numSurvivors] = i;
 		    numSurvivors++;
