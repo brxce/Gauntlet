@@ -89,7 +89,6 @@ public Event_PlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
            {
            		SetEntityHealth(attacker, newHealth);
            }
-           PrintToChatAll("%d damage dealt to SI %d. Restoring %d health", damageDone, victim, leechedHealth);
         }
     }
 }
