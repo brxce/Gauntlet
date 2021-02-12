@@ -8,7 +8,7 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <sdkhooks>
+#include <left4dhooks>
 #include "includes/hardcoop_util.sp"
 
 new Handle:hCvarLeechThreshold;
@@ -31,10 +31,11 @@ public Plugin:myinfo =
 public OnPluginStart() {
 	hCvarLeechThreshold = CreateConVar("leech_threshold", "50", "Below this health level (inc. temp health), survivors are able to leech");
 	hCvarLeechPercent = CreateConVar("leech_percent", "0.1", "Percentage of dealt dmg leeched as health");
-	hCvarLeechChance = CreateConVar("leech_chance", "0.5", "Percent change of health leech occurring");
+	hCvarLeechChance = CreateConVar("leech_chance", "0.5", "Percentage chance of leeching occurring"); // not in use
 	hCvarCommonLeechAmount = CreateConVar("leech_common_ammount", "1", "Health leeched, pending 'leech_chance', from killing a common");
 	HookEvent("revive_success", OnReviveSuccess, EventHookMode_PostNoCopy);
-	HookEvent("infected_hurt", Event_OnCommonKilled);
+	HookEvent("infected_death", Event_OnCommonKilled);
+	HookEvent("player_hurt", Event_PlayerHurt, EventHookMode_Post);
 	RegConsoleCmd("sm_leech", Cmd_ToggleLeech, "Toggle health leeching");
 	// Reset health upon respawning
 	hCvarSurvivorRespawnHealth = FindConVar("z_survivor_respawn_health");
@@ -48,13 +49,14 @@ public OnPluginEnd() {
 	ResetConVar(hCvarSurvivorRespawnHealth);
 }
 
+/***********************************************************************************************************************************************************************************
+
+                                                 						EVENT HOOKS
+                                                                    
+***********************************************************************************************************************************************************************************/
+
 public OnRespawnHealthChanged() {
 	SetConVarInt(hCvarSurvivorRespawnHealth, 100);
-}
-
-public ResetSurvivors() {
-	RestoreHealth();
-	ResetInventory();
 }
 
  //restoring health of survivors respawning with 50 health from a death in the previous map
@@ -63,6 +65,74 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	DistributePills();
 }
 
+
+// Leech health from special infected
+public Event_PlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new victimId = GetEventInt(event, "userid");
+    new victim = GetClientOfUserId(victimId);
+    
+    new attackerId = GetEventInt(event, "attacker");
+    new attacker = GetClientOfUserId(attackerId);
+    
+    new damageDone = GetEventInt(event, "dmg_health");
+    
+    // no world damage or flukes or whatevs, no bot attackers, no infected-to-infected damage
+    if (should_leech && victimId && attackerId && IsClientAndInGame(victim) && IsClientAndInGame(attacker))
+    {
+        if (GetClientTeam(attacker) == _:L4D2Team_Survivor && GetClientTeam(victim) == _:L4D2Team_Infected)
+        {
+           new currentHealth = GetPermHealth(attacker);
+           new leechedHealth = RoundToFloor(FloatMul(GetConVarFloat(hCvarLeechPercent), float(damageDone)));
+           new newHealth = currentHealth + leechedHealth;
+           if ( currentHealth < GetConVarInt(hCvarLeechThreshold) && newHealth < MAX_HEALTH )
+           {
+           		SetEntityHealth(attacker, newHealth);
+           }
+           PrintToChatAll("%d damage dealt to SI %d. Restoring %d health", damageDone, victim, leechedHealth);
+        }
+    }
+}
+
+// Leech health from common infected
+public Action:Event_OnCommonKilled(Handle:event, const String:name[], bool:dontBroadcast) 
+{ 
+	new attackerId = GetEventInt(event, "attacker");
+	new attacker = GetClientOfUserId(attackerId);
+	
+	if (attackerId && IsSurvivor(attacker) && IsPlayerAlive(attacker))
+	{
+		new currentHealth = GetPermHealth(attacker);
+		new newHealth = currentHealth + GetConVarInt(hCvarCommonLeechAmount);
+		if ( currentHealth < GetConVarInt(hCvarLeechThreshold) && newHealth < MAX_HEALTH ) {
+			SetEntityHealth(attacker, newHealth);
+		} 		
+	} 
+}
+
+public Action:OnReviveSuccess( Handle:event, const String:eventName[], bool:dontBroadcast ) {
+	new revived = GetClientOfUserId( GetEventInt(event, "subject") );
+	if( IsSurvivor(revived) && IsPlayerAlive(revived) ) {
+		GiveItem( revived, "pain_pills" );
+	}
+}
+
+/***********************************************************************************************************************************************************************************
+
+                                                 						UTILITY & CMDS
+                                                                    
+***********************************************************************************************************************************************************************************/
+
+public Action:Cmd_ToggleLeech(client, args) {
+	if ( IsSurvivor(client) && IsPlayerAlive(client) ) { 
+		should_leech = !should_leech;
+		if ( should_leech ) {
+			PrintToChatAll("Health leeching enabled.");
+		} else {
+			PrintToChatAll("Health leeching disabled.");
+		}
+	}
+}
 
 public RestoreHealth() {
 	for (new client = 1; client <= MaxClients; client++) {
@@ -75,6 +145,11 @@ public RestoreHealth() {
 	}
 }
 
+public ResetSurvivors() {
+	RestoreHealth();
+	ResetInventory();
+}
+
 public ResetInventory() {
 	for (new client = 0; client <= MaxClients; client++) {
 		if ( IsSurvivor(client) ) {
@@ -85,65 +160,6 @@ public ResetInventory() {
 			GiveItem(client, "pistol");
 		}
 	}		
-}
-
-// OnTakeDamage() only provides correct argument values when they're reference pointers
-public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damagetype) {
-	if ( should_leech && IsSurvivor(attacker) &&IsPlayerAlive(attacker) && IsBotInfected(victim) && !IsTank(victim) ) {
-		if ( FloatCompare(GetRandomFloat(0.0, 1.0), GetConVarFloat(hCvarLeechChance)) == -1 ) {
-			new health_current = GetPermHealth(attacker);
-			new health_leeched = RoundToNearest(FloatMul(damage, GetConVarFloat(hCvarLeechPercent)));
-			new new_health =  health_current + health_leeched;
-			if ( health_current < GetConVarInt(hCvarLeechThreshold) && new_health < MAX_HEALTH ) {
-				SetEntityHealth(attacker, new_health);
-			} 
-		} 
-	} 
-}
-
-public Action:OnReviveSuccess( Handle:event, const String:eventName[], bool:dontBroadcast ) {
-	new revived = GetClientOfUserId( GetEventInt(event, "subject") );
-	if( IsSurvivor(revived) && IsPlayerAlive(revived) ) {
-		GiveItem( revived, "pain_pills" );
-	}
-}
-
-public Action:Event_OnCommonKilled(Handle:event, const String:name[], bool:dontBroadcast) {
-	new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
-	if ( should_leech && IsSurvivor(attacker) && IsPlayerAlive(attacker) ) {
-		if ( FloatCompare(GetRandomFloat(0.0, 1.0), GetConVarFloat(hCvarLeechChance)) == -1  ) {
-			new health_current = GetPermHealth(attacker);
-			new new_health =  health_current + GetConVarInt(hCvarCommonLeechAmount);
-			if ( health_current < GetConVarInt(hCvarLeechThreshold) && new_health < MAX_HEALTH ) {
-				SetEntityHealth(attacker, new_health);
-			} 
-		}
-	}
-}
-
-public OnTakeDamagePost(victim, attacker, inflictor, Float:damage, damagetype) {
-	return;
-}
-
-public OnClientPutInServer(client) {
-	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(client, SDKHook_OnTakeDamagePost, OnTakeDamagePost);
-}
-
-public OnClientDisconnect(client) {
-	SDKUnhook(client, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKUnhook(client, SDKHook_OnTakeDamagePost, OnTakeDamagePost);
-}
-
-public Action:Cmd_ToggleLeech(client, args) {
-	if ( IsSurvivor(client) && IsPlayerAlive(client) ) { 
-		should_leech = !should_leech;
-		if ( should_leech ) {
-			PrintToChatAll("Health leeching enabled.");
-		} else {
-			PrintToChatAll("Health leeching disabled.");
-		}
-	}
 }
 
 GetPermHealth(client) {
@@ -175,4 +191,9 @@ DeleteInventoryItem(client, slot) {
 	if (item > 0) {
 		RemovePlayerItem(client, item);
 	}	
+}
+
+bool:IsClientAndInGame(index)
+{
+    return (index > 0 && index <= MaxClients && IsClientInGame(index));
 }
