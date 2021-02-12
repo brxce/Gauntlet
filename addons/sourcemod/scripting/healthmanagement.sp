@@ -4,6 +4,7 @@
 #define MAX_HEALTH 100
 #define	NO_TEMP_HEALTH 0.0
 #define SECONDARY_SLOT 1
+#define EMPTY_SLOT -1
 
 #include <sourcemod>
 #include <sdktools>
@@ -59,6 +60,7 @@ public ResetSurvivors() {
  //restoring health of survivors respawning with 50 health from a death in the previous map
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	RestoreHealth();
+	DistributePills();
 }
 
 
@@ -148,22 +150,25 @@ GetPermHealth(client) {
 	return GetEntProp(client, Prop_Send, "m_iHealth");
 }
 
+public DistributePills() {
+	// iterate though all clients
+	for (new client = 1; client <= MaxClients; client++) { 
+		//check player is a survivor
+		if (IsSurvivor(client)) {
+			// check pills slot is empty
+			if (GetPlayerWeaponSlot(client, 5) == EMPTY_SLOT) { 
+				GiveItem(client, "pain_pills"); 
+			}								
+		}
+	}
+}
+
 GiveItem(client, String:itemName[]) {
 	new flags = GetCommandFlags("give");
 	SetCommandFlags("give", flags ^ FCVAR_CHEAT);
 	FakeClientCommand(client, "give %s", itemName);
 	SetCommandFlags("give", flags);
 }
-
-/*
-GiveItem(client, String:itemName[22]) {	
-	new item = CreateEntityByName(itemName);
-	new Float:clientOrigin[3];
-	GetClientAbsOrigin(client, clientOrigin);
-	TeleportEntity(item, clientOrigin, NULL_VECTOR, NULL_VECTOR);
-	DispatchSpawn(item); 
-	EquipPlayerWeapon(client, item);
-}*/
 
 DeleteInventoryItem(client, slot) {
 	new item = GetPlayerWeaponSlot(client, slot);
