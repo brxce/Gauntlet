@@ -238,12 +238,12 @@ public Action:Cmd_SetLimit(client, args) {
 				CPrintToChatAll("{olive}[{default}SS{olive}]{default} -> {olive}Max{default} SI limit set to {blue}%i", iLimitValue);		           
 			} else if( StrEqual(sTargetClass, "group", false) || StrEqual(sTargetClass, "wave", false) ) {
 				SpawnSizeCache = iLimitValue;
-				CPrintToChatAll("{olive}[{default}SS{olive}]{default} -> SI will spawn in {olive}groups{N} of {blue}%i", iLimitValue);
+				CPrintToChatAll("{olive}[{default}SS{olive}]{default} -> SI will spawn in {olive}groups{default} of {blue}%i", iLimitValue);
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(Spawns[i], sTargetClass, false) ) {
 						SpawnLimitsCache[i] = iLimitValue;
-						CPrintToChatAll("{olive}[{default}SS{olive}]{default} {olive}%s{default}limit set to {blue}%i", sTargetClass, iLimitValue);
+						CPrintToChatAll("{olive}[{default}SS{olive}]{default} {olive}%s{default} limit set to {blue}%i", sTargetClass, iLimitValue);
 					}
 				}
 			}
