@@ -29,6 +29,7 @@ new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 #include "modules/SS_SpawnQueue.sp"
 #include "modules/SS_SpawnPositioner.sp"
 #include "modules/SS2_DirectInfectedSpawn.sp"
+#include "modules/SS2_NavMesh.sp"
 
 /***********************************************************************************************************************************************************************************
      					All credit for the spawn timer, quantities and queue modules goes to the developers of the 'l4d2_autoIS' plugin                            
@@ -39,7 +40,7 @@ public Plugin:myinfo =
 	name = "Special Spawner",
 	author = "Tordecybombo, breezy",
 	description = "Provides customisable special infected spawing beyond vanilla coop limits",
-	version = "",
+	version = "2.0",
 	url = ""
 };
 
@@ -60,6 +61,7 @@ public OnPluginStart() {
 	SpawnQueue_OnModuleStart();
 	SpawnPositioner_OnModuleStart();
 	DirectInfectedSpawn_OnPluginStart();
+	NavMesh_OnModuleStart();
 	// Compatibility with server_namer.smx
 	hCvarReadyUpEnabled = CreateConVar("l4d_ready_enabled", "1", "This cvar from readyup.smx is required by server_namer.smx, but is duplicated here to avoid use of readyup.smx");
 	hCvarConfigName = CreateConVar("l4d_ready_cfg_name", "Hard Coop", "This cvar from readyup.smx is required by server_namer.smx, but is duplicated here to avoid use of readyup.smx");
@@ -86,7 +88,7 @@ public OnPluginStart() {
 	RegConsoleCmd("sm_weight", Cmd_SetWeight, "Set spawn weights for SI classes");
 	RegConsoleCmd("sm_limit", Cmd_SetLimit, "Set individual, total and simultaneous SI spawn limits");
 	RegConsoleCmd("sm_timer", Cmd_SetTimer, "Set a variable or constant spawn time (seconds)");
-	RegConsoleCmd("sm_spawnmode", Cmd_SpawnMode, "[ 0 = vanilla spawning, 1 = radial repositioning, 2 = grid repositioning ]");
+	RegConsoleCmd("sm_spawnmode", Cmd_SpawnMode, "[ 0 = vanilla spawning, 1 = radial spawning, 2 = grid spawning, 3 = nav mesh spawning ]");
 	RegConsoleCmd("sm_spawnproximity", Cmd_SpawnProximity, "Set the minimum and maximum spawn distance");
 	// Admin commands
 	RegAdminCmd("sm_resetspawns", Cmd_ResetSpawns, ADMFLAG_RCON, "Reset by slaying all special infected and restarting the timer");
@@ -105,6 +107,7 @@ public OnPluginEnd() {
 	hTimerHUD = INVALID_HANDLE;
 	SpawnTimers_OnModuleEnd();
 	SpawnPositioner_OnModuleEnd();
+	NavMesh_OnModuleEnd();
 }
 
 /***********************************************************************************************************************************************************************************
@@ -123,6 +126,7 @@ public OnConfigsExecuted() {
 
 public OnMapStart() {
 	DirectInfectedSpawn_OnMapStart();
+	NavMesh_OnMapStart();
 }
 
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) { 

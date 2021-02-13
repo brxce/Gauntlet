@@ -331,7 +331,7 @@ void ProcessSpawn (Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
 	}
 	if (!IsValidEntity(spawnedClient))
 	{
-		LogError("CreateInfected() function failed and returned %d", spawnedClient);
+		LogError("[SS2] DirectInfectedSpawn - Failed to spawn SI class %d at position [%f, %f, %f]", _:desiredClass, pos[0], pos[1], pos[2]);
 	}	
 }
 

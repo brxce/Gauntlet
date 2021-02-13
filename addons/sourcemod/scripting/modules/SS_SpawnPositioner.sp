@@ -47,7 +47,7 @@ new laserCache;
  */
 
 SpawnPositioner_OnModuleStart() {
-	hCvarSpawnPositionerMode = CreateConVar( "ss_spawnpositioner_mode", "2", "[ 0 = disabled, 1 = Radial Reposition only, 2 = Grid Reposition with Radial fallback ]" );
+	hCvarSpawnPositionerMode = CreateConVar( "ss_spawnpositioner_mode", "2", "[ 0 = disabled, 1 = Radial Reposition only, 2 = Grid Reposition with Radial fallback, 3 = nav mesh spawning ]" );
 	HookConVarChange( hCvarSpawnPositionerMode, ConVarChanged:SpawnPositionerMode );
 	hCvarMaxSearchAttempts = CreateConVar( "ss_spawn_max_search_attempts", "500", "Max attempts to make per SI spawn to find an acceptable location to which to relocate them" );
 	hCvarSpawnSearchHeight = CreateConVar( "ss_spawn_search_height", "50", "Attempts to find a valid spawn location will move down from this height relative to a survivor");
@@ -84,6 +84,8 @@ AttemptSpawnAuto(L4D2_Infected:SIClass)
 		RadialSpawn( SIClass, GetLeadSurvivor() );	
 	} else if( GetConVarInt(hCvarSpawnPositionerMode) == 2 ) {
 		GridSpawn( SIClass );
+	} else if( GetConVarInt(hCvarSpawnPositionerMode) == 3 ) {
+		Spawn_NavMesh( SIClass );
 	} else {
 		RadialSpawn( SIClass, GetRandomSurvivor() );
 	}
@@ -91,7 +93,7 @@ AttemptSpawnAuto(L4D2_Infected:SIClass)
 
 /***********************************************************************************************************************************************************************************
 
-                                             					GRID REPOSITIONING SYSTEM
+                                             					GRID POSITIONING SYSTEM
                                                                     
 ***********************************************************************************************************************************************************************************/
 
@@ -271,7 +273,7 @@ stock DrawSpawnGrid() {
 
 /***********************************************************************************************************************************************************************************
 
-                                             					RADIAL REPOSITION SYSTEM
+                                             					RADIAL POSITIONING SYSTEM
                                                                     
 ***********************************************************************************************************************************************************************************/
 
