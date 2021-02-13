@@ -68,7 +68,7 @@ public OnPlayerPinned(Handle:event, String:name[], bool:dontBroadcast) {
 			iAutoslayerCountdown[attackingSI] = GetConVarInt(hCvarPinTime);
 			if (IsTeamImmobilised()) // in case any of the pinning SI are not dealing any damage
 			{
-				SlaySurvivors();
+				//SlaySurvivors();
 			}
 		}
 	}
