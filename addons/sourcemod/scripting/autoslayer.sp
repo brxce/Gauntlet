@@ -12,7 +12,6 @@ int iAutoslayerCountdown[MAXPLAYERS + 1]; // track how much longer to allow an S
 
 new Handle:hAutoSlayerTimer; 
 new Handle:hCvarPinTime;
-// new Handle:hCvarPinnedTeamDamagePenalty; // Used in OnPlayerPinned hook
 
 public Plugin:myinfo = {
 	name = "AutoSlayer",
@@ -24,7 +23,6 @@ public Plugin:myinfo = {
 public OnPluginStart() 
 {
 	hCvarPinTime = CreateConVar("autoslayer_pintime", "7", "How long an SI is allowed to pin a survivor");
-	//hCvarPinnedTeamDamagePenalty = CreateConVar("autoslayer_damagepenalty", "24", "Health penalised when all survivors are pinned at the same time");
 	// Event hooks
 	HookEvent("choke_start", EventHook:OnPlayerPinned, EventHookMode_PostNoCopy);
 	HookEvent("lunge_pounce", EventHook:OnPlayerPinned, EventHookMode_PostNoCopy);
@@ -44,21 +42,17 @@ public OnPluginEnd()
 
 public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], errMax) 
 {
-	StartAutoslayer();
 	return APLRes_Success;
 }
 
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client) 
 { 
-	StartAutoslayer();
+	for (int i = 0; i < (MAXPLAYERS + 1); ++i) 
+	{	
+		iAutoslayerCountdown[i] = NO_COUNTDOWN;
+	}
+	hAutoSlayerTimer = CreateTimer(1.0, Timer_AutoSlayer, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
-
-/***********************************************************************************************************************************************************************************
-
-                                                 					PER ROUND
-                                  SS_SpawnTimers -> SS_SpawnQueue + SS_SpawnQuantities -> SS_SpawnPositioner -> SS_DirectInfectedSpawn
-                                                                    
-***********************************************************************************************************************************************************************************/
 
 public OnPlayerPinned(Handle:event, String:name[], bool:dontBroadcast) {
 	int attackingSI = GetClientOfUserId(GetEventInt(event, "userid"));
@@ -72,14 +66,13 @@ public OnPlayerPinned(Handle:event, String:name[], bool:dontBroadcast) {
 		else // delayed clear otherwise
 		{
 			iAutoslayerCountdown[attackingSI] = GetConVarInt(hCvarPinTime);
-			
-			/* For implementing slaying of survivor team; plugin currently clears them after cvar "autoslayer_pintime" seconds
 			if (IsTeamImmobilised()) // in case any of the pinning SI are not dealing any damage
 			{
-				PenaliseSurvivors();
-			} */
+				//SlaySurvivors();
+			}
 		}
 	}
+	
 }
 
 // Reset countdown array for SI that have died
@@ -111,15 +104,6 @@ public Action:Timer_AutoSlayer(Handle:timer, any:none) // Timer repeats every se
 	}
 }
 
-void StartAutoslayer()
-{
-	for (int i = 0; i < (MAXPLAYERS + 1); ++i) 
-	{	
-		iAutoslayerCountdown[i] = NO_COUNTDOWN;
-	}
-	hAutoSlayerTimer = CreateTimer(1.0, Timer_AutoSlayer, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-}
-
 void StopAutoslayer()
 {
 	CloseHandle(hAutoSlayerTimer);
@@ -129,7 +113,7 @@ void StopAutoslayer()
 /**
  * @return: true if all survivors are either incapacitated or pinned
 **/
-stock bool:IsTeamImmobilised() {
+bool:IsTeamImmobilised() {
 	new bool:bIsTeamImmobilised = true;
 	for (new client = 1; client < MaxClients; client++) {
 		if (IsSurvivor(client) && IsPlayerAlive(client)) {
@@ -142,26 +126,10 @@ stock bool:IsTeamImmobilised() {
 	return bIsTeamImmobilised;
 }
 
-stock PenaliseSurvivors() { //incap everyone
-	for (new client = 1; client <= MAXPLAYERS; client++) {
-		if (IsValidClient(client) && IsInfected(client)) {
-			char name[32];
-			GetClientName(client, name, sizeof(name));
-			PrintToChatAll("Found %s", name);
-			if (IsSurvivor(client)) {
-				 new currentHealth = GetEntProp(client, Prop_Send, "m_iHealth");
-				 new penalisedHealth = currentHealth - GetConVarInt(hCvarPinnedTeamDamagePenalty);
-				 if ( penalisedHealth < 0 ) {
-				 	SlapPlayer(client, currentHealth);			 	
-				 	PrintToChatAll("Setting health to 0 for %d", client);
-				 } else {
-				 	SlapPlayer(client, GetConVarInt(hCvarPinnedTeamDamagePenalty));
-				 	PrintToChatAll("Penalising health for %d", client);
-				 }
-			} else if (IsInfected(client)) {
-				ForcePlayerSuicide(client);
-			}
-			
+SlaySurvivors() { //incap everyone
+	for (new client = 1; client < (MAXPLAYERS + 1); client++) {
+		if (IsSurvivor(client) && IsPlayerAlive(client)) {
+			ForcePlayerSuicide(client);
 		}
 	}
 }
