@@ -13,7 +13,9 @@
 
 #define TEAM_CLASS(%1) (%1 == ZC_SMOKER ? "smoker" : (%1 == ZC_BOOMER ? "boomer" : (%1 == ZC_HUNTER ? "hunter" :(%1 == ZC_SPITTER ? "spitter" : (%1 == ZC_JOCKEY ? "jockey" : (%1 == ZC_CHARGER ? "charger" : (%1 == ZC_WITCH ? "witch" : (%1 == ZC_TANK ? "tank" : "None"))))))))
 #define MAX(%0,%1) (((%0) > (%1)) ? (%0) : (%1))
-
+#define X_COORD 0
+#define Y_COORD 1
+#define Z_COORD 2
 
 enum L4D2_Team {
     L4D2Team_Spectator = 1,
@@ -233,19 +235,49 @@ stock bool:IsIncapacitated(client) {
 stock GetClosestSurvivor( Float:referencePos[3], excludeSurvivor = -1 ) {
 	new Float:survivorPos[3];
 	new closestSurvivor = GetRandomSurvivor();	
+	if ( !IsValidClient(closestSurvivor) ) 
+	{
+		LogError("GetClosestSurvivor([%f, %f, %f], %d) = invalid client %d", referencePos[0], referencePos[1], referencePos[2], excludeSurvivor, closestSurvivor);
+		return -1;
+	}
 	GetClientAbsOrigin( closestSurvivor, survivorPos );
 	new iClosestAbsDisplacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );
-	for (new client = 1; client < MaxClients; client++) {
+	for (new client = 1; client <= MAXPLAYERS; client++) {
 		if( IsSurvivor(client) && IsPlayerAlive(client) && client != excludeSurvivor ) {
 			GetClientAbsOrigin( client, survivorPos );
-			new iAbsDisplacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );			
-			if( iClosestAbsDisplacement < 0 ) { // Start with the absolute displacement to the first survivor found:
-				iClosestAbsDisplacement = iAbsDisplacement;
+			new displacement = RoundToNearest( GetVectorDistance(referencePos, survivorPos) );			
+			if( displacement < iClosestAbsDisplacement || iClosestAbsDisplacement < 0 ) { 
+				iClosestAbsDisplacement = displacement;
 				closestSurvivor = client;
-			} else if( iAbsDisplacement < iClosestAbsDisplacement ) { // closest survivor so far
-				iClosestAbsDisplacement = iAbsDisplacement;
-				closestSurvivor = client;
-			}			
+			}
+		}
+	}
+	return closestSurvivor;
+}
+
+/**
+ * Returns the distance of the closest survivor or a specified survivor to a 2D point on the horizontal plane
+ * @param gridPos - from where we are measuring the distance to survivors
+ * @return: the closest survivor on the horizontal 2D plane
+ */
+stock GetClosestSurvivor2D(float x_coord, float y_coord) 
+{
+	new Float:proximity = -1.0;
+	new closestSurvivor = GetRandomSurvivor();
+	if ( !IsValidClient(closestSurvivor) ) 
+	{
+		LogError("GetClosestSurvivor2D(%f, %f) - Unable to find any survivors", x_coord, y_coord);
+	}		
+	for( new j = 1; j <= MAXPLAYERS; j++ ) {
+		if( IsSurvivor(j) && IsPlayerAlive(j) ) {
+			new Float:survivorPos[3];
+			GetClientAbsOrigin( j, survivorPos );
+			// Pythagoras
+			new Float:survivorDistance = SquareRoot( Pow(survivorPos[X_COORD] - x_coord, 2.0) + Pow(survivorPos[Y_COORD] - y_coord, 2.0) );
+			if( survivorDistance < proximity || proximity == -1.0 ) {
+				proximity = survivorDistance;
+				closestSurvivor = j;
+			}
 		}
 	}
 	return closestSurvivor;
@@ -266,7 +298,6 @@ stock GetSurvivorProximity( const Float:rp[3], specificSurvivor = -1 ) {
 	referencePos[1] = rp[1];
 	referencePos[2] = rp[2];
 	
-
 	if( specificSurvivor > 0 && IsSurvivor(specificSurvivor) ) { // specified survivor
 		targetSurvivor = specificSurvivor;		
 	} else { // closest survivor		
@@ -279,14 +310,21 @@ stock GetSurvivorProximity( const Float:rp[3], specificSurvivor = -1 ) {
 
 /** @return: the index to a random survivor */
 stock GetRandomSurvivor() {
+	// Initialise
 	new survivors[MAXPLAYERS];
+	for ( int i = 0; i < MAXPLAYERS; ++i )
+	{
+		survivors[i] = -1;	
+	}
+	// Fill array with survivor client numbers
 	new numSurvivors = 0;
-	for( new i = 1; i < (MAXPLAYERS + 1); i++ ) {
+	for( new i = 1; i <= MAXPLAYERS; i++ ) {
 		if( IsSurvivor(i) && IsPlayerAlive(i) ) {
 		    survivors[numSurvivors] = i;
 		    numSurvivors++;
 		}
 	}
+	// Return a random survivor
 	return survivors[GetRandomInt(0, numSurvivors - 1)];
 }
 
@@ -498,12 +536,12 @@ stock SetSpawnDirection(SpawnDirection:direction) {
  * @return bool
  */
 
-stock bool IsValidClient(int client, bool replaycheck = true) {
-	if (client <= 0 || client > MaxClients) return false;
-	if (!IsClientInGame(client)) return false;
-	//if (GetEntProp(client, Prop_Send, "m_bIsCoaching")) return false;
-	if (replaycheck) {
-		if (IsClientSourceTV(client) || IsClientReplay(client)) return false;
+stock bool IsValidClient(int client, bool replaycheck = false) {
+	if ( client <= 0 || client > MaxClients ) return false;
+	if ( !IsClientInGame(client) ) return false;
+	if (replaycheck) 
+	{
+		if ( IsClientSourceTV(client) || IsClientReplay(client) ) return false;
 	}
 	return true;
 }

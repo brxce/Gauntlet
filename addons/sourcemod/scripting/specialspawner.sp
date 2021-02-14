@@ -108,6 +108,13 @@ public OnPluginEnd() {
 	SpawnTimers_OnModuleEnd();
 	SpawnPositioner_OnModuleEnd();
 	NavMesh_OnModuleEnd();
+	
+	new survivor = GetRandomSurvivor();
+	new Float:survivorMins[3];
+	new Float:survivorMaxs[3];
+	GetClientMins(survivor, survivorMins);
+	GetClientMaxs(survivor, survivorMaxs);
+	LogError("Mins [%f %f %f], Maxs [%f %f %f]", survivorMins[0], survivorMins[1], survivorMins[2], survivorMaxs[0], survivorMaxs[1], survivorMaxs[2]);
 }
 
 /***********************************************************************************************************************************************************************************
@@ -138,12 +145,21 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	} else if( StrContains(gameMode, "survival", false) == -1 ) { // would otherwise cause spawns in survival before button is pressed
 		g_bHasSpawnTimerStarted = false;
 		StartSpawnTimer();
+		StartBoomerTimer();
 	}
-	
+	// Print instruction readout to survivors
+	for ( int i = 0; i <= MAXPLAYERS; ++i )
+	{
+		if ( IsSurvivor(i) && IsClientInGame(i) )
+		{
+			PrintHintText(i, "To show commands - hold both the USE ITEM and RELOAD keys");
+		}
+	}
 }
 
 public OnRoundOver() {
 	EndSpawnTimer();
+	EndBoomerTimer();
 }
 
 public ConVarChange_SurvivorLimit(Handle:cvar, const String:oldVal[], const String:newVal[])
@@ -229,25 +245,25 @@ public Action:Cmd_SetLimit(client, args) {
 		new iLimitValue = StringToInt(sLimitValue);    
 		// Must be valid limit value		
 		if( iLimitValue < 0 ) {
-			CPrintToChat(client, "{olive}[{default}SS{olive}]{default} Limit value must be {blue}>= 0");
+			CPrintToChat(client, "{blue}[{default}SS{blue}]{default} {olive}Limit value{default} must be >= {blue}0");
 		} else {
 			// Apply limit value to appropriate class
 			if( StrEqual(sTargetClass, "all", false) ) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnLimitsCache[i] = iLimitValue;
 				}
-				CPrintToChatAll( "{olive}[{default}SS{olive}]{default} All SI limits have been set to {blue}%d", iLimitValue );
+				CPrintToChatAll( "{blue}[{default}SS{blue}]{default} All SI limits have been set to {blue}%d", iLimitValue );
 			} else if( StrEqual(sTargetClass, "max", false) ) {  // Max specials
 				SILimitCache = iLimitValue;
-				CPrintToChatAll("{olive}[{default}SS{olive}]{default} -> {olive}Max{default} SI limit set to {blue}%i", iLimitValue);		           
+				CPrintToChatAll("{blue}[{default}SS{blue}]{default} {olive}Max{default} SI limit set to {blue}%i", iLimitValue);		           
 			} else if( StrEqual(sTargetClass, "group", false) || StrEqual(sTargetClass, "wave", false) ) {
 				SpawnSizeCache = iLimitValue;
-				CPrintToChatAll("{olive}[{default}SS{olive}]{default} -> SI will spawn in {olive}groups{default} of {blue}%i", iLimitValue);
+				CPrintToChatAll("{blue}[{default}SS{blue}]{default} {olive}Group{default} size of SI waves set to {blue}%i", iLimitValue);
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(Spawns[i], sTargetClass, false) ) {
 						SpawnLimitsCache[i] = iLimitValue;
-						CPrintToChatAll("{olive}[{default}SS{olive}]{default} {olive}%s{default} limit set to {blue}%i", sTargetClass, iLimitValue);
+						CPrintToChatAll("{blue}[{default}SS{blue}]{default} -> {olive}%s{default} limit set to {blue}%i", sTargetClass, iLimitValue);
 					}
 				}
 			}
@@ -273,7 +289,7 @@ public Action:Cmd_SetWeight(client, args) {
 		GetCmdArg(1, arg, sizeof(arg));	
 		if( StrEqual(arg, "reset", false) ) {
 			ResetWeights();
-			ReplyToCommand(client, "{olive}[{default}SS{olive}]{default} Spawn weights reset to default values");
+			ReplyToCommand(client, "{blue}[{default}SS{blue}]{default} Spawn weights reset to default values");
 		} 
 	} else if( args == 2 ) {
 		// Read in the SI class
@@ -292,12 +308,12 @@ public Action:Cmd_SetWeight(client, args) {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					SpawnWeightsCache[i] = iWeightPercent;			
 				}	
-				CPrintToChat(client, "{olive}[{default}SS{olive}]{default} -> All {olive}spawn weights{olive} set to {blue}%d", iWeightPercent );	
+				CPrintToChat(client, "{blue}[{default}SS{blue}]{default} All {olive}spawn weights{olive} set to {blue}%d", iWeightPercent );	
 			} else {
 				for( new i = 0; i < NUM_TYPES_INFECTED; i++ ) {
 					if( StrEqual(sTargetClass, Spawns[i], false) ) {
 						SpawnWeightsCache[i] =  iWeightPercent;
-						CPrintToChat(client, "{olive}[{default}SS{olive}]{default} {olive}%s{default} weight set to {blue}%d", Spawns[i], iWeightPercent);
+						CPrintToChat(client, "{blue}[{default}SS{blue}]{default} -> {olive}%s{default} weight set to {blue}%d", Spawns[i], iWeightPercent);
 					}
 				}	
 			}
@@ -329,7 +345,7 @@ public Action:Cmd_SetTimer(client, args) {
 		SetConVarFloat( hSpawnTimeMin, time );
 		SetConVarFloat( hSpawnTimeMax, time );
 		SetSpawnTimes(); //refresh times since hooked event from SetConVarFloat is temporarily disabled
-		PrintToChat(client, "{olive}[{default}SS{olive}]{default} Spawn timer set to constant {blue}%.3f{default} seconds", time);
+		PrintToChat(client, "{blue}[{default}SS{blue}]{default} Spawn timer set to constant {blue}%.3f{default} seconds", time);
 	} else if( args == 2 ) {
 		new Float:min, Float:max;
 		decl String:arg[8];
@@ -341,7 +357,7 @@ public Action:Cmd_SetTimer(client, args) {
 			SetConVarFloat( hSpawnTimeMin, min );
 			SetConVarFloat( hSpawnTimeMax, max );
 			SetSpawnTimes(); //refresh times since hooked event from SetConVarFloat is temporarily disabled
-			CPrintToChat(client, "{olive}[{default}SS{olive}]{default} Spawn timer will be between {blue}%.3f{default} and {blue}%.3f{default} seconds", min, max );
+			CPrintToChat(client, "{blue}[{default}SS{blue}]{default} Spawn timer will be between {blue}%.3f{default} and {blue}%.3f{default} seconds", min, max );
 		} else {
 			ReplyToCommand(client, "Max(>= 1.0) spawn time must greater than min(>= 0.0) spawn time");
 		}
@@ -364,14 +380,14 @@ public Action:Cmd_SpawnMode( client, args ) {
 		if( mode >= 0 && mode <= 2 ) {
 			SetConVarInt( hCvarSpawnPositionerMode, mode );
 			new String:spawnModes[3][8] = { "Vanilla", "Radial", "Grid" };
-			CPrintToChat( client, "{olive}[{default}SS{olive}]{default} {blue}%s{default} spawn mode activated", spawnModes[mode] );
+			CPrintToChat( client, "{blue}[{default}SS{blue}]{default} {blue}%s{default} spawn mode activated", spawnModes[mode] );
 			isValidParams = true;
 		}
 	} 
 	// Correct command usage
 	if( !isValidParams ) {
 		new String:spawnModes[3][8] = { "Vanilla", "Radial", "Grid" };
-		CPrintToChat( client, "{olive}[{default}SS{olive}]{default} Current spawnmode: {blue}%s", spawnModes[GetConVarInt(hCvarSpawnPositionerMode)] );
+		CPrintToChat( client, "{blue}[{default}SS{blue}]{default} Current spawnmode: {blue}%s", spawnModes[GetConVarInt(hCvarSpawnPositionerMode)] );
 		ReplyToCommand( client, "Usage: spawnmode <mode> [ 0 = vanilla spawning, 1 = radial repositioning, 2 = grid repositioning ]" );
 	}
 }
@@ -387,7 +403,7 @@ public Action:Cmd_SpawnProximity(client, args) {
 		if( min > 0.0 && max > 1.0 && max > min ) {
 			SetConVarFloat( hCvarSpawnProximityMin, min );
 			SetConVarFloat( hCvarSpawnProximityMax, max );
-			CPrintToChat(client, "{olive}[{default}SS{olive}]{default} Spawn proximity set between {blue}%.3f{default} and {blue}%.3f{default} units", min, max );
+			CPrintToChat(client, "{blue}[{default}SS{blue}]{default} Spawn proximity set between {blue}%.3f{default} and {blue}%.3f{default} units", min, max );
 		} else {
 			ReplyToCommand(client, "Max(>= 1.0) spawn proximity must greater than min(>= 0.0) spawn proximity");
 		}
@@ -454,7 +470,7 @@ public Action:Timer_DrawSpawnerHUD( Handle:timer ) {
 	FillSpecialInfectedInfo(spawnerHUD);
 	FillTimerInfo(spawnerHUD);
 	// Send to survivors
-	for( new i = 1; i < MAXPLAYERS; i++ ) {
+	for( new i = 1; i <= MAXPLAYERS; i++ ) {
 		if( IsValidClient(i) && !IsFakeClient(i) && bShowSpawnerHUD[i] ) {
 			SendPanelToClient( spawnerHUD, i, DummySpawnerHUDHandler, 3 ); 
 		}
