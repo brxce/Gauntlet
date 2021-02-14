@@ -35,7 +35,7 @@ new Handle:hCvarSpawnProximityFlowNoLOS;
 new Handle:hCvarSpawnProximityFlowLOS; 
 
 new g_AllSurvivors[MAXPLAYERS]; // MAXPLAYERS because who knows what survivor limit people may use
-new Float:spawnGrid[4];
+new Float:spawnBounds[4]; // denoted by minimum and maximum X and Y coordinates
 
 new laserCache;
 
@@ -47,7 +47,7 @@ new laserCache;
  */
 
 SpawnPositioner_OnModuleStart() {
-	hCvarSpawnPositionerMode = CreateConVar( "ss_spawnpositioner_mode", "2", "[ 0 = disabled, 1 = Radial Reposition only, 2 = Grid Reposition with Radial fallback, 3 = nav mesh spawning ]" );
+	hCvarSpawnPositionerMode = CreateConVar( "ss_spawnpositioner_mode", "3", "[ 0 = disabled, 1 = Radial Reposition only, 2 = Grid Reposition with Radial fallback, 3 = nav mesh spawning ]" );
 	HookConVarChange( hCvarSpawnPositionerMode, ConVarChanged:SpawnPositionerMode );
 	hCvarMaxSearchAttempts = CreateConVar( "ss_spawn_max_search_attempts", "500", "Max attempts to make per SI spawn to find an acceptable location to which to relocate them" );
 	hCvarSpawnSearchHeight = CreateConVar( "ss_spawn_search_height", "50", "Attempts to find a valid spawn location will move down from this height relative to a survivor");
@@ -85,7 +85,7 @@ AttemptSpawnAuto(L4D2_Infected:SIClass)
 	} else if( GetConVarInt(hCvarSpawnPositionerMode) == 2 ) {
 		GridSpawn( SIClass );
 	} else if( GetConVarInt(hCvarSpawnPositionerMode) == 3 ) {
-		Spawn_NavMesh( SIClass );
+		Spawn_NavMesh( SIClass, GetConVarInt(hCvarSpawnProximityMin), GetConVarInt(hCvarSpawnProximityMax) );
 	} else {
 		RadialSpawn( SIClass, GetRandomSurvivor() );
 	}
@@ -102,27 +102,27 @@ AttemptSpawnAuto(L4D2_Infected:SIClass)
  */
 GridSpawn( L4D2_Infected:SIClass ) {
 	
-	UpdateSpawnGrid();
+	UpdateSpawnBounds();
 	
 	for( new i = 0; i < GetConVarInt(hCvarMaxSearchAttempts); i++ ) {
-		new Float:gridPos[3];
+		new Float:searchPos[3];
 		new Float:survivorPos[3];
 		new closestSurvivor;
 		
 		// 'x' and 'y' for potential spawn point coordinates is selected with uniform RNG
-		gridPos[COORD_X] = GetRandomFloat(spawnGrid[X_MIN], spawnGrid[X_MAX]);
-		gridPos[COORD_Y] = GetRandomFloat(spawnGrid[Y_MIN], spawnGrid[Y_MAX]);
+		searchPos[COORD_X] = GetRandomFloat(spawnBounds[X_MIN], spawnBounds[X_MAX]);
+		searchPos[COORD_Y] = GetRandomFloat(spawnBounds[Y_MIN], spawnBounds[Y_MAX]);
 		// 'z' for potential spawn point coordinate is taken from just above the height of nearest survivor
-		closestSurvivor = GetClosestSurvivor2D(gridPos);
+		closestSurvivor = GetClosestSurvivor2D(searchPos[COORD_X], searchPos[COORD_Y]);
 		GetClientAbsOrigin(closestSurvivor, survivorPos);
-		gridPos[COORD_Z] = survivorPos[COORD_Z] + float( GetConVarInt(hCvarSpawnSearchHeight) );
+		searchPos[COORD_Z] = survivorPos[COORD_Z] + float( GetConVarInt(hCvarSpawnSearchHeight) );
 		
 		// Search down the vertical column from the generated [x, y ,z] coordinate for a valid spawn position
 		new Float:direction[3];
 		direction[PITCH] = MAX_ANGLE; // straight down
 		direction[YAW] = 0.0;
 		direction[ROLL] = 0.0;
-		TR_TraceRay( gridPos, direction, MASK_ALL, RayType_Infinite );
+		TR_TraceRay( searchPos, direction, MASK_ALL, RayType_Infinite );
 		
 		// found solid land below the [x, y, z] coordinate
 		if( TR_DidHit() ) { 
@@ -137,8 +137,8 @@ GridSpawn( L4D2_Infected:SIClass ) {
 					#if DEBUG_POSITIONER
 						DrawSpawnGrid();
 						PrintToChatAll("[SS] SI Class %d GRID SPAWN, %d dist, ( %d attempts)", SIClass, RoundFloat(GetFlowDistToSurvivors(spawnPos)), i + 1);
-						gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
-						DrawBeam( gridPos, spawnPos, VALID_MESH );
+						searchPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
+						DrawBeam( searchPos, spawnPos, VALID_MESH );
 					#endif
 					
 				TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); // all spawn conditions satisifed
@@ -148,8 +148,8 @@ GridSpawn( L4D2_Infected:SIClass ) {
 
 					#if DEBUG_POSITIONER
 						DrawSpawnGrid();
-						gridPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
-						DrawBeam( gridPos, spawnPos, INVALID_MESH );
+						searchPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
+						DrawBeam( searchPos, spawnPos, INVALID_MESH );
 					#endif
 					
 			}
@@ -184,47 +184,28 @@ bool:IsValidSpawn(const Float:spawnPos[3]) {
 	return is_valid;
 }
 
-GetClosestSurvivor2D(Float:gridPos[3]) {
-	// Use the 'z' coordinate of the nearest survivor
-	new Float:proximity = UNINITIALISED_FLOAT;
-	new closestSurvivor = GetRandomSurvivor();
-	for( new j = 1; j < MaxClients; j++ ) {
-		if( IsSurvivor(j) && IsPlayerAlive(j) ) {
-			new Float:survivorPos[3];
-			GetClientAbsOrigin( j, survivorPos );
-			// Pythagoras
-			new Float:survivorDistance = SquareRoot( Pow(survivorPos[COORD_X] - gridPos[COORD_X], 2.0) + Pow(survivorPos[COORD_Y] - gridPos[COORD_Y], 2.0) );
-			if( survivorDistance < proximity || proximity == UNINITIALISED_FLOAT ) {
-				proximity = survivorDistance;
-				closestSurvivor = j;
-			}
-		}
-	}
-	return closestSurvivor;
-}
-
-UpdateSpawnGrid() {
+UpdateSpawnBounds() {
 	// Grid will have coords (min X, min Y), (min X, max Y), (max X, min Y), (max X, max Y)
-	spawnGrid[X_MIN] = UNINITIALISED_FLOAT, spawnGrid[Y_MIN] = UNINITIALISED_FLOAT;
-	spawnGrid[X_MAX] = UNINITIALISED_FLOAT, spawnGrid[Y_MAX] = UNINITIALISED_FLOAT;
+	spawnBounds[X_MIN] = UNINITIALISED_FLOAT, spawnBounds[Y_MIN] = UNINITIALISED_FLOAT;
+	spawnBounds[X_MAX] = UNINITIALISED_FLOAT, spawnBounds[Y_MAX] = UNINITIALISED_FLOAT;
 	for( new i = 1; i < MaxClients; i++ ) {
 		if( IsSurvivor(i) && IsPlayerAlive(i) ) {
 			new Float:pos[3];
 			GetClientAbsOrigin(i, pos);
 			// Check min
-			spawnGrid[X_MIN] = CheckMinCoord( spawnGrid[X_MIN], pos[COORD_X] );
-			spawnGrid[Y_MIN] = CheckMinCoord( spawnGrid[Y_MIN], pos[COORD_Y] );
+			spawnBounds[X_MIN] = CheckMinCoord( spawnBounds[X_MIN], pos[COORD_X] );
+			spawnBounds[Y_MIN] = CheckMinCoord( spawnBounds[Y_MIN], pos[COORD_Y] );
 			// Check max
-			spawnGrid[X_MAX] = CheckMaxCoord( spawnGrid[X_MAX], pos[COORD_X] );
-			spawnGrid[Y_MAX] = CheckMaxCoord( spawnGrid[Y_MAX], pos[COORD_Y] );
+			spawnBounds[X_MAX] = CheckMaxCoord( spawnBounds[X_MAX], pos[COORD_X] );
+			spawnBounds[Y_MAX] = CheckMaxCoord( spawnBounds[Y_MAX], pos[COORD_Y] );
 		}
 	}
 	// Extend a border around grid
 	new Float:borderWidth = float( GetConVarInt(hCvarSpawnProximityMax) );
-	spawnGrid[X_MIN] -= borderWidth;
-	spawnGrid[Y_MIN] -= borderWidth;
-	spawnGrid[X_MAX] += borderWidth;
-	spawnGrid[Y_MAX] += borderWidth;
+	spawnBounds[X_MIN] -= borderWidth;
+	spawnBounds[Y_MIN] -= borderWidth;
+	spawnBounds[X_MAX] += borderWidth;
+	spawnBounds[Y_MAX] += borderWidth;
 }
 
 Float:CheckMinCoord( Float:oldMin, Float:checkValue ) {

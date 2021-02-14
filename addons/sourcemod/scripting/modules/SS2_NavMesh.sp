@@ -1,10 +1,16 @@
 #include <navmesh>
 #include <profiler>
+#include "includes/hardcoop_util.sp"
 
 #define DEBUG_NAVMESH 1
 
+#define CNAVAREA_ARRAYSIZE 512 // guesstimating this is overkill, unless a much wider accepted spawn range is used
 #define CNAVAREA_MEMORYSIZE 1024 // could be much smaller; staying on the safe side out of ignorance
 #define MAX_SPAWN_NAVMESH_DIST 700.0 // thinking this should be low to minimise spawning on the other side chain link walls
+
+/*
+/	CNavArea IDs appear to move into the six digits, whereas the CNavArea area indices move into the four digits
+*/
 
 int g_iPathLaserModelIndex = -1;
 
@@ -68,67 +74,117 @@ public Action Command_Show(int client,int args)
 ***********************************************************************************************************************************************************************************/
 
 // Find a suitable spawn position for the desired SI class
-void Spawn_NavMesh(L4D2_Infected:SIClass, int minProximity = 500, int maxProximity = 650)
+void Spawn_NavMesh(L4D2_Infected:SIClass, int minSpawnProximity=400, int maxSpawnProximity=450) // default - spawn very close to survivors
 {
-	// Find the survivor at the front of the team
-	int leadSurvivor = -1;
-	float leadFlow = -1.0;
-	for ( int i = 1; i <= MAXPLAYERS; ++i ) // iterate through all survivors that are alive
+	UpdateSpawnBounds();
+	bool didSpawn = false;
+	for( new i = 0; i < GetConVarInt(hCvarMaxSearchAttempts); i++ ) 
+	{
+		float searchPos[3];
+		float survivorPos[3];
+		int closestSurvivor;		
+		// 'x' and 'y' for potential spawn point coordinates is selected with uniform RNG
+		searchPos[COORD_X] = GetRandomFloat(spawnBounds[X_MIN], spawnBounds[X_MAX]);
+		searchPos[COORD_Y] = GetRandomFloat(spawnBounds[Y_MIN], spawnBounds[Y_MAX]);
+		// 'z' for potential spawn point coordinate is taken from the nearest survivor
+		closestSurvivor = GetClosestSurvivor2D(searchPos[COORD_X], searchPos[COORD_Y]);
+		if ( !IsValidClient(closestSurvivor) ) 
+		{
+			LogError("[SS2_NavMesh] Spawn_NavMesh() - Unable to find closest survivor to random coordinates [%f, %f]", searchPos[COORD_X], searchPos[COORD_Y]);
+			continue;
+		}
+		GetClientAbsOrigin(closestSurvivor, survivorPos);
+		searchPos[COORD_Z] = survivorPos[COORD_Z];
+		// Get the closest CNavArea to this random coordinate
+		CNavArea spawnArea = NavMesh_GetNearestArea(searchPos);
+		if ( spawnArea == INVALID_NAV_AREA )
+		{
+			LogError("[SS2_NavMesh] Spawn_NavMesh() - Unable to find a nav mesh tile to spawn near the generated coordinates [%f, %f, %f]", searchPos[0], searchPos[1], searchPos[2]);	
+			continue;
+		}
+		
+		if ( shouldSpawnHere(spawnArea, minSpawnProximity, maxSpawnProximity) )
+		{
+			// Spawn at the center coordinate of the closest CNavArea
+			int iAreaIndex = NavMesh_FindAreaByID(spawnArea.ID);
+			float navmeshArea_center[3];			
+			NavMeshArea_GetCenter(iAreaIndex, navmeshArea_center);
+			/* Appears to cause too much lag when spawning in waves
+			if ( IsPlayerStuck(navmeshArea_center, GetRandomSurvivor()) )
+			{
+				LogError("[SS2_NavMesh] Spawn_NavMesh() - Ignored an acceptable spawn area as the infected would have been stuck");
+				continue;
+			} */
+			TriggerSpawn(SIClass, navmeshArea_center, NULL_VECTOR);
+			didSpawn = true;
+			break;
+		} 
+	}
+	if ( !didSpawn ) 
+	{
+		LogError("[SS2_NavMesh] Spawn_NavMesh() - Failed to find a valid spawn for SI class %d within %d distance of survivors", _:SIClass, GetConVarInt(hCvarSpawnProximityMax));
+	}
+}
+
+bool shouldSpawnHere(CNavArea spawn, minSpawnProximity, maxSpawnProximity)
+{
+	bool shouldSpawn = false;
+	// Find shortest path cost to any member of the survivor team
+	int shortestPath = -1;
+	for ( int i = 1; i <= MAXPLAYERS; ++i )
 	{
 		if ( IsSurvivor(i) && IsPlayerAlive(i) )
-		{
-			float flow = L4D2Direct_GetFlowDistance(i);
-			if ( flow > leadFlow ) // we have the highest flow survivor found so far
+		{	
+			float survivorPos[3];			
+			GetClientAbsOrigin(i, survivorPos);
+			CNavArea survivorArea = NavMesh_GetNearestArea(survivorPos);
+			bool didBuildPath = NavMesh_BuildPath(spawn, survivorArea, survivorPos, GauntletPathCost); 
+			if ( didBuildPath )
 			{
-				leadFlow = flow;
-				leadSurvivor = i;								
+				int pathCost = NavMeshArea_GetTotalCost(NavMesh_FindAreaByID(survivorArea.ID)); // TODO: hoping the cost is for the path built in NavMesh_BuildPath
+				if ( pathCost < shortestPath || shortestPath == -1 )
+				{
+					shortestPath = pathCost;	
+				}
 			}
 		}
 	}
-	if ( leadSurvivor == -1 || leadFlow < 0.0 ) 
+	// Return whether this shortest calculated path length is acceptable
+	if ( shortestPath > minSpawnProximity && shortestPath < maxSpawnProximity ) // arbitrary for now
 	{
-		LogError("[SS2] NavMesh - Failed to determine what survivor has the highest flow distance");
-		return;
-	}	
-	
-	// Spawn around the survivor at the front of the team
-	float leadPos[3];
-	GetClientAbsOrigin(leadSurvivor, leadPos);
-	CNavArea searchCentre = NavMesh_GetNearestArea(leadPos);
-	if ( searchCentre == INVALID_NAV_AREA )
+		shouldSpawn = true;	
+	}
+	return shouldSpawn;	
+}
+
+public int GauntletPathCost(CNavArea area, CNavArea from, CNavLadder ladder, any data)
+{
+	if (from == INVALID_NAV_AREA)
 	{
-		LogError("[SS2] NavMesh - Failed to find the closest valid CNavArea to the leading survivor");
-		return;
-	}	
-	
-	// Collect nearby navigation mesh sections into an ArrayList
-	ArrayStack CNavArea_SpawnAreas;
-	CNavArea_SpawnAreas = new ArrayStack(CNAVAREA_MEMORYSIZE); // <navmesh> native returns results in an ArrayStack
-	NavMesh_CollectSurroundingAreas(CNavArea_SpawnAreas, searchCentre, MAX_SPAWN_NAVMESH_DIST, StepHeight, StepHeight); 
-	
-	// Find a spawn area that suffices proximity requirements to the survivor team
-	bool didSpawn = false;
-	while (!IsStackEmpty(CNavArea_SpawnAreas)) 
+		return 0;
+	}
+	else
 	{
-		CNavArea area = CNavArea_SpawnAreas.Pop();
-		if (area != INVALID_NAV_AREA)
+		int iDist = 0;
+		if (ladder != INVALID_NAV_LADDER)
 		{
-			int iAreaIndex;
-			float areaPos[3];
-			iAreaIndex = NavMesh_FindAreaByID(area.ID);
+			iDist = RoundFloat(FloatMul(ladder.Length, 10.0)); // addding 10x multiplier to discourage spawn spots that require climbing
+		}
+		else
+		{
+			float flAreaCenter[3]; float flFromAreaCenter[3];
+			area.GetCenter(flAreaCenter);
+			from.GetCenter(flFromAreaCenter);
 			
-			NavMeshArea_GetCenter(iAreaIndex, areaPos);			
-			if ( GetDistance2D(leadPos, areaPos) > minProximity && GetDistance2D(leadPos, areaPos) < maxProximity ) // satisfies distance parameters
-			{
-				TriggerSpawn(SIClass, areaPos, NULL_VECTOR);
-				didSpawn = true;
-				break;
-			}
+			iDist = RoundFloat(GetVectorDistance(flAreaCenter, flFromAreaCenter));
 		}
+		
+		int iCost = iDist + from.CostSoFar;
+		int iAreaFlags = area.Attributes;
+		if (iAreaFlags & NAV_MESH_CROUCH) iCost += 20; // default += (20)
+		if (iAreaFlags & NAV_MESH_JUMP) iCost += (50 * iDist); // default +=(5 * iDist)
+		return iCost;
 	}
-	if (!didSpawn) LogError("[SS2] NavMesh - No spawn found within the following distance range to survivors [%d] -> [%d]", minProximity, maxProximity);		
-	
-	delete CNavArea_SpawnAreas;
 }
 
 /***********************************************************************************************************************************************************************************

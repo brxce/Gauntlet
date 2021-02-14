@@ -3,18 +3,23 @@ new Handle:hSpawnTimeMode;
 new Handle:hSpawnTimeMin;
 new Handle:hSpawnTimeMax;
 
+new Handle:hCvarFrequencyBoomerAmbush;
+new Handle:hTimerBoomer;
+
 new Handle:hCvarIncapAllowance;
 
 new Float:SpawnTimes[MAXPLAYERS];
 new Float:IntervalEnds[NUM_TYPES_INFECTED];
 
 new g_bHasSpawnTimerStarted = true;
+new g_bHasBoomerTimerStarted = true;
 
 SpawnTimers_OnModuleStart() {
 	// Timer
 	hSpawnTimeMin = CreateConVar("ss_time_min", "12.0", "The minimum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 0.0);
 	hSpawnTimeMax = CreateConVar("ss_time_max", "15.0", "The maximum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 1.0);
 	hSpawnTimeMode = CreateConVar("ss_time_mode", "1", "The spawn time mode [ 0 = RANDOMIZED | 1 = INCREMENTAL | 2 = DECREMENTAL ]", FCVAR_PLUGIN, true, 0.0, true, 2.0);
+	hCvarFrequencyBoomerAmbush = CreateConVar("ss_boomer_frequency", "7.0", "Roughly how often to attempt to ambush survivors with a boomer", FCVAR_PLUGIN);
 	HookConVarChange(hSpawnTimeMin, ConVarChanged:CalculateSpawnTimes);
 	HookConVarChange(hSpawnTimeMax, ConVarChanged:CalculateSpawnTimes);
 	HookConVarChange(hSpawnTimeMode, ConVarChanged:CalculateSpawnTimes);
@@ -61,7 +66,17 @@ StartSpawnTimer() {
 		#if DEBUG_TIMERS
 			PrintToChatAll("[SS] New spawn timer | Mode: %d | SI: %d | Next: %.3f s", GetConVarInt(hSpawnTimeMode), CountSpecialInfectedBots(), time);
 		#endif
-		
+}
+
+StartBoomerTimer() {
+	EndBoomerTimer();
+	g_bHasBoomerTimerStarted = true;	
+	new Float:avgFrequency = GetConVarFloat(hCvarFrequencyBoomerAmbush);
+	hTimerBoomer = CreateTimer( GetRandomFloat(avgFrequency, avgFrequency + 2.0), Timer_BoomerAmbush, TIMER_FLAG_NO_MAPCHANGE );
+	
+		#if DEBUG_TIMERS
+			PrintToChatAll("[SS] Boomer timer started");
+		#endif
 }
 
 /***********************************************************************************************************************************************************************************
@@ -91,6 +106,12 @@ public Action:SpawnInfectedAuto(Handle:timer) {
 	return Plugin_Handled;
 }
 
+public Action:Timer_BoomerAmbush(Handle:timer) {
+	g_bHasBoomerTimerStarted = false;
+	Spawn_NavMesh(L4D2Infected_Boomer);
+	StartBoomerTimer();	
+}
+
 public Action:Timer_GracePeriod(Handle:timer) {
 	GenerateAndExecuteSpawnQueue();
 	return Plugin_Handled;
@@ -114,6 +135,20 @@ EndSpawnTimer() {
 				PrintToChatAll("[SS] Ending spawn timer.");
 			#endif
 		
+	}
+}
+
+EndBoomerTimer() {
+	if ( g_bHasBoomerTimerStarted ) {
+		if ( hTimerBoomer != INVALID_HANDLE ) {
+			CloseHandle(hTimerBoomer);
+			hTimerBoomer = INVALID_HANDLE;			
+		}
+		g_bHasBoomerTimerStarted = false;
+		
+			#if DEBUG_TIMERS
+				PrintToChatAll("[SS] Ending boomer timer.");
+			#endif
 	}
 }
 
