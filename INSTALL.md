@@ -1,15 +1,25 @@
 ## Preparation
 
- * Install [ProdigySim's gamedata](https://github.com/ProdigySim/DirectInfectedSpawn) - spawn_infected_nolimit.txt 
+ * Download [spawn_infected_nolimit.txt](https://github.com/ProdigySim/DirectInfectedSpawn) to left4dead2/addons/sourcemod/gamedata/ 
  * Install the [latest version of ZoneMod](https://github.com/SirPlease/L4D2-Competitive-Rework) 
- > It is possible to run Gauntlet using a different versus config by altering the last line in the following files: 
- >> * /cfgogl/gauntlet/confogl.cfg            
- >> * /cfgogl/gauntlet/confogl_plugins.cfg
+ in the following files:  
+ 
+ > * /cfgogl/gauntlet/confogl.cfg            
+ > * /cfgogl/gauntlet/confogl_plugins.cfg 
  
 # Installation 
 
- * Copy into your 'Left 4 Dead 2/left4dead2/' server directory
-> * N.B. for custom campaigns, the missions text file   must be extracted from respective .vpks into the 'missions' folder
- * If you want to see Gauntlet in your !match menu, remember to add entries for Gauntlet configs in your 'matchmodes.txt'  
+Make sure to copy over the following Gauntlet files into their respective directories  
+  * addons
+ > * addons/plugins
+ > * *addons/scripting is not necessary*
+ > * addons/translations
+
+  * cfg
+ > * all files  
+
+If you want to see Gauntlet in your !match menu, remember to add entries for Gauntlet configs in your 'matchmodes.txt'   
+
+*N.B. for custom campaigns, the missions text file   must be extracted from respective .vpks into the 'missions' folder*
 
 
