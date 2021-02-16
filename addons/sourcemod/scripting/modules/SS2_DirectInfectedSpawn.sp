@@ -1,5 +1,7 @@
 /*
-	All this code is essentially from ProdigySim, all credits go to him (https://github.com/ProdigySim/DirectInfectedSpawn)
+	The base functionality of this code was written by ShadowSyn, using ProdigySim's gamedata
+	(https://forums.alliedmods.net/showthread.php?t=320849)
+	(https://github.com/ProdigySim)
 	- The program flow has been restructured to support a spawn function that can be passed position and angular coordinates
 	- The spawn commands have been rewritten for debugging purposes
 	- version cvar and game engine checking have been removed
