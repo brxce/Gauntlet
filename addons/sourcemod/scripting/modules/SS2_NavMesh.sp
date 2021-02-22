@@ -7,6 +7,7 @@
 #define CNAVAREA_ARRAYSIZE 512 // guesstimating this is overkill, unless a much wider accepted spawn range is used
 #define CNAVAREA_MEMORYSIZE 1024 // could be much smaller; staying on the safe side out of ignorance
 #define MAX_SPAWN_NAVMESH_DIST 700.0 // thinking this should be low to minimise spawning on the other side chain link walls
+#define CNAVAREA_MAXID 9999999
 
 /*
 /	CNavArea IDs appear to move into the six digits, whereas the CNavArea area indices move into the four digits
@@ -61,8 +62,9 @@ public Action Command_Show(int client,int args)
 
 	char sArg[16];
 	GetCmdArg(1, sArg, sizeof(sArg));
-	g_bPlayerTrackNavArea[client] = (StringToInt(sArg) != 0);
-	Spawn_NavMesh_Direct(client);
+	// g_bPlayerTrackNavArea[client] = (StringToInt(sArg) != 0);
+	SearchProximateNavMesh(client); // hijacking command to test navmesh searching function
+	//Spawn_NavMesh_Direct(client); // manual spawn
 	
 	return Plugin_Handled;
 }
@@ -189,6 +191,121 @@ public int GauntletPathCost(CNavArea area, CNavArea from, CNavLadder ladder, any
 
 /***********************************************************************************************************************************************************************************
 
+                                                 								DISPLAY NAVMESHES CLOSE TO SURVIVORS
+                                                                    
+***********************************************************************************************************************************************************************************/
+
+stock void SearchProximateNavMesh(int client)
+{
+	ArrayList CNavAreaProximates; // final results
+	CNavAreaProximates = new ArrayList(CNAVAREA_MEMORYSIZE, CNAVAREA_ARRAYSIZE);
+	ArrayStack CNavAreaTraversal; // temp cache for DFS graph search
+	CNavAreaTraversal = new ArrayStack(CNAVAREA_MEMORYSIZE);
+	bool hasTraversed[CNAVAREA_MAXID]; // area ID
+	for ( int i = 0; i < CNAVAREA_MAXID; ++i )
+	{
+		hasTraversed[i] = false;	
+	}
+	
+	// Prepare search by identifying the nav meshes stood upon by the survivors
+	for ( int i = 1; i <= MAXPLAYERS; ++i ) 
+	{
+		if ( IsSurvivor(i) && IsPlayerAlive(i) )
+		{
+			float clientPos[3];
+			GetClientAbsOrigin(i, clientPos);
+			CNavArea area = NavMesh_GetNearestArea(clientPos);
+			if ( area != INVALID_NAV_AREA )
+			{
+				CNavAreaTraversal.Push(area); 
+			}
+		}
+	}	
+	
+	// Unaware of any other search algorithms beside DFS when limited to Stack data structure
+	int traversals = 0; 
+	while (!CNavAreaTraversal.Empty)
+	{
+		// prevent infinite loop
+		if ( traversals > 1000000 )
+		{
+			LogError("[ SS2_NavMesh - SearchProximateNavMesh() ] Possible infinite loop or doubling up on traversals");
+			break;	
+		} 
+		else 
+		{
+			++traversals;
+		}	
+		
+		CNavArea traverseArea = CNavAreaTraversal.Pop();
+		int traverseID = view_as<int>(traverseArea.ID);
+		// if any surrounding areas are within suitable distance, add to arraylist
+		if ( traverseArea != INVALID_NAV_AREA && !hasTraversed[traverseID])
+		{
+			hasTraversed[traverseID] = true;	
+			// get adjacent areas for each cardinal direction
+			for ( int iNavDir = 0; iNavDir < NAV_DIR_COUNT; iNavDir++ )
+			{
+				ArrayStack adjacentAreas;
+				adjacentAreas = NavMeshArea_GetAdjacentList(adjacentAreas, NavMesh_FindAreaByID(traverseID), iNavDir);
+				while ( !IsStackEmpty(adjacentAreas) ) // 
+				{
+					CNavArea adjacent = adjacentAreas.Pop();
+					int adjacentID = view_as<int>(adjacent.ID);
+					if ( adjacent != INVALID_NAV_AREA && !hasTraversed[adjacentID] ) // prevent adding adjacent area twice
+					{
+						hasTraversed[adjacentID] = true;
+						float areaPos[3];
+						NavMeshArea_GetCenter(NavMesh_FindAreaByID(view_as<int>(adjacent.ID)), areaPos);
+						float closestPos[3];
+						int clientClosest = GetClosestSurvivor(areaPos);		
+						if ( clientClosest == -1 )
+						{
+							LogError("[ SS2_NavMesh - SearchProximateNavMesh() ] Could not find closest survivor to area ID %d", view_as<int>(adjacent.ID) );
+							return;
+						}
+						GetClientAbsOrigin(clientClosest, closestPos);
+						float distToSurv = GetVectorDistance(areaPos, closestPos);
+						if ( distToSurv < 650 ) // keep traversing from this area
+						{
+							CNavAreaTraversal.Push(adjacent);
+							if ( distToSurv > 300 ) // distance spawn parameter met, add to spawn list
+							{
+								for ( int i = 0; i < CNavAreaProximates.Length; ++i )
+								{
+									if ( CNavAreaProximates.Get(i) == INVALID_NAV_AREA )
+									{
+										CNavAreaProximates.Set(i, adjacent);
+									}
+								}	
+							}
+						}
+					}
+				}	
+				delete adjacentAreas;
+			}
+		}
+	}
+	
+	// Display results and clean up memory
+	int countDrawnAreas = 0;
+	for ( int i = 0; i < CNavAreaProximates.Length; ++i )
+	{
+		CNavArea area = CNavAreaProximates.Get(i);
+		if ( area != INVALID_NAV_AREA )
+		{
+			DrawNavArea( client, area, FocusedAreaColor, 3.0 );
+			++countDrawnAreas;
+		}
+	}
+	PrintToChatAll("Drew %d areas, discovered over %d traversals", countDrawnAreas, traversals);
+	delete CNavAreaProximates;
+	delete CNavAreaTraversal;
+}
+
+
+/***********************************************************************************************************************************************************************************
+
                                                  							MANUAL SPAWNING (for testing)
                                                                     
 ***********************************************************************************************************************************************************************************/
@@ -200,7 +317,7 @@ void Spawn_NavMesh_Direct(client)
 	float clientPos[3];
 	GetClientAbsOrigin(client, clientPos);
 	CNavArea searchCentre = NavMesh_GetNearestArea(clientPos);
-	// colalte surrounding areas
+	// collate surrounding areas
 	ArrayStack spawnAreas;
 	spawnAreas = new ArrayStack(CNAVAREA_MEMORYSIZE);
 	NavMesh_CollectSurroundingAreas(spawnAreas, searchCentre, MAX_SPAWN_NAVMESH_DIST, StepHeight, StepHeight); // keep low enough to prevent spawning on the other side of the wall in labyrinth map layouts	
@@ -211,12 +328,12 @@ void Spawn_NavMesh_Direct(client)
 		{
 			float areaPos[3];
 			int iAreaIndex = NavMesh_FindAreaByID(area.ID);
-			NavMeshArea_GetCenter(iAreaIndex, areaPos);
-			if ( GetDistance2D(clientPos, areaPos) > 200 && GetDistance2D(clientPos, areaPos) < 650 ) // considering nav meshes within a specific range
+			int travelCost = NavMeshArea_GetTotalCost(iAreaIndex);
+			if ( travelCost > 300 && travelCost < 650 ) // considering nav meshes within a specific range
 			{
 				CreateInfected("spitter", areaPos, NULL_VECTOR);
 			}
-			DrawNavArea( client, area, FocusedAreaColor );
+			DrawNavArea( client, area, FocusedAreaColor, 3.0 );
 		}
 	}
 	delete spawnAreas;

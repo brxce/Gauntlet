@@ -108,13 +108,6 @@ public OnPluginEnd() {
 	SpawnTimers_OnModuleEnd();
 	SpawnPositioner_OnModuleEnd();
 	NavMesh_OnModuleEnd();
-	
-	new survivor = GetRandomSurvivor();
-	new Float:survivorMins[3];
-	new Float:survivorMaxs[3];
-	GetClientMins(survivor, survivorMins);
-	GetClientMaxs(survivor, survivorMaxs);
-	LogError("Mins [%f %f %f], Maxs [%f %f %f]", survivorMins[0], survivorMins[1], survivorMins[2], survivorMaxs[0], survivorMaxs[1], survivorMaxs[2]);
 }
 
 /***********************************************************************************************************************************************************************************
