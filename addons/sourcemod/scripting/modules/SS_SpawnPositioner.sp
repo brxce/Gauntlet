@@ -85,7 +85,7 @@ AttemptSpawnAuto(L4D2_Infected:SIClass)
 	} else if( GetConVarInt(hCvarSpawnPositionerMode) == 2 ) {
 		GridSpawn( SIClass );
 	} else if( GetConVarInt(hCvarSpawnPositionerMode) == 3 ) {
-		Spawn_NavMesh( SIClass, GetConVarInt(hCvarSpawnProximityMin), GetConVarInt(hCvarSpawnProximityMax) );
+		// Spawn_NavMesh( SIClass, GetConVarInt(hCvarSpawnProximityMin), GetConVarInt(hCvarSpawnProximityMax) );
 	} else {
 		RadialSpawn( SIClass, GetRandomSurvivor() );
 	}
@@ -140,7 +140,6 @@ GridSpawn( L4D2_Infected:SIClass ) {
 						searchPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
 						DrawBeam( searchPos, spawnPos, VALID_MESH );
 					#endif
-					
 				TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); // all spawn conditions satisifed
 				return;
 				
