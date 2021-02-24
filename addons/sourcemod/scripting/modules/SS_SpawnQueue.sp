@@ -56,19 +56,19 @@ SITypeCount() { //Count the number of each SI ingame
 					SpawnCounts[_:L4D2Infected_Smoker - 1]++; // array indices start 0, where L4D2Infected numbering starts from 1
 				
 				case L4D2Infected_Boomer:
-					SpawnCounts[_:L4D2Infected_Boomer - 1]++;
+					SpawnCounts[(_:L4D2Infected_Boomer) - 1]++;
 				
 				case L4D2Infected_Hunter:
-					SpawnCounts[_:L4D2Infected_Hunter - 1]++;
+					SpawnCounts[(_:L4D2Infected_Hunter) - 1]++;
 					
 				case L4D2Infected_Spitter:
-					SpawnCounts[_:L4D2Infected_Spitter - 1]++;
+					SpawnCounts[(_:L4D2Infected_Spitter) - 1]++;
 				
 				case L4D2Infected_Jockey:
-					SpawnCounts[_:L4D2Infected_Jockey - 1]++;
+					SpawnCounts[(_:L4D2Infected_Jockey) - 1]++;
 				
 				case L4D2Infected_Charger:
-					SpawnCounts[_:L4D2Infected_Charger - 1]++;
+					SpawnCounts[(_:L4D2Infected_Charger) - 1]++;
 				
 				default:
 					break;
