@@ -27,7 +27,7 @@ Handle g_hPlayerTrackNavAreaInfoHudSync = null;
 
 NavMesh_OnModuleStart()
 {
-	RegAdminCmd("sm_navmesh_show", Command_Show, ADMFLAG_CHEATS, "");
+	RegAdminCmd("sm_testnav", Command_Show, ADMFLAG_CHEATS, "");
 	
 	g_hPlayerTrackNavAreaInfoHudSync = CreateHudSynchronizer();	
 }
@@ -77,12 +77,12 @@ public Action Command_Show(int client,int args)
 stock void ShowProximateSpawns ( int viewingClient )
 {
 	ArrayList ProximateSpawns;
-	ProximateSpawns = new ArrayList(CNAVAREA_ARRAYSIZE, CNAVAREA_MEMORYSIZE);
-	int arrayPos = 0;
+	ProximateSpawns = new ArrayList();
 	
 	/*
 	 * Collate all spawn areas near survivors
 	 */
+	int countFoundSpawnAreas = 0;
 	for ( int thisClient = 1; thisClient <= MAXPLAYERS; ++thisClient )
 	{
 		if ( IsSurvivor(thisClient) && IsPlayerAlive(thisClient) )
@@ -95,53 +95,59 @@ stock void ShowProximateSpawns ( int viewingClient )
 				CNavArea areaThisSurvivor = NavMesh_GetNearestArea(posThisSurvivor); // Identify closest navmesh tile from their coordinates
 				if ( areaThisSurvivor != INVALID_NAV_AREA )
 				{
-					ArrayStack hereProximates; // Get nearby navmesh tiles
-					hereProximates = new ArrayStack(CNAVAREA_MEMORYSIZE);
-					NavMesh_CollectSurroundingAreas(hereProximates, areaThisSurvivor);
-					while ( !IsStackEmpty(hereProximates) )
+					ArrayStack hereProximates = new ArrayStack(); // Get nearby navmesh tiles
+					NavMesh_CollectSurroundingAreas(hereProximates, areaThisSurvivor); 
+					while ( !hereProximates.Empty )
 					{
-						CNavArea area = hereProximates.Pop(); // for each discovered tile, check we have not seen it before
-						if ( area != INVALID_NAV_AREA && ProximateSpawns.FindValue(area) != -1 )
+						CNavArea area = INVALID_NAV_AREA; // for each discovered tile, check we have not seen it before 
+						PopStackCell(hereProximates, area); 
+						if ( area != INVALID_NAV_AREA && ProximateSpawns.FindValue(area) == -1 )
 						{
+							++countFoundSpawnAreas;
 							if ( CheckSpawnConditions(area) ) // check each tile meets our spawn conditions
 							{
-								ProximateSpawns.Set(arrayPos, area); // save this tile
-								++arrayPos;
-							}
-						}
+								int indexArea = view_as<int>(NavMesh_FindAreaByID(view_as<int>(area.ID)));
+								ProximateSpawns.Push(indexArea); // save this tile
+							} 
+						} 
 					}
 					delete hereProximates;
 				}
 				else 
 				{
-					LogError("[ SS2_NavMesh ] - No CNavArea found near %s required to search for prxoimate spawn areas", nameThisSurvivor);
+					LogError("[ SS2_NavMesh ] - No CNavArea found near %s required to search for proximate spawn areas", nameThisSurvivor);
 				}
 			} 
 			else 
 			{
-				LogError("[ SS2_NavMesh ] - Unable to obtain %s coordinates required by search to identify a starting spawn area", nameThisSurvivor);
+				LogError("[ SS2_NavMesh ] - Unable to obtain coordinates for survivor %s", nameThisSurvivor);
 			}
 		}
 	}
-	
+	PrintToServer("Found %d spawns near survivors, of which %d met spawn conditions", countFoundSpawnAreas, ProximateSpawns.Length);
 	/*
 	 * Test spawn
 	 */	 
-	for ( int i = view_as<int>(L4D2Infected_Smoker); i < view_as<int>(L4D2Infected_Witch); ++i )
+	if ( ProximateSpawns.Length == 0 )
 	{
-		int spawnIndex = GetRandomInt(0, arrayPos - 1);	
-		CNavArea areaRandomSpawn = ProximateSpawns.Get(spawnIndex);
-		int indexRandomSpawn = view_as<int>(NavMesh_FindAreaByID(view_as<int>(areaRandomSpawn.ID)));
-		float posRandomSpawn[3];
-		bool didFindCoordinates = NavMeshArea_GetCenter(indexRandomSpawn, posRandomSpawn);
-		if ( didFindCoordinates)
+		LogError("[ SS2_NavMesh ] - Failed to find any proximate spawns");
+	} 
+	else {	
+		for ( int spawnClass = 1; spawnClass < 7; ++spawnClass )
 		{
-			TriggerSpawn( L4D2Infected_Smoker, posRandomSpawn, NULL_VECTOR);
+			if (spawnClass == 2 || spawnClass == 4) continue; // skip support SI for testing lol
+			int spawnIndex = GetRandomInt(0, ProximateSpawns.Length - 1);	
+			int indexRandomSpawn = ProximateSpawns.Get(spawnIndex);
+			float posRandomSpawn[3]; 
+			if ( NavMeshArea_GetCenter(indexRandomSpawn, posRandomSpawn) ) // returns true if successful
+			{
+				TriggerSpawn( L4D2_Infected:spawnClass, posRandomSpawn, NULL_VECTOR);
+			}
+			else
+			{
+				LogError("[ SS2_NavMesh ] - Failed to spawn at NavMesh index %d; cannot determine mesh center coordinates", indexRandomSpawn);
+			}	
 		}
-		else
-		{
-			LogError("[ SS2_NavMesh ] - Failed to find center coordinates for NavMesh index %d", indexRandomSpawn);
-		}	
 	}
 	delete ProximateSpawns;
 }
@@ -183,9 +189,10 @@ bool CheckSpawnConditions(CNavArea spawn)
 	return shouldSpawn;	
 }
 
-bool IsSpawnStuck( CNavArea spawnArea ) 
+stock bool IsSpawnStuck( CNavArea spawnArea ) 
 {
-	bool isStuck = true; // only set to false if estimated size does not collide on intended psawn spot
+	// return false; // TODO: Find a way to perform this check; current iteration does not work
+	bool isStuck = false;
 	int indexSpawnArea = view_as<int>(NavMesh_FindAreaByID(view_as<int>(spawnArea.ID)));
 	float posSpawnArea[3];
 	if ( NavMeshArea_GetCenter(indexSpawnArea, posSpawnArea) ) // need coordinates to run collision check
@@ -201,16 +208,16 @@ bool IsSpawnStuck( CNavArea spawnArea )
 		    mins[i] -= BOUNDINGBOX_INFLATION_OFFSET;
 		    maxs[i] += BOUNDINGBOX_INFLATION_OFFSET;
 		}	
-		TR_TraceHullFilter(posSpawnArea, posSpawnArea, mins, maxs, MASK_ALL, TraceEntityFilterPlayer, _); // collision check
+		TR_TraceHullFilter(posSpawnArea, posSpawnArea, mins, maxs, MASK_SOLID, TraceEntityFilterSolid); // collision check
 		if ( TR_DidHit() )
 		{
-			isStuck = false;
+			isStuck = true;
 		} 
 		else 
 		{
-			char readoutCoordinates[32];
-			Format(readoutCoordinates, sizeof(readoutCoordinates), "[%f, %f, %f]", posSpawnArea[0], posSpawnArea[1], posSpawnArea[2]);
-			LogError("[ SS2_NavMesh ] - Skipping spawn without space %s", readoutCoordinates);
+			//char readoutCoordinates[32];
+			//Format(readoutCoordinates, sizeof(readoutCoordinates), "[%f, %f, %f]", posSpawnArea[0], posSpawnArea[1], posSpawnArea[2]);
+			//LogError("[ SS2_NavMesh ] - Skipping spawn without space %s", readoutCoordinates);
 		}
 	} 
 	else
@@ -219,6 +226,11 @@ bool IsSpawnStuck( CNavArea spawnArea )
 	}
 	return isStuck;
 }  
+
+public bool:TraceEntityFilterSolid(entity, contentsMask) 
+{
+	return entity > MaxClients;
+}
 
 int GauntletPathCost(CNavArea area, CNavArea from, CNavLadder ladder, any data)
 {

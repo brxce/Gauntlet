@@ -454,7 +454,7 @@ public Action:Cmd_StartSpawnTimerManually(client, args) {
 ***********************************************************************************************************************************************************************************/
 
 public Action:OnPlayerRunCmd( client, &buttons ) {
-	if( !IsFakeClient(client) && buttons & IN_USE && buttons & IN_RELOAD ) {
+	if( IsValidClient(client) && !IsFakeClient(client) && buttons & IN_USE && buttons & IN_RELOAD ) {
 		bShowSpawnerHUD[client] = true;
 	} else {
 		bShowSpawnerHUD[client] = false;

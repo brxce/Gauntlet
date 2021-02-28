@@ -341,7 +341,7 @@ void ProcessSpawn (L4D2_Infected:desiredClass, float pos[3], float ang[3])
 	}
 	if (!IsValidEntity(spawnedClient))
 	{
-		LogError("[SS2] DirectInfectedSpawn - Failed to spawn SI class %d at position [%f, %f, %f]", _:desiredClass, pos[0], pos[1], pos[2]);
+		LogError("[ SS2_DirectInfectedSpawn ] - Failed to spawn SI class %d at position [%f, %f, %f]", _:desiredClass, pos[0], pos[1], pos[2]);
 	}	
 }
 
