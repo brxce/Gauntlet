@@ -19,6 +19,15 @@ new Handle:hCvarConfigName;
 new Handle:hCvarLineOfSightStarvationTime;
 new Handle:hTimerHUD;
 
+// SpawnPositioner module
+new Handle:hCvarSpawnPositionerMode;
+new Handle:hCvarMaxSearchAttempts;
+new Handle:hCvarSpawnSearchHeight;
+new Handle:hCvarSpawnProximityMin;
+new Handle:hCvarSpawnProximityMax;
+new Handle:hCvarSpawnProximityFlowNoLOS;
+new Handle:hCvarSpawnProximityFlowLOS; 
+
 new bool:bShowSpawnerHUD[MAXPLAYERS];
 new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 

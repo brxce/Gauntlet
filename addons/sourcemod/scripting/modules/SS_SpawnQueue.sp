@@ -36,12 +36,22 @@ GenerateAndExecuteSpawnQueue() {
 			SpawnCounts[index] += 1;
 		}	
 		// Execute the spawn queue
-		for( new i = 0; i < MAXPLAYERS; i++ ) {
-			if( SpawnQueue[i] < 0 ) { // end of spawn queue (does not always fill the whole array)
-				break;
-			}
-			AttemptSpawnAuto(L4D2_Infected:(SpawnQueue[i] + 1));
+		if ( GetConVarInt(hCvarSpawnPositionerMode) == 3 ) 
+		{
+			NavMeshSpawn(SpawnQueue);
 		}
+		else 
+		{ // for old spawn times, generate spawn locations one at a time
+			for( new i = 0; i < MAXPLAYERS; i++ ) 
+			{
+				if( SpawnQueue[i] < 0 ) // end of spawn queue (does not always fill the whole array)
+				{ 
+					break;
+				}
+				AttemptSpawnAuto(L4D2_Infected:(SpawnQueue[i] + 1));
+			}
+		}
+		
 	}
 }
 

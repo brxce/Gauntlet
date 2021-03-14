@@ -64,7 +64,8 @@ public Action Command_Show(int client,int args)
 	GetCmdArg(1, sArg, sizeof(sArg));
 	//g_bPlayerTrackNavArea[client] = (StringToInt(sArg) != 0);
 	//Spawn_NavMesh_Direct(client); // manual spawn
-	ShowProximateSpawns(client);
+	new nullTestArray[MAXPLAYERS];
+	NavMeshSpawn(nullTestArray); // TODO: remove this testing value once completed
 	return Plugin_Handled;
 }
 
@@ -74,7 +75,7 @@ public Action Command_Show(int client,int args)
                                                                     
 ***********************************************************************************************************************************************************************************/
 
-stock void ShowProximateSpawns ( int viewingClient )
+stock void NavMeshSpawn ( const int SpawnQueue[MAXPLAYERS] )
 {
 	ArrayList ProximateSpawns;
 	ProximateSpawns = new ArrayList();
@@ -125,14 +126,40 @@ stock void ShowProximateSpawns ( int viewingClient )
 		}
 	}
 	PrintToServer("Found %d spawns near survivors, of which %d met spawn conditions", countFoundSpawnAreas, ProximateSpawns.Length);
-	/*
-	 * Test spawn
-	 */	 
+	
+	
 	if ( ProximateSpawns.Length == 0 )
 	{
 		LogError("[ SS2_NavMesh ] - Failed to find any proximate spawns");
 	} 
 	else {	
+		for( new i = 0; i < MAXPLAYERS; i++ ) 
+		{
+			if( SpawnQueue[i] < 0 ) // end of spawn queue (does not always fill the whole array)
+			{ 
+				break;
+			}
+			else
+			{
+				int spawnIndex = GetRandomInt(0, ProximateSpawns.Length - 1);	
+				int indexRandomSpawn = ProximateSpawns.Get(spawnIndex);
+				float posRandomSpawn[3]; 
+				if ( NavMeshArea_GetCenter(indexRandomSpawn, posRandomSpawn) ) // returns true if successful
+				{
+					TriggerSpawn( L4D2_Infected:(SpawnQueue[i] + 1), posRandomSpawn, NULL_VECTOR);
+				}
+				else
+				{
+					LogError("[ SS2_NavMesh ] - Failed to spawn at NavMesh index %d; cannot determine mesh center coordinates", indexRandomSpawn);
+				}	
+			}
+		}
+	 /* Test spawning
+	 * TODO: 
+	 * - Concentrate spawns at the front (flow distance?) 
+	 * - sort by flow distance, NavMesh_GetCost() or both?
+	 * - reduce clumping as they tend to spawn very clustered, which is particularly suboptimal if this occurs at the back
+	 *
 		for ( int spawnClass = 1; spawnClass < 7; ++spawnClass )
 		{
 			if (spawnClass == 2 || spawnClass == 4) continue; // skip support SI for testing lol
@@ -148,11 +175,11 @@ stock void ShowProximateSpawns ( int viewingClient )
 				LogError("[ SS2_NavMesh ] - Failed to spawn at NavMesh index %d; cannot determine mesh center coordinates", indexRandomSpawn);
 			}	
 		}
+		*/
 	}
 	delete ProximateSpawns;
 }
 
-// TODO: CheckSpawnConditions() - add check for against IsPlayerStuck() when spawned into this position
 bool CheckSpawnConditions(CNavArea spawn)
 {
 	bool shouldSpawn = false;
@@ -269,7 +296,7 @@ int GauntletPathCost(CNavArea area, CNavArea from, CNavLadder ladder, any data)
 ***********************************************************************************************************************************************************************************/
 
 // Spawn spitters to demarcate the navmeshes with the allocated restrictions 
-void Spawn_NavMesh_Direct(client)
+stock void Spawn_NavMesh_Direct(client)
 {
 	// determine centre of spawning area
 	float clientPos[3];
