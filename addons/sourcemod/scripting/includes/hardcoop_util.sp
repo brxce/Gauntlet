@@ -149,6 +149,41 @@ stock Float:GetFarthestSurvivorFlow() {
 }
 
 /**
+ * @return: the farthest flow distance currently held by a survivor
+ */
+int GetRearSurvivorFlow() 
+{
+	int lowestMapFlow = -1; // initialise to impossible value
+	for ( int thisClient = 1; thisClient <= MAXPLAYERS; ++thisClient )
+	{
+		if ( IsSurvivor(thisClient) && IsPlayerAlive(thisClient) )
+		{
+			new Float:thisSurvivorsOrigin[3];
+			char survivorName[32];
+			GetClientName(thisClient, survivorName, sizeof(survivorName));
+			if ( GetClientAbsOrigin(thisClient, thisSurvivorsOrigin) )
+			{
+				int thisFlow = GetFlow(thisSurvivorsOrigin);
+				if ( thisFlow <= 0 )
+				{
+					PrintToServer("GetRearSurvivorFlow(): Survivor %s returning invalid flow %f", survivorName, thisFlow);
+					continue;
+				}
+				if ( lowestMapFlow == -1 || thisFlow < lowestMapFlow )
+				{
+					lowestMapFlow = thisFlow;
+				}
+			}
+			else
+			{
+				PrintToServer("GetRearSurvivorFlow(): Failed to find position for %s", survivorName);
+			}
+		}
+	}
+	return lowestMapFlow;
+}
+
+/**
  * Returns the average flow distance covered by each survivor
  */
 stock Float:GetAverageSurvivorFlow() {

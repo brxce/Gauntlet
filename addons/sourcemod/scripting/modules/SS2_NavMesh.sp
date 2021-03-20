@@ -9,6 +9,8 @@
 #define MAX_SPAWN_NAVMESH_DIST 700.0 // thinking this should be low to minimise spawning on the other side chain link walls
 #define CNAVAREA_MAXID 9999999
 
+new Handle:hCVarRearSpawnMaxTrailingDistance;
+
 /*
 /	CNavArea IDs appear to move into the six digits, whereas the CNavArea area indices move into the four digits
 */
@@ -28,7 +30,7 @@ Handle g_hPlayerTrackNavAreaInfoHudSync = null;
 NavMesh_OnModuleStart()
 {
 	RegAdminCmd("sm_testnav", Command_Show, ADMFLAG_CHEATS, "");
-	
+	hCVarRearSpawnMaxTrailingDistance = CreateConVar("ss2_rearspawn_max_trailing_distance", "150", "Limit set on ", FCVAR_PLUGIN, true, 0.0);
 	g_hPlayerTrackNavAreaInfoHudSync = CreateHudSynchronizer();	
 }
 
@@ -74,9 +76,13 @@ public Action Command_Show(int client,int args)
                                                  								AUTOMATIC SPAWNING
                                                                     
 ***********************************************************************************************************************************************************************************/
-
+ /* 
+	 * TODO: 
+	 * - spawns are appearing in clustered locationsl, ook into reducing spawn condition check strictness
+	 */
 stock void NavMeshSpawn ( const int SpawnQueue[MAXPLAYERS] )
 {
+	int rearSurvivorFlow = GetRearSurvivorFlow(); // The rear survivor's flow distance is required to prevent spawns later spawning too far behind
 	ArrayList ProximateSpawns;
 	ProximateSpawns = new ArrayList();
 	
@@ -104,35 +110,47 @@ stock void NavMeshSpawn ( const int SpawnQueue[MAXPLAYERS] )
 						PopStackCell(hereProximates, area); 
 						if ( area != INVALID_NAV_AREA && ProximateSpawns.FindValue(area) == -1 )
 						{
-							++countFoundSpawnAreas;
-							if ( CheckSpawnConditions(area) ) // check each tile meets our spawn conditions
+							new Float:posArea[3];
+							int indexArea = view_as<int>(NavMesh_FindAreaByID(view_as<int>(area.ID)));
+							if ( NavMeshArea_GetCenter(indexArea, posArea) ) // returns true if successful
 							{
-								int indexArea = view_as<int>(NavMesh_FindAreaByID(view_as<int>(area.ID)));
-								ProximateSpawns.Push(indexArea); // save this tile
-							} 
+								int flowThisArea = GetFlow(posArea);
+								if ( flowThisArea >= 0 ) // TODO: checking for flow distance invalidates potential spawn areas with no flow distance attached, not sure of ramifications
+								{
+									if ( (rearSurvivorFlow - flowThisArea) < GetConVarFloat(hCVarRearSpawnMaxTrailingDistance) )
+									{
+										++countFoundSpawnAreas;
+										if ( CheckSpawnConditions(area) ) // check each tile meets our spawn conditions
+										{
+											ProximateSpawns.Push(indexArea); // save this tile
+										} 
+									}
+								}
+							}
+							else
+							{
+								PrintToServer("NavMeshSpawn(): Failed to find center position for spawn area of ID: %d; unable to calculate flow distance from rear survivor", indexArea);
+							}
+							
 						} 
 					}
 					delete hereProximates;
 				}
 				else 
 				{
-					LogError("[ SS2_NavMesh ] - No CNavArea found near %s required to search for proximate spawn areas", nameThisSurvivor);
+					PrintToServer("NavMeshSpawn(): No CNavArea found near %s required to search for proximate spawn areas", nameThisSurvivor);
 				}
 			} 
 			else 
 			{
-				LogError("[ SS2_NavMesh ] - Unable to obtain coordinates for survivor %s", nameThisSurvivor);
+				PrintToServer("NavMeshSpawn(): Unable to obtain coordinates for survivor %s", nameThisSurvivor);
 			}
 		}
 	}
-	PrintToServer("Found %d spawns near survivors, of which %d met spawn conditions", countFoundSpawnAreas, ProximateSpawns.Length);
+	PrintToServer("NavMeshSpawn(): Found %d spawns near survivors, of which %d met spawn conditions", countFoundSpawnAreas, ProximateSpawns.Length);
 	
-	
-	if ( ProximateSpawns.Length == 0 )
-	{
-		LogError("[ SS2_NavMesh ] - Failed to find any proximate spawns");
-	} 
-	else {	
+	// Spawn all SI in queue
+	if ( ProximateSpawns.Length > 0 ) {	
 		for( new i = 0; i < MAXPLAYERS; i++ ) 
 		{
 			if( SpawnQueue[i] < 0 ) // end of spawn queue (does not always fill the whole array)
@@ -150,16 +168,12 @@ stock void NavMeshSpawn ( const int SpawnQueue[MAXPLAYERS] )
 				}
 				else
 				{
-					LogError("[ SS2_NavMesh ] - Failed to spawn at NavMesh index %d; cannot determine mesh center coordinates", indexRandomSpawn);
+					PrintToServer("NavMeshSpawn(): Failed to spawn at NavMesh index %d; cannot determine mesh center coordinates", indexRandomSpawn);
 				}	
 			}
 		}
-	 /* Test spawning
-	 * TODO: 
-	 * - Concentrate spawns at the front (flow distance?) 
-	 * - sort by flow distance, NavMesh_GetCost() or both?
-	 * - reduce clumping as they tend to spawn very clustered, which is particularly suboptimal if this occurs at the back
-	 *
+	
+		/* Test spawning	 
 		for ( int spawnClass = 1; spawnClass < 7; ++spawnClass )
 		{
 			if (spawnClass == 2 || spawnClass == 4) continue; // skip support SI for testing lol
@@ -177,6 +191,10 @@ stock void NavMeshSpawn ( const int SpawnQueue[MAXPLAYERS] )
 		}
 		*/
 	}
+	else 
+	{
+		LogError("NavMeshSpawn(): Failed to find any proximate spawns");
+	} 
 	delete ProximateSpawns;
 }
 
@@ -218,7 +236,7 @@ bool CheckSpawnConditions(CNavArea spawn)
 
 stock bool IsSpawnStuck( CNavArea spawnArea ) 
 {
-	// return false; // TODO: Find a way to perform this check; current iteration does not work
+	return false;// TODO: Function is returning too many false positives; almost no spawns 
 	bool isStuck = false;
 	int indexSpawnArea = view_as<int>(NavMesh_FindAreaByID(view_as<int>(spawnArea.ID)));
 	float posSpawnArea[3];
@@ -242,9 +260,9 @@ stock bool IsSpawnStuck( CNavArea spawnArea )
 		} 
 		else 
 		{
-			//char readoutCoordinates[32];
-			//Format(readoutCoordinates, sizeof(readoutCoordinates), "[%f, %f, %f]", posSpawnArea[0], posSpawnArea[1], posSpawnArea[2]);
-			//LogError("[ SS2_NavMesh ] - Skipping spawn without space %s", readoutCoordinates);
+			char readoutCoordinates[32];
+			Format(readoutCoordinates, sizeof(readoutCoordinates), "[%f, %f, %f]", posSpawnArea[0], posSpawnArea[1], posSpawnArea[2]);
+			LogError("[ SS2_NavMesh ] - Spawn position %s deemed to be stuck", readoutCoordinates);
 		}
 	} 
 	else
