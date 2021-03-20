@@ -9,6 +9,8 @@
 #define MAX_SPAWN_NAVMESH_DIST 700.0 // thinking this should be low to minimise spawning on the other side chain link walls
 #define CNAVAREA_MAXID 9999999
 
+new Handle:hCVarRearSpawnMaxTrailingDistance;
+
 /*
 /	CNavArea IDs appear to move into the six digits, whereas the CNavArea area indices move into the four digits
 */
@@ -27,8 +29,8 @@ Handle g_hPlayerTrackNavAreaInfoHudSync = null;
 
 NavMesh_OnModuleStart()
 {
-	RegAdminCmd("sm_navmesh_show", Command_Show, ADMFLAG_CHEATS, "");
-	
+	RegAdminCmd("sm_testnav", Command_Show, ADMFLAG_CHEATS, "");
+	hCVarRearSpawnMaxTrailingDistance = CreateConVar("ss2_rearspawn_max_trailing_distance", "150", "Limit set on ", FCVAR_PLUGIN, true, 0.0);
 	g_hPlayerTrackNavAreaInfoHudSync = CreateHudSynchronizer();	
 }
 
@@ -62,10 +64,10 @@ public Action Command_Show(int client,int args)
 
 	char sArg[16];
 	GetCmdArg(1, sArg, sizeof(sArg));
-	// g_bPlayerTrackNavArea[client] = (StringToInt(sArg) != 0);
-	SearchProximateNavMesh(client); // hijacking command to test navmesh searching function
+	//g_bPlayerTrackNavArea[client] = (StringToInt(sArg) != 0);
 	//Spawn_NavMesh_Direct(client); // manual spawn
-	
+	new nullTestArray[MAXPLAYERS];
+	NavMeshSpawn(nullTestArray); // TODO: remove this testing value once completed
 	return Plugin_Handled;
 }
 
@@ -74,92 +76,208 @@ public Action Command_Show(int client,int args)
                                                  								AUTOMATIC SPAWNING
                                                                     
 ***********************************************************************************************************************************************************************************/
-
-// Find a suitable spawn position for the desired SI class
-void Spawn_NavMesh(L4D2_Infected:SIClass, int minSpawnProximity=400, int maxSpawnProximity=450) // default - spawn very close to survivors
+ /* 
+	 * TODO: 
+	 * - spawns are appearing in clustered locationsl, ook into reducing spawn condition check strictness
+	 */
+stock void NavMeshSpawn ( const int SpawnQueue[MAXPLAYERS] )
 {
-	UpdateSpawnBounds();
-	bool didSpawn = false;
-	for( new i = 0; i < GetConVarInt(hCvarMaxSearchAttempts); i++ ) 
+	int rearSurvivorFlow = GetRearSurvivorFlow(); // The rear survivor's flow distance is required to prevent spawns later spawning too far behind
+	ArrayList ProximateSpawns;
+	ProximateSpawns = new ArrayList();
+	
+	/*
+	 * Collate all spawn areas near survivors
+	 */
+	int countFoundSpawnAreas = 0;
+	for ( int thisClient = 1; thisClient <= MAXPLAYERS; ++thisClient )
 	{
-		float searchPos[3];
-		float survivorPos[3];
-		int closestSurvivor;		
-		// 'x' and 'y' for potential spawn point coordinates is selected with uniform RNG
-		searchPos[COORD_X] = GetRandomFloat(spawnBounds[X_MIN], spawnBounds[X_MAX]);
-		searchPos[COORD_Y] = GetRandomFloat(spawnBounds[Y_MIN], spawnBounds[Y_MAX]);
-		// 'z' for potential spawn point coordinate is taken from the nearest survivor
-		closestSurvivor = GetClosestSurvivor2D(searchPos[COORD_X], searchPos[COORD_Y]);
-		if ( !IsValidClient(closestSurvivor) ) 
+		if ( IsSurvivor(thisClient) && IsPlayerAlive(thisClient) )
 		{
-			LogError("[SS2_NavMesh] Spawn_NavMesh() - Unable to find closest survivor to random coordinates [%f, %f]", searchPos[COORD_X], searchPos[COORD_Y]);
-			continue;
-		}
-		GetClientAbsOrigin(closestSurvivor, survivorPos);
-		searchPos[COORD_Z] = survivorPos[COORD_Z];
-		// Get the closest CNavArea to this random coordinate
-		CNavArea spawnArea = NavMesh_GetNearestArea(searchPos);
-		if ( spawnArea == INVALID_NAV_AREA )
-		{
-			LogError("[SS2_NavMesh] Spawn_NavMesh() - Unable to find a nav mesh tile to spawn near the generated coordinates [%f, %f, %f]", searchPos[0], searchPos[1], searchPos[2]);	
-			continue;
-		}
-		
-		if ( shouldSpawnHere(spawnArea, minSpawnProximity, maxSpawnProximity) )
-		{
-			// Spawn at the center coordinate of the closest CNavArea
-			int iAreaIndex = NavMesh_FindAreaByID(spawnArea.ID);
-			float navmeshArea_center[3];			
-			NavMeshArea_GetCenter(iAreaIndex, navmeshArea_center);
-			/* Appears to cause too much lag when spawning in waves
-			if ( IsPlayerStuck(navmeshArea_center, GetRandomSurvivor()) )
+			float posThisSurvivor[3]; // Need this survivor's coordinates to start search
+			char nameThisSurvivor[32]; 
+			GetClientName(thisClient, nameThisSurvivor, sizeof(nameThisSurvivor)); 
+			if ( GetClientAbsOrigin(thisClient, posThisSurvivor) )
 			{
-				LogError("[SS2_NavMesh] Spawn_NavMesh() - Ignored an acceptable spawn area as the infected would have been stuck");
-				continue;
-			} */
-			TriggerSpawn(SIClass, navmeshArea_center, NULL_VECTOR);
-			didSpawn = true;
-			break;
-		} 
-	}
-	if ( !didSpawn ) 
-	{
-		LogError("[SS2_NavMesh] Spawn_NavMesh() - Failed to find a valid spawn for SI class %d within %d distance of survivors", _:SIClass, GetConVarInt(hCvarSpawnProximityMax));
-	}
-}
-
-bool shouldSpawnHere(CNavArea spawn, minSpawnProximity, maxSpawnProximity)
-{
-	bool shouldSpawn = false;
-	// Find shortest path cost to any member of the survivor team
-	int shortestPath = -1;
-	for ( int i = 1; i <= MAXPLAYERS; ++i )
-	{
-		if ( IsSurvivor(i) && IsPlayerAlive(i) )
-		{	
-			float survivorPos[3];			
-			GetClientAbsOrigin(i, survivorPos);
-			CNavArea survivorArea = NavMesh_GetNearestArea(survivorPos);
-			bool didBuildPath = NavMesh_BuildPath(spawn, survivorArea, survivorPos, GauntletPathCost); 
-			if ( didBuildPath )
-			{
-				int pathCost = NavMeshArea_GetTotalCost(NavMesh_FindAreaByID(survivorArea.ID)); // TODO: hoping the cost is for the path built in NavMesh_BuildPath
-				if ( pathCost < shortestPath || shortestPath == -1 )
+				CNavArea areaThisSurvivor = NavMesh_GetNearestArea(posThisSurvivor); // Identify closest navmesh tile from their coordinates
+				if ( areaThisSurvivor != INVALID_NAV_AREA )
 				{
-					shortestPath = pathCost;	
+					ArrayStack hereProximates = new ArrayStack(); // Get nearby navmesh tiles
+					NavMesh_CollectSurroundingAreas(hereProximates, areaThisSurvivor); 
+					while ( !hereProximates.Empty )
+					{
+						CNavArea area = INVALID_NAV_AREA; // for each discovered tile, check we have not seen it before 
+						PopStackCell(hereProximates, area); 
+						if ( area != INVALID_NAV_AREA && ProximateSpawns.FindValue(area) == -1 )
+						{
+							new Float:posArea[3];
+							int indexArea = view_as<int>(NavMesh_FindAreaByID(view_as<int>(area.ID)));
+							if ( NavMeshArea_GetCenter(indexArea, posArea) ) // returns true if successful
+							{
+								int flowThisArea = GetFlow(posArea);
+								if ( flowThisArea >= 0 ) // TODO: checking for flow distance invalidates potential spawn areas with no flow distance attached, not sure of ramifications
+								{
+									if ( (rearSurvivorFlow - flowThisArea) < GetConVarFloat(hCVarRearSpawnMaxTrailingDistance) )
+									{
+										++countFoundSpawnAreas;
+										if ( CheckSpawnConditions(area) ) // check each tile meets our spawn conditions
+										{
+											ProximateSpawns.Push(indexArea); // save this tile
+										} 
+									}
+								}
+							}
+							else
+							{
+								PrintToServer("NavMeshSpawn(): Failed to find center position for spawn area of ID: %d; unable to calculate flow distance from rear survivor", indexArea);
+							}
+							
+						} 
+					}
+					delete hereProximates;
 				}
+				else 
+				{
+					PrintToServer("NavMeshSpawn(): No CNavArea found near %s required to search for proximate spawn areas", nameThisSurvivor);
+				}
+			} 
+			else 
+			{
+				PrintToServer("NavMeshSpawn(): Unable to obtain coordinates for survivor %s", nameThisSurvivor);
 			}
 		}
 	}
-	// Return whether this shortest calculated path length is acceptable
-	if ( shortestPath > minSpawnProximity && shortestPath < maxSpawnProximity ) // arbitrary for now
+	PrintToServer("NavMeshSpawn(): Found %d spawns near survivors, of which %d met spawn conditions", countFoundSpawnAreas, ProximateSpawns.Length);
+	
+	// Spawn all SI in queue
+	if ( ProximateSpawns.Length > 0 ) {	
+		for( new i = 0; i < MAXPLAYERS; i++ ) 
+		{
+			if( SpawnQueue[i] < 0 ) // end of spawn queue (does not always fill the whole array)
+			{ 
+				break;
+			}
+			else
+			{
+				int spawnIndex = GetRandomInt(0, ProximateSpawns.Length - 1);	
+				int indexRandomSpawn = ProximateSpawns.Get(spawnIndex);
+				float posRandomSpawn[3]; 
+				if ( NavMeshArea_GetCenter(indexRandomSpawn, posRandomSpawn) ) // returns true if successful
+				{
+					TriggerSpawn( L4D2_Infected:(SpawnQueue[i] + 1), posRandomSpawn, NULL_VECTOR);
+				}
+				else
+				{
+					PrintToServer("NavMeshSpawn(): Failed to spawn at NavMesh index %d; cannot determine mesh center coordinates", indexRandomSpawn);
+				}	
+			}
+		}
+	
+		/* Test spawning	 
+		for ( int spawnClass = 1; spawnClass < 7; ++spawnClass )
+		{
+			if (spawnClass == 2 || spawnClass == 4) continue; // skip support SI for testing lol
+			int spawnIndex = GetRandomInt(0, ProximateSpawns.Length - 1);	
+			int indexRandomSpawn = ProximateSpawns.Get(spawnIndex);
+			float posRandomSpawn[3]; 
+			if ( NavMeshArea_GetCenter(indexRandomSpawn, posRandomSpawn) ) // returns true if successful
+			{
+				TriggerSpawn( L4D2_Infected:spawnClass, posRandomSpawn, NULL_VECTOR);
+			}
+			else
+			{
+				LogError("[ SS2_NavMesh ] - Failed to spawn at NavMesh index %d; cannot determine mesh center coordinates", indexRandomSpawn);
+			}	
+		}
+		*/
+	}
+	else 
 	{
-		shouldSpawn = true;	
+		LogError("NavMeshSpawn(): Failed to find any proximate spawns");
+	} 
+	delete ProximateSpawns;
+}
+
+bool CheckSpawnConditions(CNavArea spawn)
+{
+	bool shouldSpawn = false;
+	
+	if ( !IsSpawnStuck(spawn) )
+	{
+		int shortestPath = -1; // Find shortest path cost to any member of the survivor team
+		for ( int thisClient = 1; thisClient <= MAXPLAYERS; ++thisClient )
+		{
+			if ( IsSurvivor(thisClient) && IsPlayerAlive(thisClient) )
+			{	
+				float posThisSurvivor[3];			
+				GetClientAbsOrigin(thisClient, posThisSurvivor);
+				CNavArea areaThisSurvivor = NavMesh_GetNearestArea(posThisSurvivor); 
+				int indexAreaThisSurvivor = view_as<int>(NavMesh_FindAreaByID(view_as<int>(areaThisSurvivor.ID)));
+				bool didBuildPath = NavMesh_BuildPath(spawn, areaThisSurvivor, posThisSurvivor, GauntletPathCost); 
+				if ( didBuildPath )
+				{
+					// TODO: hoping the cost is for the path built in NavMesh_BuildPath
+					int pathCost = NavMeshArea_GetTotalCost(indexAreaThisSurvivor); 
+					if ( pathCost < shortestPath || shortestPath == -1 )
+					{
+						shortestPath = pathCost; // update the shortest path found to survivors from this position
+					}
+				}
+			}
+		}
+		// Return whether this shortest calculated path length is acceptable
+		if ( shortestPath > GetConVarInt(hCvarSpawnProximityMin) && shortestPath < GetConVarInt(hCvarSpawnProximityMax) ) 
+		{
+			shouldSpawn = true;	
+		}
 	}
 	return shouldSpawn;	
 }
 
-public int GauntletPathCost(CNavArea area, CNavArea from, CNavLadder ladder, any data)
+stock bool IsSpawnStuck( CNavArea spawnArea ) 
+{
+	return false;// TODO: Function is returning too many false positives; almost no spawns 
+	bool isStuck = false;
+	int indexSpawnArea = view_as<int>(NavMesh_FindAreaByID(view_as<int>(spawnArea.ID)));
+	float posSpawnArea[3];
+	if ( NavMeshArea_GetCenter(indexSpawnArea, posSpawnArea) ) // need coordinates to run collision check
+	{
+		/*
+		 * Testing with DirectedInfectedSpawn SI appears to indicate all standard SI return the same mins and maxs values below
+		 * We are inflating a bit here to reduce chance of being stuck
+		 */
+		float mins[3] = {-16.0, -16.0, 0.0};
+		float maxs[3] = {16.0, 16.0, 71.0};		
+		for( new i = 0; i < sizeof(mins); i++ ) 
+		{
+		    mins[i] -= BOUNDINGBOX_INFLATION_OFFSET;
+		    maxs[i] += BOUNDINGBOX_INFLATION_OFFSET;
+		}	
+		TR_TraceHullFilter(posSpawnArea, posSpawnArea, mins, maxs, MASK_SOLID, TraceEntityFilterSolid); // collision check
+		if ( TR_DidHit() )
+		{
+			isStuck = true;
+		} 
+		else 
+		{
+			char readoutCoordinates[32];
+			Format(readoutCoordinates, sizeof(readoutCoordinates), "[%f, %f, %f]", posSpawnArea[0], posSpawnArea[1], posSpawnArea[2]);
+			LogError("[ SS2_NavMesh ] - Spawn position %s deemed to be stuck", readoutCoordinates);
+		}
+	} 
+	else
+	{
+		LogError("[ SS2_NavMesh ] - Failed to find coordinates of nav mesh while checking for space to spawn: Nav mesh ID %d", indexSpawnArea);
+	}
+	return isStuck;
+}  
+
+public bool:TraceEntityFilterSolid(entity, contentsMask) 
+{
+	return entity > MaxClients;
+}
+
+int GauntletPathCost(CNavArea area, CNavArea from, CNavLadder ladder, any data)
 {
 	if (from == INVALID_NAV_AREA)
 	{
@@ -191,127 +309,12 @@ public int GauntletPathCost(CNavArea area, CNavArea from, CNavLadder ladder, any
 
 /***********************************************************************************************************************************************************************************
 
-                                                 								DISPLAY NAVMESHES CLOSE TO SURVIVORS
-                                                                    
-***********************************************************************************************************************************************************************************/
-
-stock void SearchProximateNavMesh(int client)
-{
-	ArrayList CNavAreaProximates; // final results
-	CNavAreaProximates = new ArrayList(CNAVAREA_MEMORYSIZE, CNAVAREA_ARRAYSIZE);
-	ArrayStack CNavAreaTraversal; // temp cache for DFS graph search
-	CNavAreaTraversal = new ArrayStack(CNAVAREA_MEMORYSIZE);
-	bool hasTraversed[CNAVAREA_MAXID]; // area ID
-	for ( int i = 0; i < CNAVAREA_MAXID; ++i )
-	{
-		hasTraversed[i] = false;	
-	}
-	
-	// Prepare search by identifying the nav meshes stood upon by the survivors
-	for ( int i = 1; i <= MAXPLAYERS; ++i ) 
-	{
-		if ( IsSurvivor(i) && IsPlayerAlive(i) )
-		{
-			float clientPos[3];
-			GetClientAbsOrigin(i, clientPos);
-			CNavArea area = NavMesh_GetNearestArea(clientPos);
-			if ( area != INVALID_NAV_AREA )
-			{
-				CNavAreaTraversal.Push(area); 
-			}
-		}
-	}	
-	
-	// Unaware of any other search algorithms beside DFS when limited to Stack data structure
-	int traversals = 0; 
-	while (!CNavAreaTraversal.Empty)
-	{
-		// prevent infinite loop
-		if ( traversals > 1000000 )
-		{
-			LogError("[ SS2_NavMesh - SearchProximateNavMesh() ] Possible infinite loop or doubling up on traversals");
-			break;	
-		} 
-		else 
-		{
-			++traversals;
-		}	
-		
-		CNavArea traverseArea = CNavAreaTraversal.Pop();
-		int traverseID = view_as<int>(traverseArea.ID);
-		// if any surrounding areas are within suitable distance, add to arraylist
-		if ( traverseArea != INVALID_NAV_AREA && !hasTraversed[traverseID])
-		{
-			hasTraversed[traverseID] = true;	
-			// get adjacent areas for each cardinal direction
-			for ( int iNavDir = 0; iNavDir < NAV_DIR_COUNT; iNavDir++ )
-			{
-				ArrayStack adjacentAreas;
-				adjacentAreas = NavMeshArea_GetAdjacentList(adjacentAreas, NavMesh_FindAreaByID(traverseID), iNavDir);
-				while ( !IsStackEmpty(adjacentAreas) ) // 
-				{
-					CNavArea adjacent = adjacentAreas.Pop();
-					int adjacentID = view_as<int>(adjacent.ID);
-					if ( adjacent != INVALID_NAV_AREA && !hasTraversed[adjacentID] ) // prevent adding adjacent area twice
-					{
-						hasTraversed[adjacentID] = true;
-						float areaPos[3];
-						NavMeshArea_GetCenter(NavMesh_FindAreaByID(view_as<int>(adjacent.ID)), areaPos);
-						float closestPos[3];
-						int clientClosest = GetClosestSurvivor(areaPos);		
-						if ( clientClosest == -1 )
-						{
-							LogError("[ SS2_NavMesh - SearchProximateNavMesh() ] Could not find closest survivor to area ID %d", view_as<int>(adjacent.ID) );
-							return;
-						}
-						GetClientAbsOrigin(clientClosest, closestPos);
-						float distToSurv = GetVectorDistance(areaPos, closestPos);
-						if ( distToSurv < 650 ) // keep traversing from this area
-						{
-							CNavAreaTraversal.Push(adjacent);
-							if ( distToSurv > 300 ) // distance spawn parameter met, add to spawn list
-							{
-								for ( int i = 0; i < CNavAreaProximates.Length; ++i )
-								{
-									if ( CNavAreaProximates.Get(i) == INVALID_NAV_AREA )
-									{
-										CNavAreaProximates.Set(i, adjacent);
-									}
-								}	
-							}
-						}
-					}
-				}	
-				delete adjacentAreas;
-			}
-		}
-	}
-	
-	// Display results and clean up memory
-	int countDrawnAreas = 0;
-	for ( int i = 0; i < CNavAreaProximates.Length; ++i )
-	{
-		CNavArea area = CNavAreaProximates.Get(i);
-		if ( area != INVALID_NAV_AREA )
-		{
-			DrawNavArea( client, area, FocusedAreaColor, 3.0 );
-			++countDrawnAreas;
-		}
-	}
-	PrintToChatAll("Drew %d areas, discovered over %d traversals", countDrawnAreas, traversals);
-	delete CNavAreaProximates;
-	delete CNavAreaTraversal;
-}
-
-
-/***********************************************************************************************************************************************************************************
-
                                                  							MANUAL SPAWNING (for testing)
                                                                     
 ***********************************************************************************************************************************************************************************/
 
 // Spawn spitters to demarcate the navmeshes with the allocated restrictions 
-void Spawn_NavMesh_Direct(client)
+stock void Spawn_NavMesh_Direct(client)
 {
 	// determine centre of spawning area
 	float clientPos[3];
@@ -323,23 +326,23 @@ void Spawn_NavMesh_Direct(client)
 	NavMesh_CollectSurroundingAreas(spawnAreas, searchCentre, MAX_SPAWN_NAVMESH_DIST, StepHeight, StepHeight); // keep low enough to prevent spawning on the other side of the wall in labyrinth map layouts	
 	while (!IsStackEmpty(spawnAreas))
 	{
-		CNavArea area = spawnAreas.Pop();
-		if (area != INVALID_NAV_AREA)
+		CNavArea thisArea = spawnAreas.Pop();
+		if (thisArea != INVALID_NAV_AREA)
 		{
-			float areaPos[3];
-			int iAreaIndex = NavMesh_FindAreaByID(area.ID);
-			int travelCost = NavMeshArea_GetTotalCost(iAreaIndex);
+			float posThisArea[3];
+			int indexThisArea = view_as<int>(thisArea.ID);
+			int travelCost = NavMeshArea_GetTotalCost(indexThisArea);
 			if ( travelCost > 300 && travelCost < 650 ) // considering nav meshes within a specific range
 			{
-				CreateInfected("spitter", areaPos, NULL_VECTOR);
+				CreateInfected("spitter", posThisArea, NULL_VECTOR);
 			}
-			DrawNavArea( client, area, FocusedAreaColor, 3.0 );
+			DrawNavArea( client, thisArea, FocusedAreaColor, 3.0 );
 		}
 	}
 	delete spawnAreas;
 }
 
-int GetDistance2D(float alpha[3], float beta[3])
+stock int GetDistance2D(float alpha[3], float beta[3])
 {
 	float distance = SquareRoot( Pow(alpha[COORD_X] - beta[COORD_X], 2.0) + Pow(alpha[COORD_Y] - beta[COORD_Y], 2.0) ); // Pythagoras
 	return RoundToNearest(distance);

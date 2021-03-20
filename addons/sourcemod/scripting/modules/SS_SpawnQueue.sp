@@ -36,12 +36,22 @@ GenerateAndExecuteSpawnQueue() {
 			SpawnCounts[index] += 1;
 		}	
 		// Execute the spawn queue
-		for( new i = 0; i < MAXPLAYERS; i++ ) {
-			if( SpawnQueue[i] < 0 ) { // end of spawn queue (does not always fill the whole array)
-				break;
-			}
-			AttemptSpawnAuto(L4D2_Infected:(SpawnQueue[i] + 1));
+		if ( GetConVarInt(hCvarSpawnPositionerMode) == 3 ) 
+		{
+			NavMeshSpawn(SpawnQueue);
 		}
+		else 
+		{ // for old spawn times, generate spawn locations one at a time
+			for( new i = 0; i < MAXPLAYERS; i++ ) 
+			{
+				if( SpawnQueue[i] < 0 ) // end of spawn queue (does not always fill the whole array)
+				{ 
+					break;
+				}
+				AttemptSpawnAuto(L4D2_Infected:(SpawnQueue[i] + 1));
+			}
+		}
+		
 	}
 }
 
@@ -52,22 +62,22 @@ SITypeCount() { //Count the number of each SI ingame
 	for( new i = 1; i < MaxClients; i++ ) {
 		if( IsBotInfected(i) && IsPlayerAlive(i) ) { 
 			switch( L4D2_Infected:GetEntProp(i, Prop_Send, "m_zombieClass") ) { //detect SI type
-				case L4D2Infected_Smoker:
-					SpawnCounts[_:L4D2Infected_Smoker - 1]++; // array indices start 0, where L4D2Infected numbering starts from 1
+				case (L4D2Infected_Smoker):
+					SpawnCounts[_:L4D2Infected_Smoker]++; // array indices start 0, where L4D2Infected numbering starts from 1
 				
-				case L4D2Infected_Boomer:
+				case (L4D2Infected_Boomer):
 					SpawnCounts[_:L4D2Infected_Boomer - 1]++;
 				
-				case L4D2Infected_Hunter:
+				case (L4D2Infected_Hunter):
 					SpawnCounts[_:L4D2Infected_Hunter - 1]++;
 					
-				case L4D2Infected_Spitter:
+				case (L4D2Infected_Spitter):
 					SpawnCounts[_:L4D2Infected_Spitter - 1]++;
 				
-				case L4D2Infected_Jockey:
+				case (L4D2Infected_Jockey):
 					SpawnCounts[_:L4D2Infected_Jockey - 1]++;
 				
-				case L4D2Infected_Charger:
+				case (L4D2Infected_Charger):
 					SpawnCounts[_:L4D2Infected_Charger - 1]++;
 				
 				default:

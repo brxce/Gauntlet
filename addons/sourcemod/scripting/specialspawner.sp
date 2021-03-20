@@ -19,10 +19,18 @@ new Handle:hCvarConfigName;
 new Handle:hCvarLineOfSightStarvationTime;
 new Handle:hTimerHUD;
 
+// SpawnPositioner module
+new Handle:hCvarSpawnPositionerMode;
+new Handle:hCvarMaxSearchAttempts;
+new Handle:hCvarSpawnSearchHeight;
+new Handle:hCvarSpawnProximityMin;
+new Handle:hCvarSpawnProximityMax;
+new Handle:hCvarSpawnProximityFlowNoLOS;
+new Handle:hCvarSpawnProximityFlowLOS; 
+
 new bool:bShowSpawnerHUD[MAXPLAYERS];
 new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 
-// Modules
 #include "includes/hardcoop_util.sp"
 #include "modules/SS_SpawnQuantities.sp"
 #include "modules/SS_SpawnTimers.sp"
@@ -30,6 +38,7 @@ new Float:g_fTimeLOS[100000]; // not sure what the largest possible userid is
 #include "modules/SS_SpawnPositioner.sp"
 #include "modules/SS2_DirectInfectedSpawn.sp"
 #include "modules/SS2_NavMesh.sp"
+
 
 /***********************************************************************************************************************************************************************************
      					All credit for the spawn timer, quantities and queue modules goes to the developers of the 'l4d2_autoIS' plugin                            
@@ -44,7 +53,8 @@ public Plugin:myinfo =
 	url = ""
 };
 
-public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], errMax) { 
+public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], errMax) 
+{ 
 	// L4D2 check
 	decl String:mod[32];
 	GetGameFolderName(mod, sizeof(mod));
@@ -133,9 +143,12 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	// Disable for PvP modes
 	decl String:gameMode[16];
 	GetConVarString(FindConVar("mp_gamemode"), gameMode, sizeof(gameMode));
-	if( StrContains(gameMode, "versus", false) != -1 || StrContains(gameMode, "scavenge", false) != -1 ) {
+	if( StrContains(gameMode, "versus", false) != -1 || StrContains(gameMode, "scavenge", false) != -1 )
+	{
 		SetFailState("Plugin does not support PvP modes");
-	} else if( StrContains(gameMode, "survival", false) == -1 ) { // would otherwise cause spawns in survival before button is pressed
+	} 
+	else if ( StrContains(gameMode, "survival", false) == -1 ) 
+	{ // would otherwise cause spawns in survival before button is pressed
 		g_bHasSpawnTimerStarted = false;
 		StartSpawnTimer();
 		StartBoomerTimer();
@@ -450,7 +463,7 @@ public Action:Cmd_StartSpawnTimerManually(client, args) {
 ***********************************************************************************************************************************************************************************/
 
 public Action:OnPlayerRunCmd( client, &buttons ) {
-	if( !IsFakeClient(client) && buttons & IN_USE && buttons & IN_RELOAD ) {
+	if( IsValidClient(client) && !IsFakeClient(client) && buttons & IN_USE && buttons & IN_RELOAD ) {
 		bShowSpawnerHUD[client] = true;
 	} else {
 		bShowSpawnerHUD[client] = false;

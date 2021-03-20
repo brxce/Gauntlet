@@ -3,7 +3,7 @@
 #define PI 3.14159265359
 #define UNINITIALISED_FLOAT -1.42424
 
-#define BOUNDINGBOX_INFLATION_OFFSET 3
+#define BOUNDINGBOX_INFLATION_OFFSET 0.5
 #define NAV_MESH_HEIGHT 20.0
 #define DEBUG_DRAW_ELEVATION 100.0
 
@@ -25,14 +25,6 @@
 #define SPAWN_FAIL 2
 #define WHITE 3
 #define PURPLE 4
-
-new Handle:hCvarSpawnPositionerMode;
-new Handle:hCvarMaxSearchAttempts;
-new Handle:hCvarSpawnSearchHeight;
-new Handle:hCvarSpawnProximityMin;
-new Handle:hCvarSpawnProximityMax;
-new Handle:hCvarSpawnProximityFlowNoLOS;
-new Handle:hCvarSpawnProximityFlowLOS; 
 
 new g_AllSurvivors[MAXPLAYERS]; // MAXPLAYERS because who knows what survivor limit people may use
 new Float:spawnBounds[4]; // denoted by minimum and maximum X and Y coordinates
@@ -78,15 +70,19 @@ public SpawnPositionerMode() {
                                                                     
 ***********************************************************************************************************************************************************************************/
 
+// Handles radial and grid spawning; Nav Mesh spawning is handled differently in SpawnQueue module and does not pass on to here.
 AttemptSpawnAuto(L4D2_Infected:SIClass)
 {
-	if( CheckSurvivorsSeparated() ) {
+	if( CheckSurvivorsSeparated() )
+	{
 		RadialSpawn( SIClass, GetLeadSurvivor() );	
-	} else if( GetConVarInt(hCvarSpawnPositionerMode) == 2 ) {
+	}
+	else if( GetConVarInt(hCvarSpawnPositionerMode) == 2 ) 
+	{
 		GridSpawn( SIClass );
-	} else if( GetConVarInt(hCvarSpawnPositionerMode) == 3 ) {
-		Spawn_NavMesh( SIClass, GetConVarInt(hCvarSpawnProximityMin), GetConVarInt(hCvarSpawnProximityMax) );
-	} else {
+	} 
+	else 
+	{ 
 		RadialSpawn( SIClass, GetRandomSurvivor() );
 	}
 }
@@ -140,7 +136,6 @@ GridSpawn( L4D2_Infected:SIClass ) {
 						searchPos[COORD_Z] = DEBUG_DRAW_ELEVATION;
 						DrawBeam( searchPos, spawnPos, VALID_MESH );
 					#endif
-					
 				TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); // all spawn conditions satisifed
 				return;
 				

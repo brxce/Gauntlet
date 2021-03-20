@@ -108,7 +108,7 @@ public Action:SpawnInfectedAuto(Handle:timer) {
 
 public Action:Timer_BoomerAmbush(Handle:timer) {
 	g_bHasBoomerTimerStarted = false;
-	Spawn_NavMesh(L4D2Infected_Boomer);
+	// Spawn_NavMesh(L4D2Infected_Boomer); // rewriting spawn function
 	StartBoomerTimer();	
 }
 

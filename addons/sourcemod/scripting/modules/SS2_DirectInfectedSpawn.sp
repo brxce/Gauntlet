@@ -1,7 +1,6 @@
 /*
 	The base functionality of this code was written by ShadowSyn, using ProdigySim's gamedata
 	(https://forums.alliedmods.net/showthread.php?t=320849)
-	(https://github.com/ProdigySim)
 	- The program flow has been restructured to support a spawn function that can be passed position and angular coordinates
 	- The spawn commands have been rewritten for debugging purposes
 	- version cvar and game engine checking have been removed
@@ -251,12 +250,12 @@ CreateInfected()	- Uses SI names(to differentiate witch and witch bride)
 ***********************************************************************************************************************************************************************************/
 
 // Does not perform spawning; handles timing of spawn event 
-void TriggerSpawn( Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
+void TriggerSpawn( L4D2_Infected:desiredClass, float pos[3], float ang[3])
 {
 	int kick = KickDeadInfectedBots();
 	if (kick <= 0) // spawn immediately without delay
     {
-   		ProcessSpawn(Left4Dead2_Infected:desiredClass, pos, ang);
+   		ProcessSpawn(L4D2_Infected:desiredClass, pos, ang);
 	} 
 	else { // spawn on short delay
 		DataPack data = CreateDataPack();
@@ -294,37 +293,45 @@ Action Timer_CreateInfected(Handle timer, DataPack data)
 		CloseHandle(data);
 	}
 	
-	ProcessSpawn(Left4Dead2_Infected:desiredClass, pos, ang);
+	ProcessSpawn(L4D2_Infected:desiredClass, pos, ang);
 }
 
-void ProcessSpawn (Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
+void ProcessSpawn (L4D2_Infected:desiredClass, float pos[3], float ang[3])
 {
 	int spawnedClient;
-	switch (_:desiredClass)
+	switch (desiredClass)
 	{
-		case L4D2Infected_Smoker:
+		case (L4D2Infected_Smoker):
 		{
 			spawnedClient = CreateInfected("smoker", pos, ang);
 		}
-		case L4D2Infected_Boomer:
+		case (L4D2Infected_Boomer):
 		{
 			spawnedClient = CreateInfected("boomer", pos, ang);
 		}
-		case L4D2Infected_Hunter:
+		case (L4D2Infected_Hunter):
 		{
 			spawnedClient = CreateInfected("hunter", pos, ang);
 		}
-		case L4D2Infected_Spitter:
+		case (L4D2Infected_Spitter):
 		{
 			spawnedClient = CreateInfected("spitter", pos, ang);
 		}
-		case L4D2Infected_Jockey:
+		case (L4D2Infected_Jockey):
 		{
 			spawnedClient = CreateInfected("jockey", pos, ang);
 		}
-		case L4D2Infected_Charger:
+		case (L4D2Infected_Charger):
 		{
 			spawnedClient = CreateInfected("charger", pos, ang);
+		}
+		case (L4D2Infected_Witch):
+		{
+			spawnedClient = CreateInfected("witch", pos, ang);
+		}
+		case (L4D2Infected_Tank):
+		{
+			spawnedClient = CreateInfected("tank", pos, ang);
 		}
 		default:
 		{
@@ -333,7 +340,7 @@ void ProcessSpawn (Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
 	}
 	if (!IsValidEntity(spawnedClient))
 	{
-		LogError("[SS2] DirectInfectedSpawn - Failed to spawn SI class %d at position [%f, %f, %f]", _:desiredClass, pos[0], pos[1], pos[2]);
+		LogError("[ SS2_DirectInfectedSpawn ] - Failed to spawn SI class %d at position [%f, %f, %f]", _:desiredClass, pos[0], pos[1], pos[2]);
 	}	
 }
 
@@ -421,7 +428,7 @@ int CreateInfected(const char[] zomb, float[3] pos, float[3] ang)
 		data.WriteFloat(pos[2]);
 		data.WriteFloat(ang[1]);
 		data.WriteCell(bot);
-		RequestFrame(RequestFrame_SetPos, data);
+		RequestFrame(RequestFrame_SetPos, data); 
 	}
 	
 	return bot;
