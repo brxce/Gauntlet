@@ -127,7 +127,9 @@ GridSpawn( L4D2_Infected:SIClass ) {
 			new Float:traceImpact[3];
 			new Float:spawnPos[3];
 			TR_GetEndPosition( traceImpact ); 
-			spawnPos = traceImpact;
+			spawnPos[0] = traceImpact[0];
+			spawnPos[1] = traceImpact[1];
+			spawnPos[2] = traceImpact[2];
 			spawnPos[COORD_Z] += NAV_MESH_HEIGHT; // from testing I presume the SI cannot spawn on the floor itself
 			
 			if ( IsValidSpawn(spawnPos) ) {
@@ -139,7 +141,7 @@ GridSpawn( L4D2_Infected:SIClass ) {
 						DrawBeam( gridPos, spawnPos, VALID_MESH );
 					#endif
 					
-				TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); // all spawn conditions satisifed
+				SS2DIS_TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); // all spawn conditions satisifed
 				return;
 				
 			} else {
@@ -312,7 +314,7 @@ RadialSpawn( L4D2_Infected:SIClass, survivorTarget ) {
 						DrawBeam( rayEnd, spawnPos, VALID_MESH ); 
 					#endif
 						
-				TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); 
+				SS2DIS_TriggerSpawn(SIClass, spawnPos, NULL_VECTOR); 
 				spawnSuccess = true;
 				break;
 					

@@ -1,4 +1,5 @@
 new Handle:hSpawnTimer;
+new Handle:hGracePeriodTimer;
 new Handle:hSpawnTimeMode;
 new Handle:hSpawnTimeMin;
 new Handle:hSpawnTimeMax;
@@ -8,11 +9,9 @@ new Handle:hCvarIncapAllowance;
 new Float:SpawnTimes[MAXPLAYERS];
 new Float:IntervalEnds[NUM_TYPES_INFECTED];
 
-new g_bHasSpawnTimerStarted = true;
-
 SpawnTimers_OnModuleStart() {
 	// Timer
-	hSpawnTimeMin = CreateConVar("ss_time_min", "12.0", "The minimum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 0.0);
+	hSpawnTimeMin = CreateConVar("ss_time_min", "12.0", "The minimum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 1.0);
 	hSpawnTimeMax = CreateConVar("ss_time_max", "15.0", "The maximum auto spawn time (seconds) for infected", FCVAR_PLUGIN, true, 1.0);
 	hSpawnTimeMode = CreateConVar("ss_time_mode", "1", "The spawn time mode [ 0 = RANDOMIZED | 1 = INCREMENTAL | 2 = DECREMENTAL ]", FCVAR_PLUGIN, true, 0.0, true, 2.0);
 	HookConVarChange(hSpawnTimeMin, ConVarChanged:CalculateSpawnTimes);
@@ -22,6 +21,16 @@ SpawnTimers_OnModuleStart() {
 	hCvarIncapAllowance = CreateConVar( "ss_incap_allowance", "7", "Grace period(sec) per incapped survivor" );
 	// sets SpawnTimeMin, SpawnTimeMax, and SpawnTimes[]
 	SetSpawnTimes(); 
+}
+
+SpawnTimers_OnFirstSurvivorLeftSafeArea() 
+{
+	StartSpawnTimer();
+}
+
+SpawnTimers_OnRoundOver()
+{
+	EndSpawnTimer();
 }
 
 SpawnTimers_OnModuleEnd() {
@@ -38,30 +47,28 @@ SpawnTimers_OnModuleEnd() {
 StartCustomSpawnTimer(Float:time) {
 	//prevent multiple timer instances
 	EndSpawnTimer();
-	//only start spawn timer if plugin is enabled
-	g_bHasSpawnTimerStarted = true;
-	hSpawnTimer = CreateTimer( time, SpawnInfectedAuto, TIMER_FLAG_NO_MAPCHANGE );
+	StartSpawnTimer(time);
 }
 
-//special infected spawn timer based on time modes
-StartSpawnTimer() {
-	//prevent multiple timer instances
-	EndSpawnTimer();
-	//only start spawn timer if plugin is enabled
-	new Float:time;
-	
-	if( GetConVarInt(hSpawnTimeMode) > 0 ) { //NOT randomization spawn time mode
-		time = SpawnTimes[CountSpecialInfectedBots()]; //a spawn time based on the current amount of special infected
-	} else { //randomization spawn time mode
-		time = GetRandomFloat( GetConVarFloat(hSpawnTimeMin), GetConVarFloat(hSpawnTimeMax) ); //a random spawn time between min and max inclusive
+// 
+StartSpawnTimer(Float:time=-1.0) {
+	// if a custom spawn time was passed, check its value and run if valid
+	if ( time != -1.0 )
+	{
+		hSpawnTimer = CreateTimer( time, Timer_SpawnInfectedAuto );
+	} else
+	{
+		//only start spawn timer if plugin is enabled
+		if( GetConVarInt(hSpawnTimeMode) > 0 ) { //NOT randomization spawn time mode
+			time = SpawnTimes[CountSpecialInfectedBots()]; //a spawn time based on the current amount of special infected
+		} else { //randomization spawn time mode
+			time = GetRandomFloat( GetConVarFloat(hSpawnTimeMin), GetConVarFloat(hSpawnTimeMax) ); //a random spawn time between min and max inclusive
+		}
+		hSpawnTimer = CreateTimer( time, Timer_SpawnInfectedAuto);
 	}
-	g_bHasSpawnTimerStarted = true;
-	hSpawnTimer = CreateTimer( time, SpawnInfectedAuto, TIMER_FLAG_NO_MAPCHANGE );
-	
 		#if DEBUG_TIMERS
 			PrintToChatAll("[SS] New spawn timer | Mode: %d | SI: %d | Next: %.3f s", GetConVarInt(hSpawnTimeMode), CountSpecialInfectedBots(), time);
 		#endif
-		
 }
 
 /***********************************************************************************************************************************************************************************
@@ -70,30 +77,30 @@ StartSpawnTimer() {
                                                                     
 ***********************************************************************************************************************************************************************************/
 
-public Action:SpawnInfectedAuto(Handle:timer) {
-	g_bHasSpawnTimerStarted = false; 
-	// Grant grace period before allowing a wave to spawn if there are incapacitated survivors
+public Action:Timer_SpawnInfectedAuto(Handle:timer) {
+	hSpawnTimer = null;
+	// Check how many survivors are incapped
 	new numIncappedSurvivors = 0;
 	for (new i = 1; i <= MaxClients; i++ ) {
 		if( IsSurvivor(i) && IsIncapacitated(i) && !IsPinned(i) ) {
 			numIncappedSurvivors++;			
 		}
 	}
-	if( numIncappedSurvivors > 0 && numIncappedSurvivors != GetConVarInt(FindConVar("survivor_limit")) ) { // grant grace period
+	// Grant grace period before allowing a wave to spawn if the team is partially but not completely incapacitated
+	if( numIncappedSurvivors > 0 && numIncappedSurvivors != GetConVarInt(FindConVar("survivor_limit")) ) { // spawn after delay
 		new gracePeriod = numIncappedSurvivors * GetConVarInt(hCvarIncapAllowance);
-		CreateTimer( float(gracePeriod), Timer_GracePeriod, _, TIMER_FLAG_NO_MAPCHANGE );
+		hGracePeriodTimer = CreateTimer( float(gracePeriod), Timer_GracePeriod, _, TIMER_FLAG_NO_MAPCHANGE );
 		CPrintToChatAll("{olive}[{default}SS{olive}]{default} {blue}%d{default}s {olive}grace period{default} was granted because of {blue}%d{default} incapped survivor(s)", gracePeriod, numIncappedSurvivors);
 	} else { // spawn immediately
 		GenerateAndExecuteSpawnQueue();
+		StartSpawnTimer();
 	}
-	// Start timer for next spawn group
-	StartSpawnTimer();
-	return Plugin_Handled;
 }
 
 public Action:Timer_GracePeriod(Handle:timer) {
+	hGracePeriodTimer = null;
 	GenerateAndExecuteSpawnQueue();
-	return Plugin_Handled;
+	StartSpawnTimer();
 }
 
 /***********************************************************************************************************************************************************************************
@@ -103,17 +110,20 @@ public Action:Timer_GracePeriod(Handle:timer) {
 ***********************************************************************************************************************************************************************************/
 
 EndSpawnTimer() {
-	if( g_bHasSpawnTimerStarted ) {
-		if( hSpawnTimer != INVALID_HANDLE ) {
-			CloseHandle(hSpawnTimer);
-			hSpawnTimer = INVALID_HANDLE;
-		}
-		g_bHasSpawnTimerStarted = false;
+	if (hSpawnTimer != null) 
+	{
+		delete hSpawnTimer;
 		
-			#if DEBUG_TIMERS
-				PrintToChatAll("[SS] Ending spawn timer.");
-			#endif
-		
+		#if DEBUG_TIMERS
+			PrintToChatAll("[SS] Ending spawn timer.");
+		#endif
+	}
+	if ( hGracePeriodTimer != null )
+	{
+		delete hGracePeriodTimer;
+		#if DEBUG_TIMERS
+			PrintToChatAll("[SS] Ending grace period timer.");
+		#endif
 	}
 }
 

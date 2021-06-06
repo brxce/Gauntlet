@@ -2,7 +2,7 @@
 
 #define DEBUG_WEIGHTS 0
 #define DEBUG_SPAWNQUEUE 0
-#define DEBUG_TIMERS 0
+#define DEBUG_TIMERS 1
 #define DEBUG_POSITIONER 0
 #define PLUGIN_NAME "Special Spawner"
 
@@ -132,14 +132,12 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client) {
 	if( StrContains(gameMode, "versus", false) != -1 || StrContains(gameMode, "scavenge", false) != -1 ) {
 		SetFailState("Plugin does not support PvP modes");
 	} else if( StrContains(gameMode, "survival", false) == -1 ) { // would otherwise cause spawns in survival before button is pressed
-		g_bHasSpawnTimerStarted = false;
-		StartSpawnTimer();
-	}
-	
+		SpawnTimers_OnFirstSurvivorLeftSafeArea();
+	}	
 }
 
 public OnRoundOver() {
-	EndSpawnTimer();
+	SpawnTimers_OnRoundOver();
 }
 
 public ConVarChange_SurvivorLimit(Handle:cvar, const String:oldVal[], const String:newVal[])

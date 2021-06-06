@@ -243,7 +243,7 @@ bool TraceRayDontHitPlayers(int entity, int mask, any data)
 }
 
 /***********************************************************************************************************************************************************************************
-MECHANISM: TriggerSpawn() -> ProcessSpawn() -> CreateInfected()
+MECHANISM: SS2DIS_TriggerSpawn() -> ProcessSpawn() -> CreateInfected()
 TriggerSpawn()		- Uses SI class numbers for brevity, position and eye angles
 ProcessSpawn()		- Translates class numbers to names
 CreateInfected()	- Uses SI names(to differentiate witch and witch bride)
@@ -251,12 +251,12 @@ CreateInfected()	- Uses SI names(to differentiate witch and witch bride)
 ***********************************************************************************************************************************************************************************/
 
 // Does not perform spawning; handles timing of spawn event 
-void TriggerSpawn( Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
+void SS2DIS_TriggerSpawn( L4D2_Infected:desiredClass, float pos[3], float ang[3])
 {
 	int kick = KickDeadInfectedBots();
 	if (kick <= 0) // spawn immediately without delay
     {
-   		ProcessSpawn(Left4Dead2_Infected:desiredClass, pos, ang);
+   		ProcessSpawn(L4D2_Infected:desiredClass, pos, ang);
 	} 
 	else { // spawn on short delay
 		DataPack data = CreateDataPack();
@@ -294,10 +294,10 @@ Action Timer_CreateInfected(Handle timer, DataPack data)
 		CloseHandle(data);
 	}
 	
-	ProcessSpawn(Left4Dead2_Infected:desiredClass, pos, ang);
+	ProcessSpawn(L4D2_Infected:desiredClass, pos, ang);
 }
 
-void ProcessSpawn (Left4Dead2_Infected:desiredClass, float pos[3], float ang[3])
+void ProcessSpawn (L4D2_Infected:desiredClass, float pos[3], float ang[3])
 {
 	int spawnedClient;
 	switch (_:desiredClass)
